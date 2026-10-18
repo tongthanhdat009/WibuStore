@@ -1,0 +1,84 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import MetricCard from '../../components/domain/MetricCard.astro';
+import Button from '../../components/ui/Button.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+import { formatCurrency } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface SaleRow { day: string; orders: number; gmv: number; collected: number }
+
+const { data: sales } = await apiGet<SaleRow[]>('/admin/reports/sales', Astro);
+const rows = sales ?? [];
+const gmv = rows.reduce((a, b) => a + Number(b.gmv), 0);
+const collected = rows.reduce((a, b) => a + Number(b.collected), 0);
+const orders = rows.reduce((a, b) => a + Number(b.orders), 0);
+const aov = orders > 0 ? Math.round(gmv / orders) : 0;
+---
+
+<AdminLayout
+  title="Báo cáo tổng quan kinh doanh"
+  description="Số liệu phân tích tài chính, doanh thu thực nhận, tiền cọc pre-order và tỷ lệ hoàn tất đơn hàng"
+  breadcrumbs={[{ label: 'Báo cáo' }, { label: 'Tổng quan kinh doanh' }]}
+>
+  <div slot="actions" class="flex gap-2">
+    <Button variant="secondary" size="sm">
+      Xuất dữ liệu PDF / Excel
+    </Button>
+  </div>
+
+  <!-- Metric row -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <MetricCard
+      title="Doanh thu thực nhận (Net)"
+      value={formatCurrency(collected)}
+      subtext="từ payments đã xác nhận"
+    />
+    <MetricCard
+      title="Tổng giá trị đơn (GMV)"
+      value={formatCurrency(gmv)}
+      subtext="Bao gồm đơn Pre-order"
+    />
+    <MetricCard
+      title="Tổng số đơn"
+      value={`${orders} đơn`}
+      subtext="30 ngày gần nhất"
+    />
+    <MetricCard
+      title="Giá trị trung bình đơn (AOV)"
+      value={formatCurrency(aov)}
+      subtext="Phân khúc Figure cao cấp"
+    />
+  </div>
+
+  <!-- Daily breakdown -->
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Ngày</th>
+            <th class="py-3.5 px-4 text-center">Số đơn</th>
+            <th class="py-3.5 px-4 text-right">GMV</th>
+            <th class="py-3.5 px-4 text-right">Thực thu</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {rows.length === 0 && (
+            <tr><td colspan="4" class="py-8 text-center text-[12px] text-[#6A6572]">Chưa có số liệu.</td></tr>
+          )}
+          {rows.map((r) => (
+            <tr class="hover:bg-[#FDFBF7]">
+              <td class="py-3.5 px-4 font-bold text-[#17141F]">{new Date(r.day).toLocaleDateString('vi-VN')}</td>
+              <td class="py-3.5 px-4 text-center tabular-nums">{r.orders}</td>
+              <td class="py-3.5 px-4 text-right tabular-nums">{formatCurrency(Number(r.gmv))}</td>
+              <td class="py-3.5 px-4 text-right font-bold text-[#147A4B] tabular-nums">{formatCurrency(Number(r.collected))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>

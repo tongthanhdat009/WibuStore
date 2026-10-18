@@ -1,0 +1,135 @@
+---
+interface Props {
+  breadcrumbs?: Array<{ label: string; href?: string }>;
+}
+
+const { breadcrumbs = [{ label: 'Dashboard', href: '/' }] } = Astro.props;
+---
+
+<header class="h-16 bg-white border-b border-[#D8D4D0] px-4 lg:px-6 flex items-center justify-between sticky top-0 z-20">
+  <!-- Left: Mobile toggle + Breadcrumbs -->
+  <div class="flex items-center gap-3">
+    <button
+      id="mobile-sidebar-toggle"
+      type="button"
+      class="lg:hidden p-2 rounded-[6px] text-[#534F5C] hover:bg-[#F7F5F0] hover:text-[#17141F]"
+      aria-label="Mở menu điều hướng"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+
+    <nav aria-label="Breadcrumb" class="hidden sm:flex items-center text-[13px] text-[#6A6572] font-medium">
+      <ol class="flex items-center gap-1.5 list-none m-0 p-0">
+        <li>
+          <a href="/" class="hover:text-[#17141F] transition-colors flex items-center gap-1">
+            <span class="text-[#D6284F] font-bold">Wibu Studio</span>
+          </a>
+        </li>
+        {breadcrumbs.map((crumb, idx) => (
+          <li class="flex items-center gap-1.5">
+            <span class="text-[#D8D4D0]">/</span>
+            {crumb.href && idx < breadcrumbs.length - 1 ? (
+              <a href={crumb.href} class="hover:text-[#17141F] transition-colors">
+                {crumb.label}
+              </a>
+            ) : (
+              <span class="text-[#17141F] font-bold">{crumb.label}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  </div>
+
+  <!-- Right: Search + Quick create + Alerts + User -->
+  <div class="flex items-center gap-2.5 sm:gap-3">
+    <!-- Quick Global Search input -->
+    <div class="relative hidden md:block w-64 lg:w-72">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#6A6572]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+      <input
+        type="search"
+        placeholder="Tìm mã đơn, SKU, figure..."
+        class="w-full h-9 pl-9 pr-8 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[8px] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#3258D7] focus:border-transparent transition-all placeholder:text-[#6A6572]"
+      />
+      <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+        <kbd class="text-[10px] font-mono bg-white border border-[#D8D4D0] rounded px-1 text-[#6A6572]">⌘K</kbd>
+      </div>
+    </div>
+
+    <!-- Quick Action / Add button -->
+    <div class="relative">
+      <a
+        href="/products/new"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 h-9 rounded-[8px] bg-[#D6284F] hover:bg-[#AF1E40] text-white text-[13px] font-bold shadow-xs transition-colors"
+      >
+        <span>+</span>
+        <span class="hidden sm:inline">Thêm mới</span>
+      </a>
+    </div>
+
+    <!-- Notifications Alert icon -->
+    <a
+      href="/tasks"
+      class="relative p-2 rounded-[8px] text-[#534F5C] hover:bg-[#F7F5F0] hover:text-[#17141F] transition-colors"
+      title="Việc cần xử lý & Cảnh báo"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+      </svg>
+      <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D6284F]"></span>
+    </a>
+
+    <!-- User Profile Dropdown / Action -->
+    <div class="flex items-center gap-2 pl-2 border-l border-[#D8D4D0]">
+      <div class="w-8 h-8 rounded-full bg-[#17141F] text-white flex items-center justify-center font-bold text-[13px]" id="topbar-avatar">?</div>
+      <div class="hidden xl:flex flex-col text-left">
+        <span class="text-[13px] font-bold text-[#17141F] leading-tight" id="topbar-name">...</span>
+        <span class="text-[11px] font-semibold text-[#D6284F]" id="topbar-role">...</span>
+      </div>
+      <button
+        id="topbar-logout"
+        type="button"
+        class="text-[12px] font-semibold text-[#534F5C] hover:text-[#B42318] p-1 ml-1 cursor-pointer"
+        title="Đăng xuất"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  import { guardClient, staffLogout } from '../../lib/api';
+
+  const toggleBtn = document.getElementById('mobile-sidebar-toggle');
+  const sidebar = document.getElementById('admin-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+
+  toggleBtn?.addEventListener('click', () => {
+    sidebar?.classList.remove('-translate-x-full');
+    backdrop?.classList.remove('hidden');
+  });
+
+  guardClient(false).then((me) => {
+    if (!me) return;
+    const nameEl = document.getElementById('topbar-name');
+    const roleEl = document.getElementById('topbar-role');
+    const avatarEl = document.getElementById('topbar-avatar');
+    if (nameEl) nameEl.textContent = me.name;
+    if (roleEl) roleEl.textContent = (me.roles?.[0] ?? 'staff').replace(/_/g, ' ');
+    if (avatarEl) avatarEl.textContent = (me.name || '?').charAt(0).toUpperCase();
+  });
+
+  document.getElementById('topbar-logout')?.addEventListener('click', async () => {
+    await staffLogout();
+    window.location.href = '/login';
+  });
+</script>

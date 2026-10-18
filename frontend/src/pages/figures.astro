@@ -1,0 +1,344 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import ProductGrid from '../components/catalog/ProductGrid.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+import Button from '../components/ui/Button.astro';
+
+import { products as staticProducts } from '../data/products';
+import { categories } from '../data/categories';
+import { animeSeriesList } from '../data/anime';
+import { getCatalogProducts } from '../lib/catalog';
+
+const { products } = await getCatalogProducts();
+
+// Initial render with all products (client script filters them based on URL params)
+---
+
+<BaseLayout
+  title="Tất cả mô hình Figures chính hãng | Wibu Store"
+  description="Khám phá kho mô hình anime đa dạng: Scale Figure 1/7, Nendoroid, Figma, RG Gunpla từ Good Smile Company, Alter, eStream."
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Breadcrumb -->
+    <Breadcrumb items={[{ label: 'Tất cả mô hình Figures' }]} className="mb-6" />
+
+    <!-- Main Content Area: Sidebar Filter + Catalog Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Desktop Sidebar Filter (3 cols) -->
+      <aside class="hidden lg:block lg:col-span-3 bg-white p-5 rounded-2xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] sticky top-24 space-y-6">
+        <div class="flex items-center justify-between pb-3 border-b-2 border-[#17141F]">
+          <span class="font-display text-base uppercase tracking-wider text-[#17141F] flex items-center gap-2">
+            <svg class="w-4 h-4 text-[#D6284F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+            </svg>
+            BỘ LỌC TÌM KIẾM
+          </span>
+          <button
+            id="clear-filters-btn"
+            type="button"
+            class="text-[11px] font-bold text-[#D6284F] hover:underline cursor-pointer"
+          >
+            Xóa bộ lọc
+          </button>
+        </div>
+
+        <!-- Filter Group: Category -->
+        <div>
+          <h4 class="font-bold text-xs uppercase tracking-wider text-[#17141F] mb-2.5">
+            DÒNG MÔ HÌNH
+          </h4>
+          <div class="space-y-1.5">
+            {
+              categories.map((c) => (
+                <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] hover:text-[#17141F] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="category"
+                    value={c.id}
+                    class="filter-checkbox rounded text-[#D6284F] focus:ring-0 border-neutral-300 w-4 h-4 cursor-pointer"
+                  />
+                  <span>{c.name}</span>
+                </label>
+              ))
+            }
+          </div>
+        </div>
+
+        <!-- Filter Group: Anime Franchise -->
+        <div class="pt-4 border-t border-[#D8D4D0]">
+          <h4 class="font-bold text-xs uppercase tracking-wider text-[#17141F] mb-2.5">
+            ANIME FRANCHISE
+          </h4>
+          <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            {
+              animeSeriesList.map((a) => (
+                <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] hover:text-[#17141F] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="series"
+                    value={a.slug}
+                    class="filter-checkbox rounded text-[#D6284F] focus:ring-0 border-neutral-300 w-4 h-4 cursor-pointer"
+                  />
+                  <span>{a.title}</span>
+                </label>
+              ))
+            }
+          </div>
+        </div>
+
+        <!-- Filter Group: Stock Status -->
+        <div class="pt-4 border-t border-[#D8D4D0]">
+          <h4 class="font-bold text-xs uppercase tracking-wider text-[#17141F] mb-2.5">
+            TÌNH TRẠNG HÀNG
+          </h4>
+          <div class="space-y-1.5">
+            <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] cursor-pointer">
+              <input
+                type="checkbox"
+                name="status"
+                value="in_stock"
+                class="filter-checkbox rounded text-[#D6284F] focus:ring-0 border-neutral-300 w-4 h-4 cursor-pointer"
+              />
+              <span class="text-emerald-700 font-bold">Còn hàng sẵn</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] cursor-pointer">
+              <input
+                type="checkbox"
+                name="status"
+                value="pre_order"
+                class="filter-checkbox rounded text-[#D6284F] focus:ring-0 border-neutral-300 w-4 h-4 cursor-pointer"
+              />
+              <span class="text-amber-800 font-bold">Đang nhận Pre-order</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] cursor-pointer">
+              <input
+                type="checkbox"
+                name="status"
+                value="sold_out"
+                class="filter-checkbox rounded text-[#D6284F] focus:ring-0 border-neutral-300 w-4 h-4 cursor-pointer"
+              />
+              <span>Tạm hết hàng</span>
+            </label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Catalog Products (9 cols) -->
+      <div class="lg:col-span-9">
+        <!-- Toolbar: Sort + Mobile Filter Toggle -->
+        <div class="p-3 bg-white rounded-xl border border-[#D8D4D0] mb-6 flex items-center justify-between gap-4 flex-wrap">
+          <!-- Mobile Filter Button -->
+          <button
+            id="mobile-filter-open-btn"
+            type="button"
+            class="lg:hidden px-3.5 py-1.5 rounded-lg border border-[#17141F] bg-[#F7F5F0] text-xs font-bold flex items-center gap-1.5 shadow-[1px_1px_0px_#17141F]"
+          >
+            <svg class="w-4 h-4 text-[#D6284F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            </svg>
+            <span>Bộ lọc</span>
+          </button>
+
+          <!-- Active filters badge bar -->
+          <div id="active-filters-chips" class="flex items-center gap-1.5 flex-wrap flex-1 text-xs text-[#534F5C]">
+            <!-- Injected by client script -->
+          </div>
+
+          <!-- Sort Select -->
+          <div class="flex items-center gap-2 ml-auto">
+            <label for="sort-select" class="text-xs font-bold text-[#534F5C] whitespace-nowrap">
+              Sắp xếp theo:
+            </label>
+            <select
+              id="sort-select"
+              class="text-xs font-bold bg-[#F7F5F0] border border-[#D8D4D0] focus:border-[#17141F] rounded-lg px-2.5 py-1.5 text-[#17141F] cursor-pointer"
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="popular">Bán chạy nhất</option>
+              <option value="price_asc">Giá tăng dần</option>
+              <option value="price_desc">Giá giảm dần</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Product Grid Component -->
+        <div id="catalog-grid-wrapper">
+          <ProductGrid products={products} />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Filter Drawer Modal -->
+  <div
+    id="mobile-filter-drawer"
+    class="fixed inset-0 bg-[#17141F]/60 backdrop-blur-xs z-50 opacity-0 pointer-events-none transition-opacity duration-300"
+  >
+    <div
+      id="mobile-filter-panel"
+      class="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-white rounded-t-3xl border-t-3 border-[#17141F] shadow-[0px_-6px_0px_#17141F] p-5 overflow-y-auto transform translate-y-full transition-transform duration-300"
+    >
+      <div class="flex items-center justify-between pb-3 border-b-2 border-[#17141F] mb-4">
+        <span class="font-display text-base text-[#17141F]">BỘ LỌC TÌM KIẾM</span>
+        <button id="mobile-filter-close-btn" type="button" class="font-bold text-sm text-[#17141F] p-1">✕</button>
+      </div>
+
+      <div class="space-y-5">
+        <div>
+          <h4 class="font-bold text-xs uppercase text-[#17141F] mb-2">DÒNG MÔ HÌNH</h4>
+          <div class="grid grid-cols-2 gap-2">
+            {
+              categories.map((c) => (
+                <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] p-2 rounded-lg bg-[#F7F5F0]">
+                  <input type="checkbox" name="m-category" value={c.id} class="rounded text-[#D6284F]" />
+                  <span>{c.name}</span>
+                </label>
+              ))
+            }
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-xs uppercase text-[#17141F] mb-2">TÌNH TRẠNG</h4>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] p-2 rounded-lg bg-[#F7F5F0]">
+              <input type="checkbox" name="m-status" value="in_stock" class="rounded text-[#D6284F]" />
+              <span>Còn hàng</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs font-medium text-[#534F5C] p-2 rounded-lg bg-[#F7F5F0]">
+              <input type="checkbox" name="m-status" value="pre_order" class="rounded text-[#D6284F]" />
+              <span>Pre-order</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-[#D8D4D0] flex gap-3">
+          <Button id="mobile-filter-clear-btn" variant="outline" size="md" className="flex-1">
+            Xóa lọc
+          </Button>
+          <Button id="mobile-filter-apply-btn" variant="primary" size="md" className="flex-1">
+            Áp dụng
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  function initCatalogFilters() {
+    const checkboxes = document.querySelectorAll<HTMLInputElement>('.filter-checkbox');
+    const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
+    const clearBtn = document.getElementById('clear-filters-btn');
+    const productCards = document.querySelectorAll<HTMLElement>('.product-card');
+    const countEl = document.getElementById('product-count');
+
+    // Parse URL search params
+    const params = new URLSearchParams(window.location.search);
+    const paramCategories = params.getAll('category');
+    const paramSeries = params.getAll('series');
+    const paramStatus = params.getAll('status');
+    const paramSort = params.get('sort') || 'newest';
+
+    checkboxes.forEach((cb) => {
+      if (
+        (cb.name === 'category' && paramCategories.includes(cb.value)) ||
+        (cb.name === 'series' && paramSeries.includes(cb.value)) ||
+        (cb.name === 'status' && paramStatus.includes(cb.value))
+      ) {
+        cb.checked = true;
+      }
+    });
+
+    if (sortSelect) {
+      sortSelect.value = paramSort;
+    }
+
+    function applyFilterAndSort() {
+      const selectedCats = Array.from(
+        document.querySelectorAll<HTMLInputElement>('input[name="category"]:checked')
+      ).map((el) => el.value);
+
+      const selectedSeries = Array.from(
+        document.querySelectorAll<HTMLInputElement>('input[name="series"]:checked')
+      ).map((el) => el.value);
+
+      const selectedStatus = Array.from(
+        document.querySelectorAll<HTMLInputElement>('input[name="status"]:checked')
+      ).map((el) => el.value);
+
+      let visibleCount = 0;
+
+      productCards.forEach((card) => {
+        const cardCat = card.dataset.category || '';
+        const cardSeries = card.dataset.series || '';
+        const cardStatus = card.dataset.status || '';
+
+        const catMatch = selectedCats.length === 0 || selectedCats.includes(cardCat);
+        const seriesMatch = selectedSeries.length === 0 || selectedSeries.includes(cardSeries);
+        const statusMatch = selectedStatus.length === 0 || selectedStatus.includes(cardStatus);
+
+        if (catMatch && seriesMatch && statusMatch) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      if (countEl) countEl.textContent = String(visibleCount);
+
+      // Sync URL
+      const newParams = new URLSearchParams();
+      selectedCats.forEach((c) => newParams.append('category', c));
+      selectedSeries.forEach((s) => newParams.append('series', s));
+      selectedStatus.forEach((st) => newParams.append('status', st));
+      if (sortSelect && sortSelect.value !== 'newest') {
+        newParams.set('sort', sortSelect.value);
+      }
+      const newUrl = `${window.location.pathname}${newParams.toString() ? '?' + newParams.toString() : ''}`;
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    checkboxes.forEach((cb) => cb.addEventListener('change', applyFilterAndSort));
+    sortSelect?.addEventListener('change', applyFilterAndSort);
+
+    clearBtn?.addEventListener('click', () => {
+      checkboxes.forEach((cb) => (cb.checked = false));
+      if (sortSelect) sortSelect.value = 'newest';
+      applyFilterAndSort();
+    });
+
+    // Mobile filter drawer logic
+    const mobOpenBtn = document.getElementById('mobile-filter-open-btn');
+    const mobDrawer = document.getElementById('mobile-filter-drawer');
+    const mobPanel = document.getElementById('mobile-filter-panel');
+    const mobCloseBtn = document.getElementById('mobile-filter-close-btn');
+    const mobApplyBtn = document.getElementById('mobile-filter-apply-btn');
+
+    mobOpenBtn?.addEventListener('click', () => {
+      mobDrawer?.classList.remove('opacity-0', 'pointer-events-none');
+      mobDrawer?.classList.add('opacity-100', 'pointer-events-auto');
+      mobPanel?.classList.remove('translate-y-full');
+    });
+
+    function closeMobFilter() {
+      mobPanel?.classList.add('translate-y-full');
+      mobDrawer?.classList.remove('opacity-100', 'pointer-events-auto');
+      mobDrawer?.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    mobCloseBtn?.addEventListener('click', closeMobFilter);
+    mobApplyBtn?.addEventListener('click', () => {
+      closeMobFilter();
+      applyFilterAndSort();
+    });
+
+    // Initial run
+    applyFilterAndSort();
+  }
+
+  initCatalogFilters();
+  document.addEventListener('astro:page-load', initCatalogFilters);
+</script>

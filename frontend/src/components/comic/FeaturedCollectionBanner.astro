@@ -1,0 +1,87 @@
+---
+import type { Collection, Product } from '../../types';
+import { formatVND } from '../../lib/utils';
+import Button from '../ui/Button.astro';
+import StickerBadge from './StickerBadge.astro';
+
+interface Props {
+  collection: Collection;
+  featuredProducts: Product[];
+}
+
+const { collection, featuredProducts } = Astro.props;
+---
+
+<div class="relative rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] overflow-hidden bg-[#FFFDF7] p-6 md:p-8 lg:p-10">
+  <!-- Halftone background motif -->
+  <div class="absolute inset-0 pattern-halftone opacity-20 pointer-events-none"></div>
+
+  <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+    <!-- Left Comic Poster Panel (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col justify-between">
+      <div class="flex items-center gap-2.5 mb-3 flex-wrap">
+        <StickerBadge text={collection.badge} variant="yellow" angle="left" size="sm" />
+        <span class="font-display text-xs text-[#534F5C] uppercase tracking-wider">
+          EXCLUSIVE VOL. COLLECTION
+        </span>
+      </div>
+
+      <h3 class="font-display text-3xl sm:text-4xl md:text-5xl text-[#17141F] uppercase leading-[0.95] tracking-tight">
+        {collection.title}
+      </h3>
+
+      <p class="text-sm md:text-base font-bold text-[#D6284F] mt-2">
+        {collection.tagline}
+      </p>
+
+      <p class="text-xs md:text-sm text-[#534F5C] mt-2 max-w-xl leading-relaxed">
+        {collection.description}
+      </p>
+
+      <div class="mt-6 flex items-center gap-3 flex-wrap">
+        <Button href={`/collections/${collection.slug}`} variant="primary" size="md">
+          <span>Xem trọn bộ sưu tập</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </Button>
+
+        <Button href="/collections" variant="outline" size="md">
+          <span>Tất cả collections</span>
+        </Button>
+      </div>
+    </div>
+
+    <!-- Right Panels: 2 featured items preview (5 cols) -->
+    <div class="lg:col-span-5 grid grid-cols-2 gap-4">
+      {
+        featuredProducts.slice(0, 2).map((item) => (
+          <a
+            href={`/products/${item.slug}`}
+            class="group block bg-white rounded-2xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:shadow-[5px_5px_0px_#17141F] hover:-translate-y-1 transition-all p-3 text-center"
+          >
+            <div class="aspect-square rounded-xl overflow-hidden bg-[#F7F5F0] border border-[#17141F]/15 mb-2.5 relative">
+              <img
+                src={item.images[0]}
+                alt={item.name}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+              {item.status === 'pre_order' && (
+                <span class="absolute top-1.5 left-1.5 font-display text-[9px] bg-[#FFD44A] text-[#17141F] px-1.5 py-0.5 rounded border border-[#17141F]">
+                  PRE-ORDER
+                </span>
+              )}
+            </div>
+            <h4 class="text-xs font-bold text-[#17141F] line-clamp-1 group-hover:text-[#D6284F] transition-colors">
+              {item.name}
+            </h4>
+            <p class="text-xs font-black text-[#D6284F] mt-1">
+              {formatVND(item.price)}
+            </p>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</div>

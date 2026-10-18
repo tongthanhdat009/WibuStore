@@ -1,0 +1,57 @@
+---
+interface Props {
+  variant?: 'brand' | 'yellow' | 'mint' | 'pink' | 'ink' | 'outline' | 'status';
+  status?: string;
+  className?: string;
+  comicSticker?: boolean;
+}
+
+const {
+  variant = 'brand',
+  status,
+  className = '',
+  comicSticker = false,
+} = Astro.props;
+
+let variantClasses = 'bg-[#D6284F] text-white border-[#17141F]';
+
+if (status) {
+  if (status === 'in_stock') {
+    variantClasses = 'bg-emerald-100 text-emerald-800 border-emerald-600';
+  } else if (status === 'pre_order') {
+    variantClasses = 'bg-amber-100 text-amber-900 border-amber-600';
+  } else if (status === 'sold_out') {
+    variantClasses = 'bg-rose-100 text-rose-800 border-rose-500';
+  }
+} else {
+  switch (variant) {
+    case 'yellow':
+      variantClasses = 'bg-[#FFD44A] text-[#17141F] border-[#17141F]';
+      break;
+    case 'mint':
+      variantClasses = 'bg-[#DDF9EB] text-[#17141F] border-[#17141F]';
+      break;
+    case 'pink':
+      variantClasses = 'bg-[#FFE6ED] text-[#17141F] border-[#17141F]';
+      break;
+    case 'ink':
+      variantClasses = 'bg-[#17141F] text-white border-[#17141F]';
+      break;
+    case 'outline':
+      variantClasses = 'bg-white text-[#17141F] border-[#17141F]';
+      break;
+    case 'brand':
+    default:
+      variantClasses = 'bg-[#D6284F] text-white border-[#17141F]';
+      break;
+  }
+}
+
+const stickerClass = comicSticker
+  ? 'font-display uppercase tracking-wider text-xs px-2.5 py-1 border-2 shadow-[2px_2px_0px_#17141F] rounded-md rotate-[-2deg]'
+  : 'text-xs font-bold px-2.5 py-0.5 border rounded-full';
+---
+
+<span class={`inline-flex items-center gap-1.5 ${stickerClass} ${variantClasses} ${className}`}>
+  <slot />
+</span>

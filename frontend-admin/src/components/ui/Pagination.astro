@@ -1,0 +1,43 @@
+---
+import type { PageMeta } from '../../lib/api';
+
+interface Props {
+  meta?: PageMeta;
+  pathname: string;
+  params?: Record<string, string>;
+}
+
+const { meta, pathname, params = {} } = Astro.props;
+
+function hrefFor(page: number): string {
+  const qs = new URLSearchParams({ ...params, page: String(page) });
+  return `${pathname}?${qs.toString()}`;
+}
+
+const page = meta?.current_page ?? 1;
+const lastPage = meta?.last_page ?? 1;
+const total = meta?.total ?? 0;
+---
+
+{(lastPage > 1 || total > 0) && (
+  <div class="p-4 border-t border-[#D8D4D0] bg-[#FAF8F5] flex flex-wrap items-center justify-between gap-2 text-[13px] text-[#534F5C]">
+    <span>
+      Hiển thị {meta?.from ?? 0} - {meta?.to ?? 0} trong tổng số <strong class="text-[#17141F]">{total}</strong>
+    </span>
+    {lastPage > 1 && (
+      <div class="flex items-center gap-1">
+        {page > 1 ? (
+          <a href={hrefFor(page - 1)} class="px-2.5 py-1 rounded border border-[#D8D4D0] bg-white hover:border-[#17141F]">Trước</a>
+        ) : (
+          <span class="px-2.5 py-1 rounded border border-[#D8D4D0] bg-white opacity-50">Trước</span>
+        )}
+        <span class="px-3 py-1 rounded border border-[#17141F] bg-[#17141F] text-white font-bold">{page} / {lastPage}</span>
+        {page < lastPage ? (
+          <a href={hrefFor(page + 1)} class="px-2.5 py-1 rounded border border-[#D8D4D0] bg-white hover:border-[#17141F]">Sau</a>
+        ) : (
+          <span class="px-2.5 py-1 rounded border border-[#D8D4D0] bg-white opacity-50">Sau</span>
+        )}
+      </div>
+    )}
+  </div>
+)}

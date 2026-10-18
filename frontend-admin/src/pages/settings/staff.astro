@@ -1,0 +1,206 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, currentPage, requireStaff } from '../../lib/api';
+import Pagination from '../../components/ui/Pagination.astro';
+
+const { redirect, staff: me } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface StaffRow {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  status: string;
+  roles: { id: number; name: string; slug: string }[];
+}
+interface RoleRow {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+const { data: staffData, meta: staffMeta } = await apiGet<StaffRow[]>(`/admin/staff?per_page=20&page=${page}`, Astro);
+const { data: roleData } = await apiGet<RoleRow[]>('/admin/rbac/roles', Astro);
+const members = staffData ?? [];
+const allRoles = roleData ?? [];
+---
+
+<AdminLayout
+  title="Nhân sự"
+  description="Danh sách tài khoản nội bộ: tạo mới, đổi vai trò, khóa/mở và xóa"
+  breadcrumbs={[{ label: 'Hệ thống' }, { label: 'Nhân sự' }]}
+>
+  <div slot="actions">
+    <button id="open-staff-modal" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#17141F] text-white text-[13px] font-bold cursor-pointer">
+      + Tạo nhân sự
+    </button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Thành viên</th>
+            <th class="py-3.5 px-4">Vai trò</th>
+            <th class="py-3.5 px-4 text-center">Trạng thái</th>
+            <th class="py-3.5 px-4 text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {members.map((m) => (
+            <tr class="hover:bg-[#FDFBF7]" data-staff-row={m.id}>
+              <td class="py-4 px-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-[#17141F] text-white flex items-center justify-center font-bold shrink-0">
+                    {m.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div class="font-bold text-[#17141F]">{m.name}</div>
+                    <div class="text-[11px] font-mono text-[#6A6572]">{m.email}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <div class="flex flex-wrap gap-1.5">
+                  {m.roles.length === 0 && <span class="text-[11px] text-[#6A6572]">Chưa gán</span>}
+                  {m.roles.map((r) => (
+                    <Badge variant={r.slug === 'super_admin' ? 'brand' : 'neutral'} size="sm">
+                      {r.name}
+                    </Badge>
+                  ))}
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <button
+                  type="button"
+                  data-toggle-status={m.id}
+                  data-current={m.status}
+                  class={`text-[11px] font-bold px-2 py-0.5 rounded-full border cursor-pointer ${
+                    m.status === 'active'
+                      ? 'bg-[#E7F5ED] text-[#147A4B] border-[#147A4B]/30'
+                      : 'bg-[#F2EFE9] text-[#6A6572] border-[#D8D4D0]'
+                  }`}
+                >
+                  {m.status === 'active' ? 'Đang hoạt động' : 'Tạm khóa'}
+                </button>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <div class="flex items-center justify-center gap-1.5">
+                  <a href={`/settings/staff/${m.id}`} class="px-2.5 py-1 rounded-[6px] text-[12px] font-semibold border border-[#D8D4D0] bg-white hover:bg-[#F7F5F0] text-[#17141F]">
+                    Sửa vai trò
+                  </a>
+                  {me && m.email !== me.email && (
+                    <button
+                      type="button"
+                      data-delete-staff={m.id}
+                      data-delete-name={m.name}
+                      class="px-2.5 py-1 rounded-[6px] text-[12px] font-bold border border-[#D6284F]/40 text-[#D6284F] hover:bg-[#FFF0F3] cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={staffMeta} pathname="/settings/staff" params={{}} />
+  </div>
+
+  <div id="staff-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[16px] max-w-md w-full p-6 border-2 border-[#17141F] space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[16px] font-black text-[#17141F]">Tạo tài khoản nhân sự</h3>
+        <button type="button" data-close-modal class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg cursor-pointer">✕</button>
+      </div>
+      <div id="staff-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+      <div class="space-y-3 text-[13px]">
+        <input id="st-name" placeholder="Họ tên *" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="st-email" type="email" placeholder="Email *" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="st-pass" type="password" placeholder="Mật khẩu (≥8) *" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <select id="st-role" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]">
+          <option value="">— Vai trò —</option>
+          {allRoles.filter((r) => r.slug !== 'customer').map((r) => (
+            <option value={r.id}>{r.name}</option>
+          ))}
+        </select>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <button type="button" data-close-modal class="px-4 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px] cursor-pointer">Hủy</button>
+        <button id="st-submit" type="button" class="px-4 h-10 rounded-[8px] bg-[#17141F] text-white font-bold text-[13px] cursor-pointer">+ Tạo</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    const staffModal = document.getElementById('staff-modal');
+    document.getElementById('open-staff-modal')?.addEventListener('click', () => {
+      staffModal?.classList.remove('hidden');
+      staffModal?.classList.add('flex');
+    });
+    staffModal?.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        staffModal?.classList.add('hidden');
+        staffModal?.classList.remove('flex');
+      });
+    });
+
+    function fail(msg: string) {
+      const el = document.getElementById('staff-error');
+      if (el) {
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      } else {
+        alert(msg);
+      }
+    }
+
+    document.getElementById('st-submit')?.addEventListener('click', async () => {
+      const name = ((document.getElementById('st-name') as HTMLInputElement | null)?.value || '').trim();
+      const email = ((document.getElementById('st-email') as HTMLInputElement | null)?.value || '').trim();
+      const password = (document.getElementById('st-pass') as HTMLInputElement | null)?.value || '';
+      const roleVal = (document.getElementById('st-role') as HTMLSelectElement | null)?.value || '';
+      if (!name || !email || password.length < 8) return fail('Nhập tên, email và mật khẩu ≥ 8 ký tự.');
+      const { error } = await mutate('/admin/staff', 'POST', {
+        name,
+        email,
+        password,
+        role_ids: roleVal ? [Number(roleVal)] : [],
+      });
+      if (error) return fail(error.message || 'Tạo thất bại.');
+      window.location.reload();
+    });
+
+    document.querySelectorAll('button[data-toggle-status]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.toggleStatus;
+        const current = (btn as HTMLElement).dataset.current;
+        const next = current === 'active' ? 'suspended' : 'active';
+        if (!confirm(`Chuyển ${next === 'active' ? 'mở khóa' : 'tạm khóa'} tài khoản này?`)) return;
+        const { error } = await mutate(`/admin/staff/${id}`, 'PATCH', { status: next });
+        if (error) return fail(error.message || 'Cập nhật thất bại.');
+        window.location.reload();
+      });
+    });
+
+    document.querySelectorAll('button[data-delete-staff]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.deleteStaff;
+        const name = (btn as HTMLElement).dataset.deleteName;
+        if (!confirm(`Xóa tài khoản "${name}"? Không thể hoàn tác.`)) return;
+        const { error } = await mutate(`/admin/staff/${id}`, 'DELETE');
+        if (error) return fail(error.message || 'Xóa thất bại.');
+        window.location.reload();
+      });
+    });
+  </script>
+</AdminLayout>

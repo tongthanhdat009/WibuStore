@@ -1,0 +1,287 @@
+---
+import type { HeroCampaign } from '../../types';
+import { formatVND } from '../../lib/utils';
+import Button from '../ui/Button.astro';
+import StickerBadge from './StickerBadge.astro';
+
+interface Props {
+  campaigns: HeroCampaign[];
+}
+
+const { campaigns } = Astro.props;
+---
+
+<section
+  id="comic-hero"
+  aria-label="Comic Cover Featured Drop"
+  class="relative w-full pb-4"
+>
+  <!-- Outer Comic Book Frame (full-bleed, no border) -->
+  <div class="relative overflow-hidden bg-[#FFFDF7] min-h-[680px] lg:min-h-[800px] flex flex-col justify-between">
+    
+    <!-- Top Comic Header Strip (Editorial Meta) -->
+    <div class="border-b-2 border-[#17141F] bg-white px-4 md:px-8 py-2.5 flex items-center justify-between z-20">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 font-display text-xs tracking-wider bg-[#FFD44A] text-[#17141F] px-2.5 py-0.5 rounded border border-[#17141F]">
+          <span class="w-2 h-2 rounded-full bg-[#D6284F] animate-pulse"></span>
+          <span id="hero-issue-label">{campaigns[0].issueNumber}</span>
+        </span>
+        <span class="hidden sm:inline-block text-xs font-bold text-[#534F5C] uppercase tracking-wider">
+          Manga & Figure Weekly Digest
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Slide Index Counter -->
+        <div class="font-display text-sm tracking-wider flex items-center gap-1">
+          <span id="hero-current-index" class="text-[#D6284F] font-bold text-base">01</span>
+          <span class="text-[#17141F]">/</span>
+          <span class="text-[#534F5C]">0{campaigns.length}</span>
+        </div>
+
+        <!-- Prev / Next Controls -->
+        <div class="flex items-center gap-1.5">
+          <button
+            id="hero-btn-prev"
+            type="button"
+            aria-label="Previous Featured Figure"
+            class="w-8 h-8 rounded-lg border-2 border-[#17141F] bg-white hover:bg-[#FFD44A] flex items-center justify-center font-bold text-[#17141F] shadow-[2px_2px_0px_#17141F] hover:-translate-y-0.5 transition-all cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          <button
+            id="hero-btn-next"
+            type="button"
+            aria-label="Next Featured Figure"
+            class="w-8 h-8 rounded-lg border-2 border-[#17141F] bg-white hover:bg-[#FFD44A] flex items-center justify-center font-bold text-[#17141F] shadow-[2px_2px_0px_#17141F] hover:-translate-y-0.5 transition-all cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Visual Canvas (Slides Container) -->
+    <div class="relative flex-1 flex items-center overflow-hidden min-h-[500px] lg:min-h-[620px]">
+      {
+        campaigns.map((campaign, idx) => (
+          <div
+            class={`hero-slide absolute inset-0 w-full h-full p-6 md:p-10 lg:py-12 lg:px-[10vw] transition-opacity duration-300 flex flex-col justify-between ${
+              idx === 0 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
+            }`}
+            data-index={idx}
+            data-issue={campaign.issueNumber}
+          >
+            <!-- Background Layer 1: Comic Colored Graphic Panel behind character -->
+            <div
+              class={`absolute top-6 right-6 lg:right-16 w-72 md:w-96 lg:w-[480px] h-[340px] md:h-[420px] rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] rotate-3 pointer-events-none ${campaign.panelBgClass} opacity-90`}
+            >
+              <!-- Halftone dots inside panel -->
+              <div class="w-full h-full pattern-halftone opacity-35 rounded-3xl"></div>
+            </div>
+
+            <!-- Background Layer 2: Giant Anton Typography (Comic Book Title Style) -->
+            <div class="absolute left-6 md:left-10 lg:left-[10vw] right-0 top-1/3 z-0 pointer-events-none select-none overflow-hidden">
+              <span class="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-[#17141F]/8 uppercase leading-[0.88] tracking-tighter block whitespace-nowrap font-black">
+                {campaign.displayEnglishHeadline}
+              </span>
+            </div>
+
+            <!-- Foreground Content Layer -->
+            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center flex-1">
+              <!-- Left Info Column (7 cols desktop) -->
+              <div class="lg:col-span-7 flex flex-col justify-center order-2 lg:order-1 pt-4 lg:pt-0">
+                <div class="flex items-center gap-2 mb-3 flex-wrap">
+                  <StickerBadge text={campaign.badge} variant="yellow" angle="left" size="sm" />
+                  <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase px-2 py-0.5 bg-white/80 rounded border border-[#17141F]">
+                    {campaign.series}
+                  </span>
+                  <span class="text-xs font-bold text-[#147A4B] bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                    {campaign.status === 'pre_order' ? 'Đang mở đặt cọc' : 'Có sẵn tại kho'}
+                  </span>
+                </div>
+
+                <!-- Headline Anton display -->
+                <h1 class="font-display text-4xl sm:text-5xl md:text-6xl lg:text-[3.8vw] lg:whitespace-nowrap text-[#17141F] uppercase leading-[0.92] tracking-tight">
+                  {campaign.displayEnglishHeadline}
+                </h1>
+
+                <!-- Metadata details -->
+                <div class="flex items-center gap-4 text-xs text-[#534F5C] mt-2 font-medium">
+                  <span>Hãng: <strong class="text-[#17141F]">{campaign.manufacturer}</strong></span>
+                  <span>•</span>
+                  <span>Tỉ lệ: <strong class="text-[#17141F]">{campaign.scale}</strong></span>
+                </div>
+
+                <!-- Price & CTA Block -->
+                <div class="mt-6 flex flex-wrap items-center gap-4 pt-4 border-t-2 border-[#17141F]/15">
+                  <div class="bg-white px-4 py-2 rounded-xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]">
+                    <span class="block text-[11px] font-bold text-[#534F5C] uppercase">
+                      {campaign.status === 'pre_order' ? 'Giá dự kiến' : 'Giá chính hãng'}
+                    </span>
+                    <span class="font-sans text-2xl sm:text-3xl font-black text-[#D6284F] leading-none">
+                      {formatVND(campaign.price)}
+                    </span>
+                    {campaign.depositPrice && (
+                      <span class="block text-[11px] font-bold text-[#9A5A00] mt-0.5">
+                        Cọc trước: {formatVND(campaign.depositPrice)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div class="flex items-center gap-2.5 flex-wrap">
+                    <Button href={campaign.primaryCtaLink} variant="primary" size="lg">
+                      <span>{campaign.primaryCtaText}</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Visual Figure Column (5 cols desktop) -->
+              <div class="lg:col-span-5 flex items-center justify-center relative order-1 lg:order-2 pb-8 lg:pb-10">
+                <div class="relative w-full max-w-[320px] sm:max-w-[380px] lg:max-w-[440px] aspect-[4/5] rounded-2xl overflow-hidden border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-white group -translate-y-2 lg:-translate-y-4">
+                  <img
+                    src={campaign.figureImage}
+                    alt={campaign.productName}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading={idx === 0 ? 'eager' : 'lazy'}
+                  />
+                  <!-- Speed lines overlay -->
+                  <div class="absolute inset-0 speed-lines opacity-20 pointer-events-none"></div>
+
+                  <!-- Small sticker over figure -->
+                  <div class="absolute bottom-3 right-3">
+                    <StickerBadge text="AUTHENTIC" variant="yellow" angle="right" size="sm" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- Bottom Thumbnail Navigation Bar -->
+    <div class="border-t-2 border-[#17141F] bg-white/95 px-4 md:px-8 py-4 z-20">
+      <div class="flex items-center justify-center gap-3 flex-wrap">
+        <!-- Thumbnails Rail -->
+        <div class="flex items-center gap-3 overflow-x-auto p-[5px] w-full md:w-auto">
+          {
+            campaigns.map((camp, idx) => (
+              <button
+                type="button"
+                class={`hero-thumb-btn group flex items-center gap-2.5 px-3 py-2 min-h-[56px] rounded-xl border-2 border-[#17141F] transition-all cursor-pointer text-left shrink-0 ${
+                  idx === 0
+                    ? 'bg-[#FFD44A] shadow-[3px_3px_0px_#17141F] -translate-y-0.5'
+                    : 'bg-white shadow-[1px_1px_0px_#17141F] hover:bg-[#FFFDF7]'
+                }`}
+                data-target={idx}
+                aria-label={`Xem chiến dịch ${camp.productName}`}
+              >
+                <div class="w-8 h-8 rounded-lg overflow-hidden border border-[#17141F] bg-white shrink-0">
+                  <img src={camp.thumbnailImage} alt={camp.productName} class="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <span class="block font-display text-[11px] uppercase tracking-wider text-[#17141F] leading-tight">
+                    VOL. 0{idx + 1}
+                  </span>
+                  <span class="block text-xs font-bold text-[#534F5C] truncate max-w-[120px] sm:max-w-[160px]">
+                    {camp.productName}
+                  </span>
+                </div>
+              </button>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Client Script for Hero Carousel Control -->
+<script>
+  function initHeroCarousel() {
+    const heroSection = document.getElementById('comic-hero');
+    if (!heroSection) return;
+
+    const slides = heroSection.querySelectorAll<HTMLElement>('.hero-slide');
+    const thumbBtns = heroSection.querySelectorAll<HTMLButtonElement>('.hero-thumb-btn');
+    const btnPrev = document.getElementById('hero-btn-prev');
+    const btnNext = document.getElementById('hero-btn-next');
+    const currentIndexEl = document.getElementById('hero-current-index');
+    const issueLabelEl = document.getElementById('hero-issue-label');
+
+    if (!slides.length) return;
+
+    let currentIndex = 0;
+    const total = slides.length;
+
+    function showSlide(index: number) {
+      if (index < 0) index = total - 1;
+      if (index >= total) index = 0;
+      currentIndex = index;
+
+      slides.forEach((slide, i) => {
+        if (i === currentIndex) {
+          slide.classList.remove('opacity-0', 'pointer-events-none', 'z-0');
+          slide.classList.add('opacity-100', 'pointer-events-auto', 'z-10');
+          if (issueLabelEl) {
+            issueLabelEl.textContent = slide.dataset.issue || '';
+          }
+        } else {
+          slide.classList.add('opacity-0', 'pointer-events-none', 'z-0');
+          slide.classList.remove('opacity-100', 'pointer-events-auto', 'z-10');
+        }
+      });
+
+      thumbBtns.forEach((btn, i) => {
+        if (i === currentIndex) {
+          btn.classList.add('bg-[#FFD44A]', 'shadow-[3px_3px_0px_#17141F]', '-translate-y-0.5');
+          btn.classList.remove('bg-white', 'shadow-[1px_1px_0px_#17141F]');
+        } else {
+          btn.classList.remove('bg-[#FFD44A]', 'shadow-[3px_3px_0px_#17141F]', '-translate-y-0.5');
+          btn.classList.add('bg-white', 'shadow-[1px_1px_0px_#17141F]');
+        }
+      });
+
+      if (currentIndexEl) {
+        currentIndexEl.textContent = `0${currentIndex + 1}`;
+      }
+    }
+
+    thumbBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = parseInt(btn.dataset.target || '0', 10);
+        showSlide(target);
+      });
+    });
+
+    btnPrev?.addEventListener('click', () => {
+      showSlide(currentIndex - 1);
+    });
+
+    btnNext?.addEventListener('click', () => {
+      showSlide(currentIndex + 1);
+    });
+
+    // Keyboard navigation
+    heroSection.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        showSlide(currentIndex - 1);
+      } else if (e.key === 'ArrowRight') {
+        showSlide(currentIndex + 1);
+      }
+    });
+  }
+
+  // Run on page load and on Astro page transitions
+  initHeroCarousel();
+  document.addEventListener('astro:page-load', initHeroCarousel);
+</script>

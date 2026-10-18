@@ -1,0 +1,265 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import Button from '../components/ui/Button.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout
+  title="Giỏ hàng của bạn | Wibu Store"
+  description="Xem lại các mô hình anime bạn đã chọn, kiểm tra chi phí và tiến hành thanh toán an toàn."
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb items={[{ label: 'Giỏ hàng' }]} className="mb-6" />
+
+    <div class="flex items-center gap-2 mb-6">
+      <StickerBadge text="YOUR BAG" variant="yellow" angle="left" size="sm" />
+      <h1 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
+        GIỎ HÀNG SƯU TẦM
+      </h1>
+    </div>
+
+    <!-- Cart Layout Grid: Items list (8 cols) + Summary box (4 cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Left: Cart Items List (8 cols) -->
+      <div class="lg:col-span-8 bg-white p-5 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F]">
+        <div class="flex items-center justify-between pb-4 border-b-2 border-[#17141F] mb-4">
+          <span class="font-display text-sm uppercase tracking-wider text-[#17141F]">
+            DANH SÁCH MÔ HÌNH
+          </span>
+          <button
+            id="cart-page-clear-btn"
+            type="button"
+            class="text-xs font-bold text-[#D6284F] hover:underline cursor-pointer"
+          >
+            Xóa toàn bộ giỏ hàng
+          </button>
+        </div>
+
+        <div id="cart-page-items" class="space-y-4">
+          <!-- Populated by client script -->
+          <div id="cart-page-empty" class="py-16 text-center text-[#534F5C]">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F7F5F0] border-2 border-[#17141F] flex items-center justify-center text-3xl shadow-[3px_3px_0px_#17141F]">
+              🛒
+            </div>
+            <h3 class="font-display text-xl text-[#17141F] uppercase">Giỏ hàng của bạn đang trống</h3>
+            <p class="text-xs text-[#6A6572] mt-1 max-w-sm mx-auto">
+              Chưa có mô hình nào trong giỏ. Hãy chọn những tuyệt phẩm anime bạn ưng ý nhất!
+            </p>
+            <div class="mt-6">
+              <Button href="/figures" variant="primary" size="md">
+                <span>Khám phá mô hình ngay</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Summary Box (4 cols) -->
+      <div class="lg:col-span-4 bg-white p-6 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] sticky top-24 space-y-4">
+        <h2 class="font-display text-lg uppercase tracking-wider text-[#17141F] pb-3 border-b-2 border-[#17141F]">
+          TỔNG ĐƠN HÀNG
+        </h2>
+
+        <div class="space-y-2.5 text-xs">
+          <div class="flex items-center justify-between text-[#534F5C]">
+            <span>Tổng tiền hàng:</span>
+            <span id="cart-summary-raw-subtotal" class="font-bold text-[#17141F] text-sm">0 ₫</span>
+          </div>
+
+          <div class="flex items-center justify-between text-[#534F5C]">
+            <span>Phí vận chuyển:</span>
+            <span id="cart-summary-shipping" class="font-bold text-emerald-700">Miễn phí</span>
+          </div>
+
+          <div class="pt-3 border-t-2 border-[#17141F] flex items-baseline justify-between">
+            <span class="font-bold text-[#17141F] text-sm">Tổng thanh toán:</span>
+            <span id="cart-summary-total" class="font-sans text-2xl font-black text-[#D6284F]">0 ₫</span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-[#FFF4DC] rounded-xl border border-amber-300 text-[11px] text-[#9A5A00] flex items-start gap-2">
+          <span>ℹ️</span>
+          <span>
+            Đối với các sản phẩm <strong>Pre-order</strong>, bạn sẽ chỉ phải thanh toán số tiền cọc ở bước tiếp theo.
+          </span>
+        </div>
+
+        <Button
+          id="cart-checkout-cta"
+          href="/checkout"
+          variant="primary"
+          size="lg"
+          className="w-full"
+        >
+          <span>Tiến hành thanh toán</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </Button>
+
+        <a
+          href="/figures"
+          class="block text-center text-xs font-bold text-[#534F5C] hover:text-[#D6284F] hover:underline pt-2"
+        >
+          ← Tiếp tục chọn mô hình
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { getStoredCart, updateCartQuantity, removeCartItem, clearCart } from '../lib/cart';
+  import { formatVND } from '../lib/utils';
+
+  function initCartPage() {
+    const container = document.getElementById('cart-page-items');
+    const emptyState = document.getElementById('cart-page-empty');
+    const rawSubtotalEl = document.getElementById('cart-summary-raw-subtotal');
+    const totalEl = document.getElementById('cart-summary-total');
+    const shippingEl = document.getElementById('cart-summary-shipping');
+    const clearBtn = document.getElementById('cart-page-clear-btn');
+    const checkoutCta = document.getElementById('cart-checkout-cta');
+
+    function render() {
+      const cart = getStoredCart();
+      const subtotal = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+
+      // Shipping is free if subtotal >= 1.500.000 or cart is empty
+      const shipping = subtotal >= 1500000 || subtotal === 0 ? 0 : 35000;
+      const finalTotal = subtotal + shipping;
+
+      if (rawSubtotalEl) rawSubtotalEl.textContent = formatVND(subtotal);
+      if (totalEl) totalEl.textContent = formatVND(finalTotal);
+      if (shippingEl) {
+        shippingEl.textContent = shipping === 0 ? 'Miễn phí' : formatVND(shipping);
+      }
+
+      if (!container) return;
+
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div class="py-16 text-center text-[#534F5C]">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F7F5F0] border-2 border-[#17141F] flex items-center justify-center text-3xl shadow-[3px_3px_0px_#17141F]">
+              🛒
+            </div>
+            <h3 class="font-display text-xl text-[#17141F] uppercase">Giỏ hàng của bạn đang trống</h3>
+            <p class="text-xs text-[#6A6572] mt-1 max-w-sm mx-auto">
+              Chưa có mô hình nào trong giỏ. Hãy chọn những tuyệt phẩm anime bạn ưng ý nhất!
+            </p>
+            <div class="mt-6">
+              <a href="/figures" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D6284F] text-white font-bold text-sm border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]">
+                <span>Khám phá mô hình ngay</span>
+                &rarr;
+              </a>
+            </div>
+          </div>
+        `;
+        if (checkoutCta) {
+          checkoutCta.classList.add('opacity-50', 'pointer-events-none');
+        }
+        return;
+      }
+
+      if (checkoutCta) {
+        checkoutCta.classList.remove('opacity-50', 'pointer-events-none');
+      }
+
+      container.innerHTML = cart
+        .map(
+          (item) => `
+        <div class="p-4 bg-[#F7F5F0] rounded-2xl border border-[#D8D4D0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-4 min-w-0">
+            <a href="/products/${item.slug}" class="w-20 h-20 rounded-xl overflow-hidden bg-white border border-[#17141F]/20 shrink-0">
+              <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
+            </a>
+            <div class="min-w-0">
+              <span class="text-[11px] font-bold text-[#3258D7]">${item.series}</span>
+              <h3 class="text-xs sm:text-sm font-bold text-[#17141F] line-clamp-1 hover:text-[#D6284F]">
+                <a href="/products/${item.slug}">${item.name}</a>
+              </h3>
+              ${
+                item.isPreOrder
+                  ? `<span class="inline-block text-[10px] font-bold text-[#9A5A00] bg-amber-50 px-2 py-0.5 rounded border border-amber-300 mt-1">ĐẶT TRƯỚC (PRE-ORDER)</span>`
+                  : `<span class="inline-block text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300 mt-1">CÒN HÀNG SẴN</span>`
+              }
+              <div class="mt-1 font-sans text-sm font-black text-[#D6284F]">
+                ${formatVND(item.price)}
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between w-full sm:w-auto gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D8D4D0]">
+            <div class="flex items-center border-2 border-[#17141F] rounded-xl bg-white overflow-hidden shadow-[2px_2px_0px_#17141F]">
+              <button
+                type="button"
+                class="cart-page-qty-dec px-3 py-1 text-sm font-bold hover:bg-[#FFE6ED] cursor-pointer"
+                data-id="${item.productId}"
+              >-</button>
+              <span class="px-3 text-xs font-bold">${item.quantity}</span>
+              <button
+                type="button"
+                class="cart-page-qty-inc px-3 py-1 text-sm font-bold hover:bg-[#FFE6ED] cursor-pointer"
+                data-id="${item.productId}"
+              >+</button>
+            </div>
+
+            <button
+              type="button"
+              class="cart-page-remove-btn text-xs font-bold text-[#6A6572] hover:text-[#D6284F] hover:underline cursor-pointer"
+              data-id="${item.productId}"
+            >
+              Xóa
+            </button>
+          </div>
+        </div>
+      `
+        )
+        .join('');
+
+      // Wire events
+      container.querySelectorAll<HTMLButtonElement>('.cart-page-qty-inc').forEach((b) => {
+        b.addEventListener('click', () => {
+          const id = b.dataset.id!;
+          const current = cart.find((i) => i.productId === id);
+          if (current) updateCartQuantity(id, current.quantity + 1);
+          render();
+        });
+      });
+
+      container.querySelectorAll<HTMLButtonElement>('.cart-page-qty-dec').forEach((b) => {
+        b.addEventListener('click', () => {
+          const id = b.dataset.id!;
+          const current = cart.find((i) => i.productId === id);
+          if (current) updateCartQuantity(id, current.quantity - 1);
+          render();
+        });
+      });
+
+      container.querySelectorAll<HTMLButtonElement>('.cart-page-remove-btn').forEach((b) => {
+        b.addEventListener('click', () => {
+          const id = b.dataset.id!;
+          removeCartItem(id);
+          render();
+        });
+      });
+    }
+
+    clearBtn?.addEventListener('click', () => {
+      if (confirm('Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng?')) {
+        clearCart();
+        render();
+      }
+    });
+
+    render();
+    window.addEventListener('wibu-cart-change', render);
+  }
+
+  initCartPage();
+  document.addEventListener('astro:page-load', initCartPage);
+</script>

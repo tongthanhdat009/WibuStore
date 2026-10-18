@@ -1,0 +1,142 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import Button from '../../../components/ui/Button.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../../lib/api';
+
+export const prerender = false;
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+const { id } = Astro.params;
+
+interface CmsPageRow { id: number; slug: string; title: string }
+interface Revision { id: number; version_number: number; status: string; content: unknown; published_at?: string | null }
+
+const { data: pageData } = await apiGet<CmsPageRow[]>('/admin/pages', Astro);
+const page = pageData?.find((p) => String(p.id) === String(id));
+if (!page) return Astro.redirect('/collections');
+
+const { data: revisions } = await apiGet<Revision[]>(`/admin/pages/${page.slug}/revisions`, Astro);
+const revs = revisions ?? [];
+const revTemplate = '{"products": [], "note": "Danh sách slug sản phẩm của collection"}';
+---
+
+<AdminLayout
+  title={`Revisions: ${page.title}`}
+  description={`Slug: /${page.slug}`}
+  breadcrumbs={[
+    { label: 'Nội dung & Marketing', href: '/collections' },
+    { label: 'Bộ sưu tập', href: '/collections' },
+    { label: page.title },
+  ]}
+>
+  <div slot="actions" class="flex gap-2">
+    <Button variant="secondary" size="sm" href="/collections">
+      ← Danh sách
+    </Button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3 px-4">Bản</th>
+            <th class="py-3 px-4">Trạng thái</th>
+            <th class="py-3 px-4">Xuất bản lúc</th>
+            <th class="py-3 px-4 text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {revs.length === 0 && (
+            <tr><td colspan="4" class="py-8 text-center text-[12px] text-[#6A6572]">Chưa có revision. Tạo nháp bên dưới.</td></tr>
+          )}
+          {revs.map((r) => (
+            <tr class="hover:bg-[#FDFBF7]">
+              <td class="py-3.5 px-4 font-mono font-bold">v{r.version_number}</td>
+              <td class="py-3.5 px-4">
+                <Badge variant={r.status === 'published' ? 'success' : 'neutral'} size="sm">{r.status}</Badge>
+              </td>
+              <td class="py-3.5 px-4 text-[12px] text-[#6A6572]">{r.published_at ?? '—'}</td>
+              <td class="py-3.5 px-4 text-center">
+                {r.status !== 'published' && (
+                  <button type="button" data-publish-rev={r.id} class="px-2.5 py-1 rounded-[6px] text-[12px] font-bold bg-[#17141F] text-white">Xuất bản</button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+    <h2 class="text-[16px] font-bold text-[#17141F]">Tạo revision nháp (JSON)</h2>
+    <div id="rev-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+    <textarea
+      id="rev-content"
+      rows="10"
+      class="w-full p-3 font-mono text-[11px] rounded-[8px] border border-[#D8D4D0]"
+    >{revTemplate}</textarea>
+    <div class="flex gap-2">
+      <button id="rev-draft" type="button" class="flex-1 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px]">Lưu bản nháp</button>
+      <button id="rev-publish" type="button" class="flex-1 h-10 rounded-[8px] bg-[#D6284F] text-white font-bold text-[13px]">Tạo & Xuất bản</button>
+    </div>
+  </div>
+
+  <script define:vars={{ pageSlug: page.slug }}>
+    import { mutate } from '../../../lib/api';
+
+    function fail(msg: string) {
+      const el = document.getElementById('rev-error');
+      if (el) {
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      } else {
+        alert(msg);
+      }
+    }
+
+    function parseContent(): Record<string, unknown> | null {
+      const raw = (document.getElementById('rev-content') as HTMLTextAreaElement | null)?.value || '';
+      try {
+        return JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        fail('JSON không hợp lệ.');
+        return null;
+      }
+    }
+
+    async function createDraft(): Promise<number | null> {
+      const content = parseContent();
+      if (!content) return null;
+      const { data, error } = await mutate<{ id: number }>(`/admin/pages/${pageSlug}/revisions`, 'POST', { content });
+      if (error || !data) {
+        fail(error?.message || 'Tạo nháp thất bại.');
+        return null;
+      }
+      return data.id;
+    }
+
+    document.getElementById('rev-draft')?.addEventListener('click', async () => {
+      if ((await createDraft()) !== null) window.location.reload();
+    });
+    document.getElementById('rev-publish')?.addEventListener('click', async () => {
+      const revId = await createDraft();
+      if (revId === null) return;
+      const { error } = await mutate(`/admin/pages/${pageSlug}/revisions/${revId}/publish`, 'POST', {});
+      if (error) return fail(error.message || 'Xuất bản thất bại.');
+      window.location.reload();
+    });
+    document.querySelectorAll('button[data-publish-rev]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const revId = (btn as HTMLElement).dataset.publishRev;
+        const { error } = await mutate(`/admin/pages/${pageSlug}/revisions/${revId}/publish`, 'POST', {});
+        if (error) return fail(error.message || 'Xuất bản thất bại.');
+        window.location.reload();
+      });
+    });
+  </script>
+</AdminLayout>

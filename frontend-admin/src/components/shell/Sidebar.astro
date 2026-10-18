@@ -1,0 +1,230 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '/' } = Astro.props;
+
+const navGroups = [
+  {
+    title: 'TỔNG QUAN',
+    items: [
+      { name: 'Dashboard', href: '/', icon: 'dashboard', badge: null },
+      { name: 'Việc cần xử lý', href: '/tasks', icon: 'clipboard-check', badge: '4' },
+    ],
+  },
+  {
+    title: 'BÁN HÀNG',
+    items: [
+      { name: 'Đơn hàng', href: '/orders', icon: 'shopping-bag', badge: '1 mới' },
+      { name: 'Pre-order', href: '/preorders', icon: 'calendar-clock', badge: null },
+      { name: 'Khách hàng', href: '/customers', icon: 'users', badge: null },
+    ],
+  },
+  {
+    title: 'SẢN PHẨM',
+    items: [
+      { name: 'Tất cả sản phẩm', href: '/products', icon: 'package', badge: null },
+      { name: 'Danh mục figure', href: '/categories', icon: 'tag', badge: null },
+      { name: 'Anime Series', href: '/series', icon: 'film', badge: null },
+      { name: 'Nhà sản xuất', href: '/brands', icon: 'briefcase', badge: null },
+      { name: 'Tồn kho', href: '/inventory', icon: 'boxes', badge: '2 thấp' },
+    ],
+  },
+  {
+    title: 'NỘI DUNG & MARKETING',
+    items: [
+      { name: 'Nội dung trang chủ', href: '/content/homepage', icon: 'layout', badge: null },
+      { name: 'Bộ sưu tập', href: '/collections', icon: 'layers', badge: null },
+      { name: 'Media Library', href: '/media', icon: 'image', badge: null },
+      { name: 'Khuyến mãi', href: '/promotions', icon: 'percent', badge: null },
+      { name: 'Đánh giá', href: '/reviews', icon: 'star', badge: '1 chờ' },
+    ],
+  },
+  {
+    title: 'BÁO CÁO',
+    items: [
+      { name: 'Tổng quan kinh doanh', href: '/analytics', icon: 'bar-chart-2', badge: null },
+      { name: 'Báo cáo sản phẩm', href: '/analytics/products', icon: 'trending-up', badge: null },
+      { name: 'Báo cáo tồn kho', href: '/analytics/inventory', icon: 'pie-chart', badge: null },
+    ],
+  },
+  {
+    title: 'HỆ THỐNG',
+    items: [
+      { name: 'Nhân sự', href: '/settings/staff', icon: 'users', badge: null },
+      { name: 'Vai trò & quyền', href: '/settings/roles', icon: 'shield-check', badge: null },
+      { name: 'Cấu hình shop', href: '/settings/store', icon: 'settings', badge: null },
+      { name: 'Nhật ký hệ thống', href: '/settings/audit-logs', icon: 'history', badge: null },
+    ],
+  },
+];
+
+function matches(href: string): boolean {
+  if (href === '/') return currentPath === '/' || currentPath === '';
+  return currentPath === href || currentPath.startsWith(`${href}/`);
+}
+
+const allHrefs = navGroups.flatMap((s) => s.items.map((i) => i.href));
+const activeHref = allHrefs
+  .filter((h) => matches(h))
+  .sort((a, b) => b.length - a.length)[0];
+
+function isActive(href: string): boolean {
+  return href === activeHref;
+}
+---
+
+<aside id="admin-sidebar" class="w-64 bg-white border-r border-[#D8D4D0] flex flex-col h-screen shrink-0 select-none z-30 transition-transform duration-200 lg:translate-x-0 -translate-x-full fixed lg:static top-0 left-0">
+  <!-- Brand logo header -->
+  <div class="h-16 px-5 border-b border-[#D8D4D0] flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2.5 min-w-0">
+      <div class="w-8 h-8 rounded-[6px] bg-[#D6284F] flex items-center justify-center text-white font-extrabold text-[15px] shadow-sm shrink-0">
+        W
+      </div>
+      <div class="flex flex-col brand-text">
+        <span class="font-black text-[15px] tracking-wide text-[#17141F] font-['Anton'] leading-tight">
+          WIBU STORE
+        </span>
+        <span class="text-[10px] font-bold text-[#D6284F] tracking-widest uppercase">
+          Studio Admin
+        </span>
+      </div>
+    </a>
+
+    <!-- Collapse on desktop button -->
+    <button id="sidebar-collapse-btn" title="Thu gọn / mở rộng sidebar" class="hidden lg:flex w-7 h-7 rounded-[6px] border border-[#D8D4D0] text-[#534F5C] hover:text-[#17141F] hover:border-[#17141F] items-center justify-center shrink-0 cursor-pointer">
+      <svg id="sidebar-collapse-icon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+
+    <!-- Close on mobile button -->
+    <button id="sidebar-close-btn" class="lg:hidden text-[#534F5C] hover:text-[#17141F] p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Navigation items -->
+  <div class="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+    {navGroups.map((group) => (
+      <div>
+        <div class="nav-group-title px-3 mb-2 text-[12px] font-black text-[#17141F] tracking-widest uppercase flex items-center gap-1.5">
+          <span class="w-1 h-3.5 rounded-full bg-[#D6284F] shrink-0"></span>
+          {group.title}
+        </div>
+        <ul class="space-y-0.5">
+          {group.items.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <li>
+                <a
+                  href={item.href}
+                  title={item.name}
+                  class={`nav-item-link flex items-center justify-between px-3 py-2 rounded-[8px] text-[13px] font-semibold transition-colors duration-140 ${
+                    active
+                      ? 'bg-[#FFF0F3] text-[#A61B3F]'
+                      : 'text-[#534F5C] hover:bg-[#F7F5F0] hover:text-[#17141F]'
+                  }`}
+                >
+                  <span class="nav-item-text flex items-center gap-2.5">
+                    {active && <span class="w-1.5 h-1.5 rounded-full bg-[#D6284F]"></span>}
+                    {item.name}
+                  </span>
+
+                  {item.badge && (
+                    <span
+                      class={`nav-item-badge text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] leading-none ${
+                        item.badge.includes('mới') || item.badge.includes('chờ')
+                          ? 'bg-[#FFD44A] text-[#17141F]'
+                          : item.badge.includes('thấp')
+                          ? 'bg-[#FDEDEC] text-[#B42318]'
+                          : 'bg-[#EDF3FF] text-[#1D58D8]'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <!-- Footer link to storefront -->
+  <div class="p-3 border-t border-[#D8D4D0] bg-[#FAF8F5]">
+    <a
+      href="http://localhost:4321"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="flex items-center justify-between px-3 py-2 rounded-[8px] bg-white border border-[#D8D4D0] hover:border-[#17141F] text-[12px] font-bold text-[#17141F] transition-all shadow-xs group"
+    >
+      <span class="sidebar-footer-text flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#147A4B] animate-pulse"></span>
+        Xem Storefront (:4321)
+      </span>
+      <span class="sidebar-footer-text text-[#6A6572] group-hover:text-[#D6284F] group-hover:translate-x-0.5 transition-all">↗</span>
+    </a>
+  </div>
+</aside>
+
+<!-- Backdrop overlay for mobile -->
+<div id="sidebar-backdrop" class="fixed inset-0 bg-black/40 z-20 hidden lg:hidden"></div>
+
+<script is:inline>
+  (function () {
+  var sidebar = document.getElementById('admin-sidebar');
+  var closeBtn = document.getElementById('sidebar-close-btn');
+  var backdrop = document.getElementById('sidebar-backdrop');
+  var collapseBtn = document.getElementById('sidebar-collapse-btn');
+  var collapseIcon = document.getElementById('sidebar-collapse-icon');
+
+  function closeSidebar() {
+    if (sidebar) sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
+  }
+
+  if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+  if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
+  var COLLAPSE_KEY = 'admin-sidebar-collapsed';
+
+  function applyCollapsed(collapsed) {
+    document.documentElement.classList.toggle('admin-sidebar-collapsed', collapsed);
+    if (sidebar) {
+      sidebar.style.transition = 'width 0.2s ease, transform 0.2s ease';
+      sidebar.style.width = collapsed ? '4.75rem' : '';
+      var hideSel = '.brand-text,.nav-group-title,.nav-item-text,.nav-item-badge,.sidebar-footer-text';
+      Array.prototype.forEach.call(sidebar.querySelectorAll(hideSel), function (el) {
+        el.style.display = collapsed ? 'none' : '';
+      });
+      Array.prototype.forEach.call(sidebar.querySelectorAll('.nav-item-link'), function (a) {
+        a.style.justifyContent = collapsed ? 'center' : '';
+        a.style.paddingLeft = collapsed ? '0.5rem' : '';
+        a.style.paddingRight = collapsed ? '0.5rem' : '';
+      });
+    }
+    if (collapseIcon) collapseIcon.classList.toggle('rotate-180', collapsed);
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  try {
+    if (localStorage.getItem(COLLAPSE_KEY) === '1') applyCollapsed(true);
+  } catch (e) {
+    /* ignore */
+  }
+
+  if (collapseBtn) collapseBtn.addEventListener('click', function () {
+    applyCollapsed(!document.documentElement.classList.contains('admin-sidebar-collapsed'));
+  });
+  })();
+</script>

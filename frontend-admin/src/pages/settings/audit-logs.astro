@@ -1,0 +1,66 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, currentPage, requireStaff } from '../../lib/api';
+import Pagination from '../../components/ui/Pagination.astro';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface LogRow { id: number; actor_user_id?: number | null; action: string; subject_type?: string | null; subject_id?: string | null; request_id?: string | null; created_at: string }
+
+const { data: logData, meta: logMeta } = await apiGet<LogRow[]>(`/admin/activity-logs?per_page=20&page=${page}`, Astro);
+const logs = logData ?? [];
+---
+
+<AdminLayout
+  title="Nhật ký hoạt động hệ thống (Audit Logs)"
+  description="Ghi nhận mọi thao tác nhạy cảm, thay đổi dữ liệu đơn, xuất bản sản phẩm và điều chỉnh kho figure"
+  breadcrumbs={[{ label: 'Hệ thống' }, { label: 'Nhật ký hoạt động' }]}
+>
+  <div slot="actions">
+    <Button variant="secondary" size="sm">
+      Xuất tệp nhật ký
+    </Button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Thời gian</th>
+            <th class="py-3.5 px-4">Người thực hiện</th>
+            <th class="py-3.5 px-4">Hành động (Action)</th>
+            <th class="py-3.5 px-4">Tài nguyên</th>
+            <th class="py-3.5 px-4 font-mono">Request ID</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {logs.map((l) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-3.5 px-4 text-[12px] text-[#6A6572] tabular-nums whitespace-nowrap">
+                {l.created_at}
+              </td>
+              <td class="py-3.5 px-4 font-bold text-[#17141F]">
+                {l.actor_user_id ? `#${l.actor_user_id}` : 'hệ thống'}
+              </td>
+              <td class="py-3.5 px-4 font-mono text-[12px] text-[#D6284F] font-bold">
+                {l.action}
+              </td>
+              <td class="py-3.5 px-4 text-[#534F5C]">
+                {l.subject_type ?? '—'} <span class="font-mono text-[11px] text-[#6A6572]">({l.subject_id ?? '—'})</span>
+              </td>
+              <td class="py-3.5 px-4 font-mono text-[11px] text-[#6A6572]">
+                {l.request_id ?? '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={logMeta} pathname="/settings/audit-logs" params={{}} />
+  </div>
+</AdminLayout>

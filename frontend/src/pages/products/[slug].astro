@@ -1,0 +1,494 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/ui/Breadcrumb.astro';
+import Button from '../../components/ui/Button.astro';
+import StickerBadge from '../../components/comic/StickerBadge.astro';
+import ProductCard from '../../components/catalog/ProductCard.astro';
+import { products as staticProducts } from '../../data/products';
+import { formatVND, getStatusBadgeInfo } from '../../lib/utils';
+import { getAllSlugs, getCatalogProducts, getProductBySlug } from '../../lib/catalog';
+
+export async function getStaticPaths() {
+  const slugs = await getAllSlugs();
+  return slugs.map((slug) => ({
+    params: { slug },
+    props: {},
+  }));
+}
+
+const { slug } = Astro.params;
+let product;
+try {
+  ({ product } = await getProductBySlug(slug));
+} catch {
+  const found = staticProducts.find((p) => p.slug === slug);
+  if (!found) throw new Error(`Product not found: ${slug}`);
+  product = found;
+}
+const statusInfo = getStatusBadgeInfo(product.status);
+const relatedProducts = (
+  await getCatalogProducts({ per_page: 12 }).then((r) => r.products).catch(() => staticProducts)
+).filter((p) => p.id !== product.id && (p.seriesSlug === product.seriesSlug || p.category === product.category)).slice(0, 4);
+
+const discountPercent =
+  product.originalPrice && product.originalPrice > product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : null;
+---
+
+<BaseLayout
+  title={`${product.name} chính hãng | Wibu Store`}
+  description={product.description}
+  image={product.images[0]}
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Breadcrumb -->
+    <Breadcrumb
+      items={[
+        { label: 'Mô hình', href: '/figures' },
+        { label: product.series, href: `/anime/${product.seriesSlug}` },
+        { label: product.name },
+      ]}
+      className="mb-6"
+    />
+
+    <!-- Main PDP Container -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start bg-white p-6 md:p-10 rounded-3xl border-2 border-[#17141F] shadow-[5px_5px_0px_#17141F]">
+      <!-- Left: Gallery Area (7 cols desktop) -->
+      <div class="lg:col-span-7 flex flex-col gap-4">
+        <!-- Main Image with Zoom on Click -->
+        <div
+          id="pdp-main-image-wrapper"
+          class="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#F7F5F0] border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] cursor-zoom-in group"
+          role="button"
+          aria-label="Nhấn để phóng to ảnh chi tiết"
+          tabindex="0"
+        >
+          <img
+            id="pdp-main-image"
+            src={product.images[0]}
+            alt={product.name}
+            class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102"
+          />
+
+          <!-- Zoom hint badge -->
+          <span class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-xs text-[11px] font-bold text-[#17141F] px-2.5 py-1 rounded-lg border border-[#17141F] flex items-center gap-1 shadow-xs pointer-events-none">
+            <svg class="w-3.5 h-3.5 text-[#534F5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+            </svg>
+            <span>Phóng to</span>
+          </span>
+
+          <!-- Corner Badges -->
+          <div class="absolute top-4 left-4 flex flex-col gap-2">
+            {
+              product.status === 'pre_order' ? (
+                <StickerBadge text="PRE-ORDER" variant="yellow" angle="left" size="md" />
+              ) : product.status === 'sold_out' ? (
+                <StickerBadge text="SOLD OUT" variant="white" angle="none" size="md" />
+              ) : (
+                <StickerBadge text="AUTHENTIC" variant="mint" angle="left" size="sm" />
+              )
+            }
+            {discountPercent && (
+              <span class="font-display text-xs bg-[#D6284F] text-white px-2 py-0.5 rounded border border-[#17141F]">
+                GIẢM {discountPercent}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        <!-- Thumbnails switcher row -->
+        {
+          product.images.length > 1 && (
+            <div class="flex items-center gap-3 overflow-x-auto pb-1">
+              {product.images.map((img, idx) => (
+                <button
+                  type="button"
+                  class={`pdp-thumb-btn w-20 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-white shrink-0 ${
+                    idx === 0
+                      ? 'border-[#D6284F] shadow-[3px_3px_0px_#17141F] -translate-y-0.5'
+                      : 'border-[#D8D4D0] hover:border-[#17141F]'
+                  }`}
+                  data-src={img}
+                  aria-label={`Xem ảnh góc ${idx + 1}`}
+                >
+                  <img src={img} alt={`${product.name} góc ${idx + 1}`} class="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )
+        }
+      </div>
+
+      <!-- Right: Commercial Info & Purchase Actions (5 cols desktop) -->
+      <div class="lg:col-span-5 flex flex-col justify-between">
+        <div>
+          <!-- Series & Category Badges -->
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <a
+              href={`/anime/${product.seriesSlug}`}
+              class="font-display text-xs text-[#3258D7] hover:underline uppercase tracking-wider"
+            >
+              {product.series}
+            </a>
+            <span class="text-[#D8D4D0]">•</span>
+            <span class="text-xs font-bold text-[#534F5C]">{product.categoryName}</span>
+          </div>
+
+          <!-- Product Title -->
+          <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-[#17141F] leading-snug">
+            {product.name}
+          </h1>
+
+          <p class="text-xs sm:text-sm font-semibold text-[#534F5C] mt-1.5">
+            {product.vietnameseTitle}
+          </p>
+
+          <!-- Rating & SKU metadata -->
+          <div class="flex items-center gap-3 mt-3 pb-4 border-b border-[#D8D4D0] text-xs text-[#534F5C]">
+            <div class="flex items-center gap-1 text-[#D6284F] font-bold">
+              <span>★</span>
+              <span>{product.rating}</span>
+              <span class="text-[#6A6572]">({product.reviewCount} đánh giá)</span>
+            </div>
+            <span>•</span>
+            <span>Hãng: <strong class="text-[#17141F]">{product.manufacturer}</strong></span>
+          </div>
+
+          <!-- Price Box -->
+          <div class="my-5 p-4 rounded-2xl bg-[#FFFDF7] border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]">
+            <div class="flex items-baseline gap-3 flex-wrap">
+              <span class="font-sans text-3xl sm:text-4xl font-black text-[#D6284F] leading-none">
+                {formatVND(product.price)}
+              </span>
+              {product.originalPrice && (
+                <span class="text-sm sm:text-base font-bold text-[#6A6572] line-through">
+                  {formatVND(product.originalPrice)}
+                </span>
+              )}
+            </div>
+
+            <!-- Pre-order deposit notice if applicable -->
+            {product.status === 'pre_order' && product.depositPrice && (
+              <div class="mt-2.5 pt-2 border-t border-[#17141F]/15 flex items-center justify-between text-xs">
+                <span class="text-[#9A5A00] font-bold">Số tiền cọc trước:</span>
+                <span class="font-black text-[#17141F] text-sm">{formatVND(product.depositPrice)}</span>
+              </div>
+            )}
+
+            <!-- Stock status indicator -->
+            <div class="mt-2.5 flex items-center gap-2">
+              <span class={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusInfo.bgClass}`}>
+                <span class={`w-2 h-2 rounded-full ${statusInfo.dotClass}`}></span>
+                <span>{statusInfo.label}</span>
+              </span>
+              {product.status === 'in_stock' && (
+                <span class="text-xs text-[#534F5C]">
+                  (Còn {product.stockCount} kiện sẵn tại kho)
+                </span>
+              )}
+              {product.status === 'pre_order' && (
+                <span class="text-xs text-[#9A5A00] font-bold">
+                  Dự kiến phát hành: {product.releaseDate}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <!-- Quantity & Purchase Button Controls -->
+          {product.status !== 'sold_out' ? (
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-bold text-[#534F5C]">Số lượng:</span>
+                <div class="flex items-center border-2 border-[#17141F] rounded-xl bg-white overflow-hidden shadow-[2px_2px_0px_#17141F]">
+                  <button
+                    id="pdp-qty-dec"
+                    type="button"
+                    class="px-3 py-1.5 text-sm font-bold hover:bg-[#FFE6ED] text-[#17141F] cursor-pointer"
+                    aria-label="Giảm 1"
+                  >-</button>
+                  <input
+                    id="pdp-qty-input"
+                    type="number"
+                    value="1"
+                    min="1"
+                    max={product.stockCount || 10}
+                    class="w-12 text-center text-sm font-bold border-none focus:outline-none"
+                    readonly
+                  />
+                  <button
+                    id="pdp-qty-inc"
+                    type="button"
+                    class="px-3 py-1.5 text-sm font-bold hover:bg-[#FFE6ED] text-[#17141F] cursor-pointer"
+                    aria-label="Tăng 1"
+                  >+</button>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 pt-2">
+                <Button
+                  id="pdp-add-cart-btn"
+                  variant="primary"
+                  size="lg"
+                  className="flex-1"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                  </svg>
+                  <span>{product.status === 'pre_order' ? 'Đặt trước ngay' : 'Thêm vào giỏ hàng'}</span>
+                </Button>
+
+                <!-- Wishlist Toggle -->
+                <button
+                  type="button"
+                  class="wishlist-btn w-12 h-12 rounded-xl border-2 border-[#17141F] bg-white hover:bg-[#FFE6ED] text-[#534F5C] hover:text-[#D6284F] flex items-center justify-center shadow-[2px_2px_0px_#17141F] cursor-pointer transition-colors"
+                  data-id={product.id}
+                  aria-label="Thêm vào yêu thích"
+                >
+                  <svg class="w-5 h-5 heart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div class="p-4 rounded-xl bg-neutral-100 border border-neutral-300 text-center">
+              <p class="font-bold text-sm text-neutral-700">Mẫu mô hình này hiện đã hết hàng</p>
+              <p class="text-xs text-neutral-500 mt-1">Đăng ký nhận thông báo khi có đợt phát hành bổ sung.</p>
+              <div class="mt-3">
+                <Button variant="outline" size="sm" href="/figures">
+                  <span>Khám phá mô hình khác</span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <!-- Trust highlights -->
+          <div class="mt-6 pt-5 border-t border-[#D8D4D0] space-y-2.5 text-xs text-[#534F5C]">
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-600 font-bold text-sm">✓</span>
+              <span>Cam kết chính hãng 100% từ nhà sản xuất Nhật Bản</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-600 font-bold text-sm">✓</span>
+              <span>Đóng gói 3 lớp bóng khí bọc màng co bảo vệ hộp mô hình</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-600 font-bold text-sm">✓</span>
+              <span>Đổi trả 1-1 nếu gãy khớp hoặc lỗi chi tiết từ nhà máy</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Description & Specifications Tabs / Details -->
+    <div class="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Description & Pre-order terms (7 cols) -->
+      <div class="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] space-y-6">
+        <div>
+          <h2 class="font-display text-xl uppercase tracking-wider text-[#17141F] pb-2 border-b-2 border-[#17141F]">
+            MÔ TẢ CHI TIẾT
+          </h2>
+          <div class="text-xs sm:text-sm text-[#534F5C] leading-relaxed mt-4 space-y-3">
+            <p>{product.description}</p>
+            <p>
+              Sản phẩm được gia công và hoàn thiện bởi các nghệ nhân lành nghề, từng đường nét trang phục và thần thái biểu cảm nhân vật được bám sát chuẩn nguyên tác manga & anime.
+            </p>
+          </div>
+        </div>
+
+        {product.preOrderTerms && (
+          <div class="p-4 rounded-2xl bg-[#FFF4DC] border-2 border-[#9A5A00]">
+            <h3 class="font-display text-sm tracking-wider uppercase text-[#9A5A00] flex items-center gap-1.5 mb-1.5">
+              <span>⏳</span>
+              <span>ĐIỀU KHOẢN ĐẶT CỌC (PRE-ORDER)</span>
+            </h3>
+            <p class="text-xs text-[#534F5C] leading-relaxed">
+              {product.preOrderTerms}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <!-- Specifications Table (5 cols) -->
+      <div class="lg:col-span-5 bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F]">
+        <h2 class="font-display text-xl uppercase tracking-wider text-[#17141F] pb-2 border-b-2 border-[#17141F] mb-4">
+          THÔNG SỐ KỸ THUẬT
+        </h2>
+
+        <dl class="divide-y divide-[#D8D4D0] text-xs">
+          {
+            Object.entries(product.specifications).map(([key, val]) => (
+              <div class="py-2.5 flex items-center justify-between gap-3">
+                <dt class="font-bold text-[#534F5C]">{key}</dt>
+                <dd class="text-[#17141F] font-semibold text-right">{val}</dd>
+              </div>
+            ))
+          }
+          {product.scale && (
+            <div class="py-2.5 flex items-center justify-between gap-3">
+              <dt class="font-bold text-[#534F5C]">Tỉ lệ</dt>
+              <dd class="text-[#17141F] font-semibold text-right">{product.scale}</dd>
+            </div>
+          )}
+          {product.dimensions && (
+            <div class="py-2.5 flex items-center justify-between gap-3">
+              <dt class="font-bold text-[#534F5C]">Kích thước</dt>
+              <dd class="text-[#17141F] font-semibold text-right">{product.dimensions}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+    </div>
+
+    <!-- Related Products -->
+    {relatedProducts.length > 0 && (
+      <div class="mt-16">
+        <div class="flex items-center gap-2 mb-6">
+          <StickerBadge text="RELATED" variant="yellow" angle="left" size="sm" />
+          <h2 class="font-display text-2xl uppercase tracking-wider text-[#17141F]">
+            MÔ HÌNH CÙNG VŨ TRỤ
+          </h2>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {relatedProducts.map((p) => (
+            <ProductCard product={p} />
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- Fullscreen Image Zoom Modal -->
+  <div
+    id="pdp-zoom-modal"
+    class="fixed inset-0 bg-[#17141F]/85 backdrop-blur-md z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4"
+    role="dialog"
+    aria-label="Xem chi tiết ảnh phóng to"
+    aria-modal="true"
+  >
+    <div class="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center">
+      <button
+        id="pdp-zoom-close"
+        type="button"
+        class="absolute -top-12 right-0 w-9 h-9 rounded-full bg-white text-[#17141F] font-bold border-2 border-[#17141F] flex items-center justify-center shadow-[2px_2px_0px_#17141F] cursor-pointer"
+        aria-label="Đóng"
+      >
+        ✕
+      </button>
+      <img
+        id="pdp-zoom-img"
+        src={product.images[0]}
+        alt={product.name}
+        class="max-w-full max-h-[80vh] object-contain rounded-2xl border-2 border-white shadow-2xl bg-white"
+      />
+    </div>
+  </div>
+</BaseLayout>
+
+<script define:vars={{ productJson: JSON.stringify(product) }}>
+  import { addToCartItem, syncItemToServer } from '../../lib/cart';
+
+  let pdpBound = false;
+
+  function initPDP() {
+    if (pdpBound) return;
+    pdpBound = true;
+    const mainImg = document.getElementById('pdp-main-image');
+    const thumbBtns = document.querySelectorAll('.pdp-thumb-btn');
+    const zoomWrapper = document.getElementById('pdp-main-image-wrapper');
+    const zoomModal = document.getElementById('pdp-zoom-modal');
+    const zoomImg = document.getElementById('pdp-zoom-img');
+    const zoomClose = document.getElementById('pdp-zoom-close');
+
+    const qtyInput = document.getElementById('pdp-qty-input');
+    const qtyInc = document.getElementById('pdp-qty-inc');
+    const qtyDec = document.getElementById('pdp-qty-dec');
+    const addCartBtn = document.getElementById('pdp-add-cart-btn');
+
+    // Thumbnail switching
+    thumbBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const src = btn.getAttribute('data-src');
+        if (mainImg && src) mainImg.src = src;
+        if (zoomImg && src) zoomImg.src = src;
+
+        thumbBtns.forEach((b) => {
+          b.classList.remove('border-[#D6284F]', 'shadow-[3px_3px_0px_#17141F]', '-translate-y-0.5');
+          b.classList.add('border-[#D8D4D0]');
+        });
+        btn.classList.add('border-[#D6284F]', 'shadow-[3px_3px_0px_#17141F]', '-translate-y-0.5');
+        btn.classList.remove('border-[#D8D4D0]');
+      });
+    });
+
+    // Zoom modal
+    function openZoom() {
+      if (!zoomModal) return;
+      zoomModal.classList.remove('opacity-0', 'pointer-events-none');
+      zoomModal.classList.add('opacity-100', 'pointer-events-auto');
+    }
+    function closeZoom() {
+      if (!zoomModal) return;
+      zoomModal.classList.add('opacity-0', 'pointer-events-none');
+      zoomModal.classList.remove('opacity-100', 'pointer-events-auto');
+    }
+
+    zoomWrapper?.addEventListener('click', openZoom);
+    zoomClose?.addEventListener('click', closeZoom);
+    zoomModal?.addEventListener('click', (e) => {
+      if (e.target === zoomModal) closeZoom();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeZoom();
+    });
+
+    // Quantity controls
+    qtyInc?.addEventListener('click', () => {
+      if (qtyInput) {
+        let val = parseInt(qtyInput.value, 10) || 1;
+        qtyInput.value = String(val + 1);
+      }
+    });
+
+    qtyDec?.addEventListener('click', () => {
+      if (qtyInput) {
+        let val = parseInt(qtyInput.value, 10) || 1;
+        if (val > 1) qtyInput.value = String(val - 1);
+      }
+    });
+
+    // Add to cart button action
+    addCartBtn?.addEventListener('click', async () => {
+      try {
+        const product = JSON.parse(productJson);
+        const qtyInputEl = qtyInput as HTMLInputElement | null;
+        const qty = Math.max(1, parseInt(qtyInputEl?.value || '1', 10) || 1);
+        const items = addToCartItem(product, qty);
+        window.dispatchEvent(new CustomEvent('wibu-open-cart'));
+        const btn = addCartBtn as HTMLButtonElement | null;
+        const label = btn?.querySelector('span:last-child');
+        const original = label?.textContent;
+        if (btn && label) {
+          btn.disabled = true;
+          label.textContent = `Đã thêm ${qty} vào giỏ ✓`;
+          setTimeout(() => {
+            btn.disabled = false;
+            if (original) label.textContent = original;
+          }, 1600);
+        }
+        const added = items.find((i) => i.productId === product.id);
+        if (added?.variantId) {
+          await syncItemToServer(added.variantId, added.quantity).catch(() => {});
+        }
+      } catch (e) {
+        console.error('Failed to add item to cart', e);
+      }
+    });
+  }
+
+  initPDP();
+  document.addEventListener('astro:page-load', initPDP);
+</script>

@@ -1,0 +1,119 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+import Button from '../components/ui/Button.astro';
+import { products as staticProducts } from '../data/products';
+import { formatVND } from '../lib/utils';
+import { getCatalogProducts } from '../lib/catalog';
+
+const { products } = await getCatalogProducts();
+const preOrders = products.filter((p) => p.status === 'pre_order');
+---
+
+<BaseLayout
+  title="Khu vực Đặt Trước (Pre-order) Mô Hình Chính Hãng | Wibu Store"
+  description="Danh sách mô hình anime đang mở đặt cọc trước từ Good Smile Company, MegaHouse, Kotobukiya. Cam kết giá không đổi và nhận hàng đúng hạn."
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb items={[{ label: 'Khu vực Pre-order' }]} className="mb-6" />
+
+    <!-- Hero Pre-order Banner -->
+    <div class="p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-[#FFF4DC] mb-10 relative overflow-hidden">
+      <div class="absolute inset-0 pattern-halftone opacity-25 pointer-events-none"></div>
+
+      <div class="relative z-10 max-w-3xl">
+        <div class="flex items-center gap-2 mb-2">
+          <StickerBadge text="PRE-ORDER ZONE" variant="brand" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#9A5A00] uppercase font-bold">
+            CHÍNH SÁCH ĐẶT CỌC AN TOÀN
+          </span>
+        </div>
+
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl text-[#17141F] uppercase tracking-tight">
+          PRE-ORDER ARCHIVE
+        </h1>
+
+        <p class="text-xs sm:text-sm text-[#534F5C] mt-2 leading-relaxed">
+          Đặt cọc giữ suất sớm với mức giá tốt nhất từ các xưởng sản xuất Nhật Bản. Wibu Store cam kết hoàn cọc 100% nếu hãng sản xuất hủy đơn hoặc trễ lịch quá quy định.
+        </p>
+
+        <div class="mt-4 flex items-center gap-4 flex-wrap text-xs">
+          <a
+            href="/policies/pre-order"
+            class="font-bold text-[#D6284F] hover:underline flex items-center gap-1"
+          >
+            <span>Đọc kỹ quy định đặt cọc & hoàn tiền</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="flex items-center gap-2 mb-8 overflow-x-auto pb-1">
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl border-2 border-[#17141F] bg-[#17141F] text-white text-xs font-bold shadow-[2px_2px_0px_#FFD44A]"
+      >
+        Đang mở đặt cọc ({preOrders.length})
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl border border-[#D8D4D0] bg-white text-[#534F5C] hover:border-[#17141F] text-xs font-bold"
+      >
+        Sắp mở cổng đặt
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2 rounded-xl border border-[#D8D4D0] bg-white text-[#534F5C] hover:border-[#17141F] text-xs font-bold"
+      >
+        Đã đóng cổng
+      </button>
+    </div>
+
+    <!-- Pre-order grid cards with timeline and deposit tags -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {
+        preOrders.map((item) => (
+          <div class="bg-white rounded-2xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] p-4 flex flex-col justify-between">
+            <div>
+              <div class="aspect-square rounded-xl overflow-hidden bg-[#F7F5F0] border border-[#17141F]/15 mb-3 relative group">
+                <img src={item.images[0]} alt={item.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                <span class="absolute top-2 left-2 font-display text-[10px] bg-[#FFD44A] text-[#17141F] px-2 py-0.5 rounded border border-[#17141F]">
+                  DỰ KIẾN: {item.releaseDate}
+                </span>
+              </div>
+
+              <span class="text-xs font-bold text-[#3258D7]">{item.series}</span>
+              <h3 class="text-sm font-bold text-[#17141F] line-clamp-2 mt-0.5">
+                <a href={`/products/${item.slug}`} class="hover:text-[#D6284F]">
+                  {item.name}
+                </a>
+              </h3>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-[#D8D4D0]">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="text-[#534F5C]">Giá niêm yết:</span>
+                <span class="font-bold text-[#17141F]">{formatVND(item.price)}</span>
+              </div>
+              {item.depositPrice && (
+                <div class="flex items-center justify-between text-xs mb-3">
+                  <span class="text-[#9A5A00] font-bold">Tiền cọc trước:</span>
+                  <span class="font-black text-[#D6284F] text-sm">{formatVND(item.depositPrice)}</span>
+                </div>
+              )}
+
+              <Button href={`/products/${item.slug}`} variant="yellow" size="sm" className="w-full">
+                <span>Đặt cọc ngay</span>
+              </Button>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</BaseLayout>

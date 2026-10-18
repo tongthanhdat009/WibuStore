@@ -1,0 +1,199 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Badge from '../../components/ui/Badge.astro';
+import Button from '../../components/ui/Button.astro';
+import { apiGet, currentPage, requireStaff } from '../../lib/api';
+import Pagination from '../../components/ui/Pagination.astro';
+import { formatCurrency, formatDate } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface AdminProduct {
+  id: number;
+  name: string;
+  slug: string;
+  status: string;
+  series?: string | null;
+  manufacturer?: string | null;
+  min_price?: number | null;
+  image_url?: string | null;
+  stock: { on_hand: number; reserved: number; available: number };
+}
+
+const statusFilter = Astro.url.searchParams.get('status') ?? '';
+const listParams: Record<string, string> = { per_page: '20', page: String(page) };
+if (statusFilter) listParams.status = statusFilter;
+const qs = new URLSearchParams(listParams).toString();
+const { data: productData, meta: productMeta } = await apiGet<AdminProduct[]>(`/admin/products?${qs}`, Astro);
+const products = productData ?? [];
+---
+
+<AdminLayout
+  title="Quản lý sản phẩm figure"
+  description="Danh mục sản phẩm, biến thể, giá bán, đồng bộ trạng thái phát hành với storefront"
+  breadcrumbs={[{ label: 'Sản phẩm' }, { label: 'Tất cả sản phẩm' }]}
+>
+  <!-- Header action slot -->
+  <div slot="actions" class="flex gap-2">
+    <Button variant="secondary" size="sm">
+      <svg class="w-4 h-4 text-[#534F5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+      </svg>
+      <span>Xuất Excel</span>
+    </Button>
+    <Button variant="primary" size="sm" href="/products/new">
+      <span>+ Thêm sản phẩm mới</span>
+    </Button>
+  </div>
+
+  <!-- Tabs bar -->
+  <div class="flex items-center gap-2 border-b border-[#D8D4D0] pb-3 overflow-x-auto">
+    <a href="/products" class={`px-3.5 py-1.5 rounded-[8px] font-bold text-[13px] shadow-xs ${!statusFilter ? 'bg-[#17141F] text-white' : 'bg-white border border-[#D8D4D0] text-[#534F5C]'}`}>
+      Tất cả ({products.length})
+    </a>
+    <a href="/products?status=active" class={`px-3.5 py-1.5 rounded-[8px] font-semibold text-[13px] ${statusFilter === 'active' ? 'bg-[#17141F] text-white' : 'bg-white border border-[#D8D4D0] text-[#534F5C]'}`}>
+      Đang bán
+    </a>
+    <a href="/products?status=draft" class={`px-3.5 py-1.5 rounded-[8px] font-semibold text-[13px] ${statusFilter === 'draft' ? 'bg-[#17141F] text-white' : 'bg-white border border-[#D8D4D0] text-[#534F5C]'}`}>
+      Bản nháp
+    </a>
+    <a href="/products?status=archived" class={`px-3.5 py-1.5 rounded-[8px] font-semibold text-[13px] ${statusFilter === 'archived' ? 'bg-[#17141F] text-white' : 'bg-white border border-[#D8D4D0] text-[#534F5C]'}`}>
+      Lưu trữ
+    </a>
+  </div>
+
+  <!-- Filter Toolbar -->
+  <div class="bg-white rounded-[12px] border border-[#D8D4D0] p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-2.5 flex-1">
+      <div class="relative w-full sm:w-64">
+        <input
+          type="text"
+          placeholder="Tìm tên figure, SKU, anime..."
+          class="w-full h-9 pl-8 pr-3 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
+        />
+        <svg class="w-4 h-4 text-[#6A6572] absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+
+      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
+        <option>Tất cả Anime Series</option>
+        <option>Jujutsu Kaisen</option>
+        <option>One Piece</option>
+        <option>Spy x Family</option>
+        <option>Chainsaw Man</option>
+      </select>
+
+      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
+        <option>Tất cả loại figure</option>
+        <option>Scale Figures</option>
+        <option>Nendoroid</option>
+        <option>Action Figures</option>
+      </select>
+
+      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
+        <option>Trạng thái tồn kho</option>
+        <option>Còn hàng</option>
+        <option>Tồn kho thấp</option>
+        <option>Hết hàng</option>
+      </select>
+    </div>
+
+    <div class="text-[12px] text-[#6A6572] shrink-0">
+      Tổng số: <strong>{products.length}</strong> sản phẩm
+    </div>
+  </div>
+
+  <!-- Products Data Table -->
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4 w-10">
+              <input type="checkbox" class="rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]" />
+            </th>
+            <th class="py-3.5 px-4">Sản phẩm</th>
+            <th class="py-3.5 px-4">Series & Hãng</th>
+            <th class="py-3.5 px-4 text-right">Giá bán</th>
+            <th class="py-3.5 px-4 text-center">Tồn khả dụng</th>
+            <th class="py-3.5 px-4 text-center">Trạng thái</th>
+            <th class="py-3.5 px-4 text-center">Hành động</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {products.map((p) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-4 px-4">
+                <input type="checkbox" class="rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]" />
+              </td>
+              <td class="py-4 px-4">
+                <div class="flex items-center gap-3">
+                  {p.image_url ? (
+                    <img
+                      src={p.image_url}
+                      alt={p.name}
+                      class="w-14 h-14 rounded-[8px] object-cover border border-[#D8D4D0] shrink-0"
+                    />
+                  ) : (
+                    <div class="w-14 h-14 rounded-[8px] bg-[#F2EFE9] border border-[#D8D4D0] shrink-0 flex items-center justify-center text-[10px] text-[#6A6572]">No img</div>
+                  )}
+                  <div>
+                    <a href={`/products/${p.id}/edit`} class="font-bold text-[#17141F] hover:text-[#D6284F] block leading-tight">
+                      {p.name}
+                    </a>
+                    <div class="text-[11px] font-mono text-[#6A6572] mt-0.5">
+                      Slug: {p.slug}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <div class="font-bold text-[#17141F]">{p.series ?? '—'}</div>
+                <div class="text-[11px] text-[#6A6572]">{p.manufacturer ?? ''}</div>
+              </td>
+              <td class="py-4 px-4 text-right font-bold text-[#17141F] tabular-nums text-[14px]">
+                {p.min_price != null ? formatCurrency(p.min_price) : '—'}
+              </td>
+              <td class="py-4 px-4 text-center">
+                <div class="font-bold text-[#17141F] tabular-nums text-[14px]">
+                  {p.stock.available}
+                </div>
+                <div class="text-[11px] text-[#6A6572]">
+                  Tổng: {p.stock.on_hand} (Giữ: {p.stock.reserved})
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                {p.status === 'active' ? (
+                  <Badge variant="success" size="sm">Đang bán</Badge>
+                ) : p.status === 'archived' ? (
+                  <Badge variant="neutral" size="sm">Lưu trữ</Badge>
+                ) : (
+                  <Badge variant="neutral" size="sm">Bản nháp</Badge>
+                )}
+              </td>
+              <td class="py-4 px-4 text-center">
+                <div class="flex items-center justify-center gap-1.5">
+                  <Button variant="secondary" size="sm" href={`/products/${p.id}/edit`}>
+                    Chỉnh sửa
+                  </Button>
+                  <a
+                    href={`http://localhost:4321/products/${p.slug}`}
+                    target="_blank"
+                    class="p-1.5 rounded-[6px] text-[#6A6572] hover:text-[#17141F] hover:bg-[#F2EFE9]"
+                    title="Xem trên Storefront (:4321)"
+                  >
+                    ↗
+                  </a>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={productMeta} pathname="/products" params={statusFilter ? { status: statusFilter } : {}} />
+  </div>
+</AdminLayout>

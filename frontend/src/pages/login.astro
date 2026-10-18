@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout title="Đăng nhập | Wibu Store" description="Đăng nhập tài khoản Wibu Store để theo dõi đơn hàng và nhận ưu đãi.">
+  <div class="max-w-[480px] mx-auto px-4 sm:px-6 py-10">
+    <Breadcrumb items={[{ label: 'Đăng nhập' }]} className="mb-6" />
+    <div class="bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[5px_5px_0px_#17141F]">
+      <div class="flex items-center gap-2 mb-2">
+        <StickerBadge text="MEMBER" variant="brand" angle="left" size="sm" />
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl text-[#17141F] uppercase tracking-tight mb-6">ĐĂNG NHẬP</h1>
+      <div id="auth-error" class="hidden mb-4 p-3 rounded-xl bg-[#FFF0F3] border border-[#D6284F]/30 text-xs text-[#A61B3F]"></div>
+      <form id="login-form" class="space-y-4 text-xs">
+        <div>
+          <label for="login-email" class="block font-bold text-[#17141F] mb-1">Email *</label>
+          <input id="login-email" type="email" required placeholder="wibu@example.com" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+        </div>
+        <div>
+          <label for="login-password" class="block font-bold text-[#17141F] mb-1">Mật khẩu *</label>
+          <input id="login-password" type="password" required placeholder="••••••••" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+        </div>
+        <button type="submit" id="login-submit" class="w-full py-3.5 rounded-2xl bg-[#D6284F] hover:bg-[#AF1E40] text-white font-display text-base uppercase tracking-wider border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] cursor-pointer">
+          Đăng nhập
+        </button>
+      </form>
+      <div class="mt-4 flex items-center justify-between text-xs">
+        <a href="/forgot-password" class="font-bold text-[#3258D7] hover:underline">Quên mật khẩu?</a>
+        <a href="/register" class="font-bold text-[#D6284F] hover:underline">Chưa có tài khoản? Đăng ký →</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { customerLogin } from '../lib/auth';
+  import { syncLocalCartToServer } from '../lib/cart';
+
+  document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById('login-email') as HTMLInputElement).value.trim();
+    const password = (document.getElementById('login-password') as HTMLInputElement).value;
+    const errEl = document.getElementById('auth-error');
+    const btn = document.getElementById('login-submit') as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'ĐANG ĐĂNG NHẬP...';
+    }
+    const { error } = await customerLogin(email, password);
+    if (!error) {
+      await syncLocalCartToServer().catch(() => {});
+    }
+    if (error) {
+      if (errEl) {
+        errEl.textContent = error;
+        errEl.classList.remove('hidden');
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Đăng nhập';
+      }
+      return;
+    }
+    window.location.href = '/account';
+  });
+</script>

@@ -1,0 +1,83 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Badge from '../components/ui/Badge.astro';
+import Button from '../components/ui/Button.astro';
+import { mockTasks } from '../data/mockData';
+---
+
+<AdminLayout
+  title="Việc cần xử lý (Work Queue)"
+  description="Danh sách các đầu việc vận hành khẩn cấp cần nhân sự xử lý để đảm bảo tiến độ đơn hàng"
+  breadcrumbs={[{ label: 'Tổng quan', href: '/' }, { label: 'Việc cần xử lý' }]}
+>
+  <div slot="actions" class="flex gap-2">
+    <Button variant="secondary" size="sm">
+      <span>Đánh dấu đã hoàn thành tất cả</span>
+    </Button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <!-- Filter Bar -->
+    <div class="p-4 border-b border-[#D8D4D0] bg-[#FAF8F5] flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 rounded-[6px] bg-[#17141F] text-white text-[13px] font-bold">
+          Tất cả (4)
+        </button>
+        <button class="px-3 py-1.5 rounded-[6px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-semibold text-[#534F5C]">
+          Khẩn cấp (2)
+        </button>
+        <button class="px-3 py-1.5 rounded-[6px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-semibold text-[#534F5C]">
+          Đơn hàng & Cọc (2)
+        </button>
+        <button class="px-3 py-1.5 rounded-[6px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-semibold text-[#534F5C]">
+          Kho & Review (2)
+        </button>
+      </div>
+
+      <div class="text-[12px] text-[#6A6572]">
+        Tự động làm mới mỗi 60 giây
+      </div>
+    </div>
+
+    <!-- Task List -->
+    <ul class="divide-y divide-[#F2EFE9]">
+      {mockTasks.map((t) => (
+        <li class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#FDFBF7] transition-colors">
+          <div class="flex items-start gap-3.5">
+            <input
+              type="checkbox"
+              class="mt-1 w-4 h-4 rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]"
+            />
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                  t.priority === 'high' ? 'bg-[#FDEDEC] text-[#B42318]' : 'bg-[#FFF3DA] text-[#9A5A00]'
+                }`}>
+                  {t.priority === 'high' ? 'Khẩn cấp' : 'Bình thường'}
+                </span>
+                <span class="text-[11px] font-bold uppercase text-[#6A6572] tracking-wider">
+                  Mô-đun {t.type}
+                </span>
+                <span class="text-[#D8D4D0]">•</span>
+                <span class="text-[12px] text-[#6A6572]">{t.createdAt}</span>
+              </div>
+              <h3 class="text-[15px] font-bold text-[#17141F]">
+                {t.title}
+              </h3>
+              <p class="text-[13px] text-[#534F5C] mt-0.5 flex items-center gap-1.5">
+                <span class="text-[#D6284F] font-bold">⚠️</span>
+                <span>Thời hạn: <strong>{t.dueNotice}</strong></span>
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <Button variant="primary" size="sm" href={t.link}>
+              Mở tác vụ xử lý →
+            </Button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</AdminLayout>

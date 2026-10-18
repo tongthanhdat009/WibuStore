@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/ui/Breadcrumb.astro';
+import StickerBadge from '../../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout
+  title="Chính sách Vận chuyển & Đóng gói | Wibu Store"
+  description="Quy chuẩn đóng gói mô hình 3 lớp bóng khí, bảo hiểm va đập hộp, thời gian giao hàng toàn quốc."
+>
+  <div class="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb
+      items={[
+        { label: 'Chính sách', href: '/policies/shipping' },
+        { label: 'Vận chuyển & Đóng gói' },
+      ]}
+      className="mb-6"
+    />
+
+    <div class="bg-white p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[5px_5px_0px_#17141F]">
+      <div class="flex items-center gap-2 mb-2">
+        <StickerBadge text="PACKAGING STANDARD" variant="brand" angle="left" size="sm" />
+      </div>
+
+      <h1 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight mb-4">
+        TIÊU CHUẨN ĐÓNG GÓI & VẬN CHUYỂN
+      </h1>
+
+      <div class="text-xs sm:text-sm text-[#534F5C] leading-relaxed space-y-6">
+        <p>
+          Người sưu tầm mô hình luôn coi trọng tình trạng vỏ hộp (Box Art) ngang với mô hình bên trong. Hiểu được điều đó, Wibu Store áp dụng quy chuẩn đóng gói chuyên biệt:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-2xl bg-[#F7F5F0] border border-[#17141F]">
+            <span class="text-2xl mb-1 block">📦</span>
+            <h3 class="font-bold text-[#17141F] text-xs">Thùng carton 3-5 lớp</h3>
+            <p class="text-[11px] text-[#534F5C] mt-1">Độ cứng chịu lực cao, chống móp méo góc khi vận chuyển đường dài.</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[#F7F5F0] border border-[#17141F]">
+            <span class="text-2xl mb-1 block">🫧</span>
+            <h3 class="font-bold text-[#17141F] text-xs">Màng bóng khí 3 lớp</h3>
+            <p class="text-[11px] text-[#534F5C] mt-1">Bọc kín từng góc cạnh của box figure, chèn xốp hạt kín các khe hở.</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[#F7F5F0] border border-[#17141F]">
+            <span class="text-2xl mb-1 block">🏷️</span>
+            <h3 class="font-bold text-[#17141F] text-xs">Tem "Hàng Dễ Vỡ"</h3>
+            <p class="text-[11px] text-[#534F5C] mt-1">Ghi chú lưu ý tài xế vận chuyển nhẹ tay, không xếp chồng kiện nặng.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-base text-[#17141F] mb-2">Biểu phí & Thời gian giao hàng</h3>
+          <p>
+            - <strong>Nội thành TP.HCM & Hà Nội:</strong> Nhận hàng trong 24h - 48h (Có dịch vụ Grab/Ahamove nhận hàng trong 2 giờ).<br />
+            - <strong>Các tỉnh thành khác:</strong> Nhận hàng trong 2 - 4 ngày làm việc qua bưu cục uy tín.<br />
+            - <strong>Miễn phí vận chuyển:</strong> Áp dụng cho mọi đơn hàng có giá trị từ <strong>1.500.000 ₫</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

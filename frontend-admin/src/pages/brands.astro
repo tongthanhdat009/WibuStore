@@ -1,0 +1,111 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Button from '../components/ui/Button.astro';
+import Badge from '../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../lib/api';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface BrandRow { id: number; name: string; slug: string; products_count: number }
+
+const { data: brandData } = await apiGet<BrandRow[]>('/admin/manufacturers', Astro);
+const mockBrands = brandData ?? [];
+---
+
+<AdminLayout
+  title="Nhà sản xuất & Thương hiệu"
+  description="Danh sách các hãng sản xuất figure hợp tác chính thức: Good Smile, eStream, MegaHouse, Alter..."
+  breadcrumbs={[{ label: 'Sản phẩm' }, { label: 'Nhà sản xuất' }]}
+>
+  <div slot="actions">
+    <button id="open-row-modal" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#17141F] text-white text-[13px] font-bold cursor-pointer">
+      + Thêm đối tác sản xuất
+    </button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Tên hãng sản xuất</th>
+            <th class="py-3.5 px-4">Slug</th>
+            <th class="py-3.5 px-4 text-center">Số lượng figure phân phối</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {mockBrands.map((b) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-4 px-4 font-bold text-[#17141F] text-[14px]">
+                {b.name}
+              </td>
+              <td class="py-4 px-4 font-mono text-[#6A6572]">
+                {b.slug}
+              </td>
+              <td class="py-4 px-4 text-center font-bold text-[#17141F]">
+                {b.products_count} models
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="row-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[16px] max-w-md w-full p-6 border-2 border-[#17141F] space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[16px] font-black text-[#17141F]">Thêm hãng sản xuất</h3>
+        <button type="button" data-close-modal class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg cursor-pointer">✕</button>
+      </div>
+      <div id="row-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+      <div class="space-y-3 text-[13px]">
+        <input id="row-name" placeholder="Tên hãng" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="row-slug" placeholder="slug" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <button type="button" data-close-modal class="px-4 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px] cursor-pointer">Hủy</button>
+        <button id="row-submit" type="button" class="px-4 h-10 rounded-[8px] bg-[#17141F] text-white font-bold text-[13px] cursor-pointer">+ Thêm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../lib/api';
+
+    const rowModal = document.getElementById('row-modal');
+    document.getElementById('open-row-modal')?.addEventListener('click', () => {
+      rowModal?.classList.remove('hidden');
+      rowModal?.classList.add('flex');
+    });
+    rowModal?.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        rowModal?.classList.add('hidden');
+        rowModal?.classList.remove('flex');
+      });
+    });
+
+    document.getElementById('row-submit')?.addEventListener('click', async () => {
+      const name = ((document.getElementById('row-name') as HTMLInputElement | null)?.value || '').trim();
+      const slug = ((document.getElementById('row-slug') as HTMLInputElement | null)?.value || '').trim();
+      const errEl = document.getElementById('row-error');
+      if (!name || !slug) {
+        if (errEl) {
+          errEl.textContent = 'Nhập tên và slug.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      const { error } = await mutate('/admin/manufacturers', 'POST', { name, slug });
+      if (error) {
+        if (errEl) {
+          errEl.textContent = error.message || 'Thêm thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      window.location.reload();
+    });
+  </script>
+</AdminLayout>

@@ -1,0 +1,27 @@
+---
+import Badge from '../ui/Badge.astro';
+import type { PaymentStatus } from '../../types';
+
+interface Props {
+  status: PaymentStatus;
+  size?: 'sm' | 'md';
+}
+
+const { status, size = 'md' } = Astro.props;
+
+const config: Record<PaymentStatus, { label: string; variant: 'info' | 'warning' | 'success' | 'danger' | 'neutral' }> = {
+  unpaid: { label: 'Chưa thanh toán', variant: 'danger' },
+  pending: { label: 'Chờ thanh toán', variant: 'warning' },
+  partially_paid: { label: 'Đã cọc một phần', variant: 'warning' },
+  paid: { label: 'Đã thanh toán', variant: 'success' },
+  refunded: { label: 'Đã hoàn tiền', variant: 'neutral' },
+  partially_refunded: { label: 'Hoàn tiền 1 phần', variant: 'neutral' },
+  failed: { label: 'Thanh toán lỗi', variant: 'danger' },
+};
+
+const current = config[status] || { label: status, variant: 'neutral' };
+---
+
+<Badge variant={current.variant} size={size}>
+  {current.label}
+</Badge>

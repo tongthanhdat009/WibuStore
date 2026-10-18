@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+import Button from '../components/ui/Button.astro';
+---
+
+<BaseLayout
+  title="Về Wibu Store — Anime Pop Comic Art Edition"
+  description="Câu chuyện xây dựng không gian thương mại điện tử mô hình anime phong cách Comic Pop Art tại Việt Nam."
+>
+  <div class="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb items={[{ label: 'Về Wibu Store' }]} className="mb-6" />
+
+    <div class="bg-white p-6 md:p-12 rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] relative overflow-hidden">
+      <div class="absolute -top-10 -right-10 w-48 h-48 pattern-halftone opacity-25 rounded-full pointer-events-none"></div>
+
+      <div class="relative z-10">
+        <div class="flex items-center gap-2 mb-2">
+          <StickerBadge text="OUR STORY" variant="yellow" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            EST. 2026 • VIETNAM
+          </span>
+        </div>
+
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl text-[#17141F] uppercase tracking-tight mb-4 leading-none">
+          WIBU STORE — MANGA POP ART & COLLECTIBLES
+        </h1>
+
+        <p class="text-sm md:text-base font-bold text-[#D6284F] mb-6">
+          "Visual nổi bật ở marketing; giao diện đơn giản ở thao tác mua hàng."
+        </p>
+
+        <div class="text-xs sm:text-sm text-[#534F5C] leading-relaxed space-y-4">
+          <p>
+            Wibu Store ra đời từ tình yêu nồng nhiệt với văn hóa anime, manga Nhật Bản và niềm say mê những tác phẩm điêu khắc figure tinh xảo. Chúng tôi hướng tới việc mang lại trải nghiệm mua sắm mô hình độc đáo: cảm giác lật mở từng trang truyện tranh sinh động, kết hợp với dịch vụ thương mại điện tử chuyên nghiệp, minh bạch và an toàn tuyệt đối.
+          </p>
+          <p>
+            Tại Wibu Store, từng sản phẩm từ Scale Figure 1/7, Nendoroid chibi đến các cỗ máy Gundam Gunpla đều được nhập khẩu chính ngạch từ các đối tác danh tiếng như Good Smile Company, Alter, eStream Shibuya Scramble, MegaHouse, Kotobukiya và Bandai Spirits.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-8 border-t-2 border-[#17141F]">
+          <div class="p-4 rounded-xl bg-[#FFFDF7] border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
+            <span class="font-display text-2xl text-[#D6284F]">100%</span>
+            <p class="text-xs font-bold text-[#17141F] mt-1">Chính hãng Nhật Bản</p>
+            <p class="text-[11px] text-[#534F5C]">Nói không với hàng bootleg/hàng nhái.</p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#FFFDF7] border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
+            <span class="font-display text-2xl text-[#FFD44A] text-stroke-ink">24/7</span>
+            <p class="text-xs font-bold text-[#17141F] mt-1">Hỗ trợ người sưu tầm</p>
+            <p class="text-[11px] text-[#534F5C]">Tư vấn scale, cách trưng bày và bảo quản.</p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#FFFDF7] border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
+            <span class="font-display text-2xl text-[#3258D7]">0Đ</span>
+            <p class="text-xs font-bold text-[#17141F] mt-1">Miễn phí đổi trả lỗi</p>
+            <p class="text-[11px] text-[#534F5C]">Bảo hiểm rủi ro gãy vỡ hộp trong 7 ngày.</p>
+          </div>
+        </div>
+
+        <div class="mt-8 text-center sm:text-left">
+          <Button href="/figures" variant="primary" size="md">
+            <span>Khám phá bộ sưu tập mô hình</span>
+            &rarr;
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

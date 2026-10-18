@@ -1,0 +1,262 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface Perm {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+}
+interface RoleRow {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  permissions: Perm[];
+}
+
+const { data: roleData } = await apiGet<RoleRow[]>('/admin/rbac/roles', Astro);
+const { data: permData } = await apiGet<Perm[]>('/admin/permissions', Astro);
+const roles = roleData ?? [];
+const perms = permData ?? [];
+
+const selectedSlug = Astro.url.searchParams.get('role') ?? roles[0]?.slug ?? '';
+const selected = roles.find((r) => r.slug === selectedSlug) ?? roles[0];
+const granted = new Set((selected?.permissions ?? []).map((p) => p.id));
+
+const groups: { key: string; title: string; items: Perm[] }[] = [];
+for (const p of perms) {
+  const key = p.slug.includes('.') ? p.slug.split('.')[0] : 'khac';
+  let g = groups.find((x) => x.key === key);
+  if (!g) {
+    g = { key, title: key, items: [] };
+    groups.push(g);
+  }
+  g.items.push(p);
+}
+const GROUP_TITLES: Record<string, string> = {
+  products: 'Sản phẩm & Catalog',
+  inventory: 'Tồn kho',
+  orders: 'Đơn hàng',
+  payments: 'Thanh toán',
+  preorders: 'Pre-order',
+  cms: 'Nội dung CMS',
+  users: 'Nhân sự & Phân quyền',
+  reports: 'Báo cáo',
+  settings: 'Cấu hình',
+};
+---
+
+<AdminLayout
+  title="Vai trò & Quyền hạn (RBAC)"
+  description="Chọn một vai trò bên trái, tick quyền bên phải rồi lưu. Super Admin luôn có mọi quyền."
+  breadcrumbs={[{ label: 'Hệ thống' }, { label: 'Vai trò & Quyền' }]}
+>
+  <div slot="actions">
+    <button id="open-role-modal" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#17141F] text-white text-[13px] font-bold cursor-pointer">
+      + Tạo vai trò
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="lg:col-span-4 space-y-3 lg:sticky lg:top-6 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-[#D8D4D0] font-bold text-[14px] text-[#17141F]">
+          Vai trò ({roles.length})
+        </div>
+        <ul class="divide-y divide-[#F2EFE9]">
+          {roles.map((r) => (
+            <li>
+              <a
+                href={`/settings/roles?role=${r.slug}`}
+                class={`flex items-center justify-between px-4 py-3 text-[13px] font-bold transition-colors ${
+                  selected?.id === r.id ? 'bg-[#FFF0F3] text-[#A61B3F]' : 'text-[#17141F] hover:bg-[#F7F5F0]'
+                }`}
+              >
+                <span>
+                  {r.name}
+                  <span class="block text-[11px] font-mono font-normal text-[#6A6572]">{r.slug}</span>
+                </span>
+                <Badge variant="neutral" size="sm">{r.permissions.length}</Badge>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="lg:col-span-8">
+      {!selected && (
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-10 text-center text-[13px] text-[#6A6572]">
+          Chưa có vai trò nào. Bấm “+ Tạo vai trò” ở góc phải trên.
+        </div>
+      )}
+      {selected && (
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+          <div class="p-4 border-b border-[#D8D4D0] flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-[16px] font-black text-[#17141F]">
+                {selected.name}
+                <span class="ml-2 text-[11px] font-mono font-normal text-[#6A6572]">{selected.slug}</span>
+              </h2>
+              <p class="text-[12px] text-[#534F5C]">{granted.size} quyền đang bật</p>
+            </div>
+            <div class="flex gap-2">
+              {!['super_admin', 'customer'].includes(selected.slug) && (
+                <button id="role-delete" type="button" data-role-id={selected.id} data-role-name={selected.name} class="px-3 h-9 rounded-[8px] border border-[#D6284F]/40 text-[#D6284F] text-[12px] font-bold cursor-pointer">
+                  Xóa vai trò
+                </button>
+              )}
+              <button id="perms-save" type="button" data-role-id={selected.id} class="px-4 h-9 rounded-[8px] bg-[#D6284F] text-white text-[12px] font-bold cursor-pointer">
+                Lưu quyền
+              </button>
+            </div>
+          </div>
+
+          <div id="perms-error" class="hidden mx-4 mt-4 p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+          <div id="perms-ok" class="hidden mx-4 mt-4 p-3 rounded-[8px] bg-[#EDF7F0] border border-[#147A4B]/30 text-[12px] text-[#147A4B]">Đã lưu quyền.</div>
+
+          <div class="p-4 space-y-5">
+            {groups.map((g) => (
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="text-[13px] font-black text-[#17141F] uppercase tracking-wider">
+                    {GROUP_TITLES[g.key] ?? g.key}
+                  </h3>
+                  <button
+                    type="button"
+                    class="perm-toggle-group text-[11px] font-bold text-[#3258D7] hover:underline cursor-pointer"
+                    data-group={g.key}
+                  >
+                    Chọn/bỏ cả nhóm
+                  </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {g.items.map((p) => (
+                    <label class="flex items-start gap-2.5 p-2.5 rounded-[8px] border border-[#D8D4D0] hover:border-[#17141F] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        class="perm-check mt-0.5 w-4 h-4 rounded text-[#D6284F]"
+                        value={p.id}
+                        data-group-check={g.key}
+                        checked={granted.has(p.id)}
+                      />
+                      <span>
+                        <span class="block text-[12px] font-bold text-[#17141F]">{p.name}</span>
+                        <span class="block text-[11px] font-mono text-[#6A6572]">{p.slug}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    function permsFail(msg: string) {
+      const el = document.getElementById('perms-error');
+      if (el) {
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      } else {
+        alert(msg);
+      }
+    }
+
+    document.getElementById('perms-save')?.addEventListener('click', async (e) => {
+      const roleId = (e.target as HTMLElement).closest('button')?.dataset.roleId;
+      const ids = Array.from(document.querySelectorAll('.perm-check:checked')).map((b) =>
+        Number((b as HTMLInputElement).value),
+      );
+      const { error } = await mutate(`/admin/rbac/roles/${roleId}`, 'PATCH', { permission_ids: ids });
+      if (error) return permsFail(error.message || 'Lưu thất bại.');
+      document.getElementById('perms-ok')?.classList.remove('hidden');
+      setTimeout(() => window.location.reload(), 600);
+    });
+
+    document.querySelectorAll('.perm-toggle-group').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = (btn as HTMLElement).dataset.group;
+        const boxes = Array.from(document.querySelectorAll(`input[data-group-check="${key}"]`)) as HTMLInputElement[];
+        const allOn = boxes.every((b) => b.checked);
+        boxes.forEach((b) => {
+          b.checked = !allOn;
+        });
+      });
+    });
+
+    document.getElementById('role-delete')?.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement).closest('button');
+      const roleId = btn?.dataset.roleId;
+      const name = btn?.dataset.roleName ?? '';
+      if (!confirm(`Xóa vai trò "${name}"? Chỉ xóa được khi không còn nhân sự nào dùng.`)) return;
+      const { error } = await mutate(`/admin/rbac/roles/${roleId}`, 'DELETE');
+      if (error) return permsFail(error.message || 'Xóa thất bại.');
+      window.location.href = '/settings/roles';
+    });
+
+    const roleModal = document.getElementById('role-modal');
+    document.getElementById('open-role-modal')?.addEventListener('click', () => {
+      roleModal?.classList.remove('hidden');
+      roleModal?.classList.add('flex');
+    });
+    roleModal?.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        roleModal?.classList.add('hidden');
+        roleModal?.classList.remove('flex');
+      });
+    });
+
+    document.getElementById('nr-submit')?.addEventListener('click', async () => {
+      const name = ((document.getElementById('nr-name') as HTMLInputElement | null)?.value || '').trim();
+      const slug = ((document.getElementById('nr-slug') as HTMLInputElement | null)?.value || '').trim();
+      const errEl = document.getElementById('role-error');
+      if (!name || !slug) {
+        if (errEl) {
+          errEl.textContent = 'Nhập tên và slug.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      const { data, error } = await mutate<{ slug: string }>('/admin/rbac/roles', 'POST', { name, slug, permission_ids: [] });
+      if (error || !data) {
+        if (errEl) {
+          errEl.textContent = error?.message || 'Tạo thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      window.location.href = `/settings/roles?role=${data.slug}`;
+    });
+  </script>
+
+  <div id="role-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[16px] max-w-md w-full p-6 border-2 border-[#17141F] space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[16px] font-black text-[#17141F]">Tạo vai trò mới</h3>
+        <button type="button" data-close-modal class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg cursor-pointer">✕</button>
+      </div>
+      <div id="role-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+      <div class="space-y-3 text-[13px]">
+        <input id="nr-name" placeholder="Tên vai trò (vd: Marketing)" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="nr-slug" placeholder="slug (vd: marketing)" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <button type="button" data-close-modal class="px-4 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px] cursor-pointer">Hủy</button>
+        <button id="nr-submit" type="button" class="px-4 h-10 rounded-[8px] bg-[#17141F] text-white font-bold text-[13px] cursor-pointer">+ Tạo vai trò</button>
+      </div>
+    </div>
+  </div>
+</AdminLayout>

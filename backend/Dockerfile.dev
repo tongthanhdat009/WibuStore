@@ -1,0 +1,8 @@
+# Dev image for Wibu Store API: PHP 8.3 + pdo_pgsql + composer.
+# Build: docker build -t wibu-php:8.3 -f Dockerfile.dev .
+FROM php:8.3-cli
+RUN apt-get update && apt-get install -y libpq-dev libzip-dev unzip git zip \
+    && docker-php-ext-install pdo_pgsql zip bcmath \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /work

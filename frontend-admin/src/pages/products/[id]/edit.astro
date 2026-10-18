@@ -1,0 +1,330 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import Input from '../../../components/ui/Input.astro';
+import Button from '../../../components/ui/Button.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../../lib/api';
+import { formatCurrency } from '../../../lib/formatters';
+
+export const prerender = false;
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+const { id } = Astro.params;
+
+interface EditProduct {
+  id: number;
+  name: string;
+  slug: string;
+  short_description?: string | null;
+  description?: string | null;
+  status: string;
+  anime_series_id?: number | null;
+  manufacturer_id?: number | null;
+  series?: { id: number; name: string } | null;
+  manufacturer?: { id: number; name: string } | null;
+  categories: { id: number; name: string }[];
+  variants: { id: number; sku: string; label: string; price_amount: number; compare_at_amount?: number | null; status: string }[];
+  media: { id: number; url?: string | null; is_primary: boolean }[];
+}
+
+const { data: product } = await apiGet<EditProduct>(`/admin/products/${id}`, Astro);
+if (!product) return Astro.redirect('/products');
+
+const { data: seriesData } = await apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro);
+const { data: makerData } = await apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro);
+const firstVariant = product.variants[0];
+---
+
+<AdminLayout
+  title={`Chỉnh sửa: ${product.name}`}
+  description={`SKU gốc: ${firstVariant?.sku || product.slug} • Trạng thái: ${product.status}`}
+  breadcrumbs={[
+    { label: 'Sản phẩm', href: '/products' },
+    { label: 'Tất cả sản phẩm', href: '/products' },
+    { label: product.name },
+  ]}
+>
+  <!-- Sticky Header Action Bar -->
+  <div slot="actions" class="flex flex-wrap items-center gap-2" data-product-id={product.id} data-product-status={product.status}>
+    <Button variant="secondary" size="sm" href="/products">
+      ← Danh sách
+    </Button>
+    <a
+      href={`http://localhost:4321/products/${product.slug}`}
+      target="_blank"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-bold text-[#17141F] shadow-xs"
+    >
+      <span>Xem storefront</span>
+      <span>↗</span>
+    </a>
+    <button id="publish-action" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#147A4B] text-white text-[13px] font-bold">
+      Xuất bản
+    </button>
+    <button id="archive-action" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] text-[13px] font-bold">
+      Lưu trữ
+    </button>
+    <button id="save-action" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#D6284F] text-white text-[13px] font-bold">
+      Lưu thay đổi
+    </button>
+  </div>
+
+  <div id="edit-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+  <form id="edit-form" class="space-y-6" onsubmit="return false;">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left 2 Cols: Form Fields -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- 1. Basic Info -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            1. Thông tin cơ bản
+          </h2>
+
+          <Input
+            label="Tên sản phẩm"
+            name="name"
+            value={product.name}
+            required
+          />
+
+          <Input
+            label="Mô tả ngắn"
+            name="short_description"
+            value={product.short_description ?? ''}
+          />
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[13px] font-semibold text-[#17141F]">Mô tả chi tiết sản phẩm</label>
+            <textarea
+              name="description"
+              rows="4"
+              class="w-full p-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
+            >{product.description ?? ''}</textarea>
+          </div>
+        </div>
+
+        <!-- 2. Classification -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            2. Phân loại Anime & Nhà sản xuất
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[13px] font-semibold text-[#17141F]">Anime Series</label>
+              <select name="anime_series_id" class="h-10 px-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F]">
+                <option value="">— Không thuộc series —</option>
+                {(seriesData ?? []).map((s) => (
+                  <option value={s.id} selected={product.anime_series_id === s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[13px] font-semibold text-[#17141F]">Hãng sản xuất</label>
+              <select name="manufacturer_id" class="h-10 px-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F]">
+                <option value="">— Chưa chọn —</option>
+                {(makerData ?? []).map((m) => (
+                  <option value={m.id} selected={product.manufacturer_id === m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Media Gallery -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-2">
+            <h2 class="text-[16px] font-bold text-[#17141F]">
+              3. Hình ảnh mô hình ({product.media.length} ảnh)
+            </h2>
+            <Button variant="ghost" size="sm" href="/media">
+              Quản lý Media Library ↗
+            </Button>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {product.media.length === 0 && (
+              <div class="col-span-full text-[12px] text-[#6A6572]">Chưa có ảnh. Upload tại Media Library rồi gán vào sản phẩm (tính năng gán ảnh sẽ bổ sung).</div>
+            )}
+            {product.media.map((m, idx) => (
+              <div class="relative group aspect-square rounded-[8px] border border-[#D8D4D0] overflow-hidden bg-[#FAF8F5]">
+                {m.url ? (
+                  <img src={m.url} alt="" class="w-full h-full object-cover" />
+                ) : (
+                  <div class="w-full h-full flex items-center justify-center text-[11px] text-[#6A6572]">No URL</div>
+                )}
+                {(m.is_primary || idx === 0) && (
+                  <span class="absolute top-1.5 left-1.5 bg-[#D6284F] text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-xs">
+                    Ảnh bìa
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <!-- 4. Variant Matrix Table -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-2">
+            <h2 class="text-[16px] font-bold text-[#17141F]">
+              4. Danh sách biến thể & Giá bán ({product.variants.length})
+            </h2>
+            <a href="/inventory" class="text-[12px] font-bold text-[#3258D7] hover:underline">
+              Điều chỉnh tồn kho trong Ledger →
+            </a>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[13px] border-collapse">
+              <thead>
+                <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+                  <th class="py-2.5 px-3">Tên phiên bản</th>
+                  <th class="py-2.5 px-3">Mã SKU</th>
+                  <th class="py-2.5 px-3 text-right">Giá bán</th>
+                  <th class="py-2.5 px-3 text-center">Trạng thái</th>
+                  <th class="py-2.5 px-3 text-center">Giá mới</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#F2EFE9]">
+                {product.variants.map((v) => (
+                  <tr>
+                    <td class="py-3 px-3 font-bold text-[#17141F]">{v.label}</td>
+                    <td class="py-3 px-3 font-mono text-[#6A6572]">{v.sku}</td>
+                    <td class="py-3 px-3 text-right font-bold text-[#17141F] tabular-nums">
+                      {formatCurrency(v.price_amount)}
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                      <Badge variant={v.status === 'active' ? 'success' : 'neutral'} size="sm">{v.status}</Badge>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                      <input
+                        type="number"
+                        data-variant-price={v.id}
+                        placeholder={String(v.price_amount)}
+                        class="w-28 h-8 px-2 rounded-[6px] border border-[#D8D4D0] text-[12px] tabular-nums"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[11px] text-[#6A6572]">Nhập giá mới vào cột cuối rồi bấm “Lưu thay đổi” để cập nhật từng SKU.</p>
+        </div>
+      </div>
+
+      <!-- Right 1 Col: Publication Status & Card Preview -->
+      <div class="space-y-6">
+        <!-- Publication Box -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            Trạng thái xuất bản
+          </h2>
+
+          <div class="p-3 rounded-[8px] bg-[#FAF8F5] border border-[#D8D4D0] text-[12px] text-[#17141F]">
+            Trạng thái hiện tại: <strong>{product.status}</strong>
+          </div>
+
+          <div id="edit-ok" class="hidden p-3 rounded-[8px] bg-[#E7F5ED] border border-[#147A4B]/20 text-[12px] text-[#147A4B]">
+            ✓ Đã lưu thay đổi.
+          </div>
+        </div>
+
+        <!-- Realtime Comic Preview -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-2">
+            <h2 class="text-[14px] font-bold text-[#17141F] uppercase tracking-wider">
+              Storefront Preview
+            </h2>
+            <Badge variant="yellow" size="sm">Live</Badge>
+          </div>
+
+          <div class="p-3 bg-[#FFFDF7] rounded-[10px] border border-[#D8D4D0]">
+            {product.media[0]?.url ? (
+              <img
+                src={product.media[0].url}
+                alt={product.name}
+                class="aspect-square w-full rounded-[8px] object-cover border border-[#E8E5E1] mb-3"
+              />
+            ) : (
+              <div class="aspect-square w-full rounded-[8px] bg-[#F2EFE9] border border-[#E8E5E1] mb-3 flex items-center justify-center text-[11px] text-[#6A6572]">Chưa có ảnh</div>
+            )}
+            <div class="text-[11px] font-bold text-[#D6284F] uppercase tracking-wide">{product.series?.name ?? ''}</div>
+            <div class="text-[14px] font-bold text-[#17141F] mt-0.5 line-clamp-2 leading-snug">{product.name}</div>
+            <div class="flex items-center justify-between mt-2 pt-2 border-t border-[#E8E5E1]">
+              <span class="text-[15px] font-black text-[#17141F] tabular-nums">{firstVariant ? formatCurrency(firstVariant.price_amount) : '—'}</span>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-[#FFD44A] text-[#17141F]">
+                {product.status === 'active' ? 'ĐANG BÁN' : product.status.toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    import { mutate } from '../../../lib/api';
+
+    function fail(msg: string) {
+      const el = document.getElementById('edit-error');
+      if (el) {
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      } else {
+        alert(msg);
+      }
+    }
+
+    function formValues() {
+      const form = document.getElementById('edit-form') as HTMLFormElement | null;
+      const fd = new FormData(form ?? undefined);
+      const num = (k: string) => {
+        const raw = String(fd.get(k) ?? '');
+        if (raw === '') return null;
+        const v = Number(raw);
+        return Number.isFinite(v) ? v : null;
+      };
+      return {
+        name: String(fd.get('name') || '').trim(),
+        short_description: String(fd.get('short_description') || ''),
+        description: String(fd.get('description') || ''),
+        anime_series_id: num('anime_series_id'),
+        manufacturer_id: num('manufacturer_id'),
+      };
+    }
+
+    async function save() {
+      const v = formValues();
+      if (!v.name) return fail('Nhập tên sản phẩm.');
+      const actions = document.querySelector('[data-product-id]');
+      const pid = (actions as HTMLElement | null)?.dataset.productId;
+      const { error } = await mutate(`/admin/products/${pid}`, 'PATCH', v);
+      if (error) return fail(error.message || 'Lưu thất bại.');
+      for (const input of document.querySelectorAll('input[data-variant-price]')) {
+        const el = input as HTMLInputElement;
+        if (el.value.trim() === '') continue;
+        const vid = (el as HTMLElement).dataset.variantPrice;
+        const r = await mutate(`/admin/variants/${vid}`, 'PATCH', { price_amount: Number(el.value) });
+        if (r.error) return fail(`SKU ${vid}: ${r.error.message}`);
+      }
+      document.getElementById('edit-ok')?.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function transition(path: string, confirmText: string) {
+      if (!confirm(confirmText)) return;
+      const actions = document.querySelector('[data-product-id]');
+      const pid = (actions as HTMLElement | null)?.dataset.productId;
+      const { error } = await mutate(`/admin/products/${pid}/${path}`, 'POST', {});
+      if (error) return fail(error.message || 'Thao tác thất bại.');
+      window.location.reload();
+    }
+
+    document.getElementById('save-action')?.addEventListener('click', save);
+    document.getElementById('publish-action')?.addEventListener('click', () => transition('publish', 'Xuất bản sản phẩm này? Cần ít nhất 1 SKU active + 1 ảnh.'));
+    document.getElementById('archive-action')?.addEventListener('click', () => transition('archive', 'Lưu trữ sản phẩm này?'));
+  </script>
+</AdminLayout>

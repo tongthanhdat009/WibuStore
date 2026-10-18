@@ -1,0 +1,222 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+import { formatCurrency, formatDate } from '../../lib/formatters';
+
+export const prerender = false;
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+const { id } = Astro.params;
+
+interface Reservation { id: number; quantity: number; status: string; deposit_required_amount: number; balance_due_amount: number; order_id?: number; order_number?: string; customer_name?: string; customer_phone?: string }
+interface CampaignDetail {
+  id: number; status: string; quota: number; reserved_quantity: number; available: number;
+  deposit_per_unit_amount: number; sale_price_per_unit_amount: number;
+  opens_at?: string | null; closes_at?: string | null; expected_release_at?: string | null; expected_arrival_at?: string | null;
+  sku?: string; variant_label?: string; product_name?: string; reservations: Reservation[];
+}
+
+const { data: batch } = await apiGet<CampaignDetail>(`/admin/preorder-campaigns/${id}`, Astro);
+if (!batch) return Astro.redirect('/preorders');
+---
+
+<AdminLayout
+  title={`${batch.product_name ?? 'Chiến dịch'} — Campaign #${batch.id}`}
+  description={`Thời gian nhận cọc: ${batch.opens_at ? formatDate(batch.opens_at) : '—'} – ${batch.closes_at ? formatDate(batch.closes_at) : '—'} • SKU: ${batch.sku ?? '—'}`}
+  breadcrumbs={[
+    { label: 'Bán hàng', href: '/orders' },
+    { label: 'Pre-order', href: '/preorders' },
+    { label: `Campaign #${batch.id}` },
+  ]}
+>
+  <div slot="actions" class="flex items-center gap-2" data-campaign-id={batch.id} data-campaign-status={batch.status}>
+    <Button variant="secondary" size="sm" href="/preorders">
+      ← Danh sách chiến dịch
+    </Button>
+    {batch.status === 'draft' && (
+      <button type="button" data-open-campaign={batch.id} class="px-3 py-1.5 h-8 rounded-[8px] bg-[#17141F] text-white text-[13px] font-bold">Mở cổng nhận cọc</button>
+    )}
+    {batch.status === 'open' && (
+      <button type="button" data-close-campaign={batch.id} class="px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D6284F] text-[#D6284F] text-[13px] font-bold">Đóng cổng nhận cọc</button>
+    )}
+  </div>
+
+  <!-- 4 Stat Metrics -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div class="p-4 bg-white rounded-[12px] border border-[#D8D4D0] shadow-xs">
+      <div class="text-[12px] font-bold text-[#6A6572] uppercase">Tổng suất quota</div>
+      <div class="text-[24px] font-black text-[#17141F] tabular-nums mt-0.5">{batch.quota} slot</div>
+    </div>
+    <div class="p-4 bg-white rounded-[12px] border border-[#D8D4D0] shadow-xs">
+      <div class="text-[12px] font-bold text-[#3258D7] uppercase">Khách đã đặt</div>
+      <div class="text-[24px] font-black text-[#3258D7] tabular-nums mt-0.5">{batch.reserved_quantity} slot</div>
+    </div>
+    <div class="p-4 bg-white rounded-[12px] border border-[#D8D4D0] shadow-xs">
+      <div class="text-[12px] font-bold text-[#147A4B] uppercase">Cọc tối thiểu/suất</div>
+      <div class="text-[24px] font-black text-[#147A4B] tabular-nums mt-0.5">
+        {formatCurrency(batch.deposit_per_unit_amount)}
+      </div>
+    </div>
+    <div class="p-4 bg-white rounded-[12px] border border-[#D8D4D0] shadow-xs">
+      <div class="text-[12px] font-bold text-[#9A5A00] uppercase">Suất còn lại</div>
+      <div class="text-[24px] font-black text-[#9A5A00] tabular-nums mt-0.5">
+        {batch.available} slot
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Left: Buyers List (2/3) -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-[#D8D4D0] flex items-center justify-between">
+          <h2 class="text-[16px] font-bold text-[#17141F]">
+            Danh sách khách đặt trước ({batch.reservations.length} bản ghi)
+          </h2>
+        </div>
+
+        {batch.reservations.length > 0 ? (
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-[13px] border-collapse">
+              <thead>
+                <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+                  <th class="py-3 px-4">Mã đơn</th>
+                  <th class="py-3 px-4">Khách hàng</th>
+                  <th class="py-3 px-4">Số lượng</th>
+                  <th class="py-3 px-4">Trạng thái cọc</th>
+                  <th class="py-3 px-4 text-right">Tiền cọc</th>
+                  <th class="py-3 px-4 text-center">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#F2EFE9]">
+                {batch.reservations.map((r) => (
+                  <tr class="hover:bg-[#FDFBF7] transition-colors">
+                    <td class="py-3.5 px-4 font-mono font-bold">
+                      {r.order_id ? (
+                        <a href={`/orders/${r.order_id}`} class="text-[#3258D7] hover:underline">
+                          {r.order_number}
+                        </a>
+                      ) : (
+                        <span class="text-[#6A6572]">—</span>
+                      )}
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <div class="font-bold text-[#17141F]">{r.customer_name ?? '—'}</div>
+                      <div class="text-[11px] text-[#6A6572]">{r.customer_phone ?? ''}</div>
+                    </td>
+                    <td class="py-3.5 px-4 font-bold text-[#17141F] tabular-nums">
+                      {r.quantity}
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <Badge variant={r.status === 'deposit_paid' || r.status === 'completed' ? 'success' : r.status === 'awaiting_deposit' ? 'danger' : 'warning'} size="sm">{r.status}</Badge>
+                    </td>
+                    <td class="py-3.5 px-4 text-right font-bold text-[#17141F] tabular-nums">
+                      {formatCurrency(r.deposit_required_amount)}
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                      {r.order_id ? (
+                        <Button variant="secondary" size="sm" href={`/orders/${r.order_id}`}>
+                          Chi tiết đơn
+                        </Button>
+                      ) : (
+                        <span class="text-[#6A6572]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div class="p-8 text-center text-[#6A6572] text-[13px]">
+            Đợt pre-order này chưa phát sinh giao dịch đặt cọc nào hoặc đang chuẩn bị mở cổng.
+          </div>
+        )}
+      </div>
+
+      <!-- Release Timeline -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <h2 class="text-[16px] font-bold text-[#17141F] mb-3 pb-2 border-b border-[#F2EFE9]">
+          Tiến độ phát hành & Vận chuyển từ Nhật Bản
+        </h2>
+        <div class="space-y-4 text-[13px]">
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 rounded-full bg-[#E7F5ED] text-[#147A4B] flex items-center justify-center font-bold text-[12px] shrink-0 mt-0.5">✓</span>
+            <div>
+              <strong class="text-[#17141F]">Mở cổng nhận cọc chính thức</strong>
+              <p class="text-[#534F5C] mt-0.5">{batch.opens_at ? formatDate(batch.opens_at) : '—'}: Đợt cọc đã thông báo tới cộng đồng fan Wibu Store.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 rounded-full bg-[#FFF3DA] text-[#9A5A00] flex items-center justify-center font-bold text-[12px] shrink-0 mt-0.5">⏳</span>
+            <div>
+              <strong class="text-[#17141F]">Hãng hoàn thiện & Xuất cảnh Tokyo</strong>
+              <p class="text-[#534F5C] mt-0.5">Dự kiến: {batch.expected_release_at ? formatDate(batch.expected_release_at) : '—'}.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3">
+            <span class="w-6 h-6 rounded-full bg-[#FAF8F5] text-[#6A6572] border border-[#D8D4D0] flex items-center justify-center font-bold text-[12px] shrink-0 mt-0.5">3</span>
+            <div>
+              <strong class="text-[#17141F]">Hàng cập cảng & Trả hàng cho khách</strong>
+              <p class="text-[#534F5C] mt-0.5">Dự kiến cập kho Wibu Store: {batch.expected_arrival_at ? formatDate(batch.expected_arrival_at) : '—'}. Khách thanh toán phần còn lại trước khi ship.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side: Policy & Settings (1/3) -->
+    <div class="space-y-6">
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+        <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+          Cài đặt cọc & Chính sách
+        </h2>
+        <div class="text-[13px] space-y-3">
+          <div>
+            <span class="text-[#6A6572] block">Tiền cọc quy định:</span>
+            <strong class="text-[16px] text-[#D6284F] tabular-nums font-extrabold">{formatCurrency(batch.deposit_per_unit_amount)}</strong>
+          </div>
+          <div>
+            <span class="text-[#6A6572] block">Giá hoàn thiện chính thức:</span>
+            <strong class="text-[16px] text-[#17141F] tabular-nums font-bold">{formatCurrency(batch.sale_price_per_unit_amount)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-3">
+        <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+          Thông báo đến người đặt cọc
+        </h2>
+        <p class="text-[12px] text-[#534F5C]">
+          Gửi email hoặc tin nhắn Zalo cập nhật tiến độ vận chuyển cho toàn bộ {batch.reserved_quantity} khách hàng trong đợt này.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    document.querySelectorAll('button[data-open-campaign]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.openCampaign;
+        const { error } = await mutate(`/admin/preorder-campaigns/${id}/open`, 'POST', {});
+        if (error) return alert(error.message || 'Mở cọc thất bại.');
+        window.location.reload();
+      });
+    });
+    document.querySelectorAll('button[data-close-campaign]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.closeCampaign;
+        if (!confirm('Đóng chiến dịch pre-order này?')) return;
+        const { error } = await mutate(`/admin/preorder-campaigns/${id}/close`, 'POST', {});
+        if (error) return alert(error.message || 'Đóng cọc thất bại.');
+        window.location.reload();
+      });
+    });
+  </script>
+</AdminLayout>

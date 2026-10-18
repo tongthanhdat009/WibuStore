@@ -1,0 +1,47 @@
+---
+import type { Product } from '../../types';
+import ProductCard from './ProductCard.astro';
+
+interface Props {
+  products: Product[];
+  emptyMessage?: string;
+  className?: string;
+}
+
+const {
+  products,
+  emptyMessage = 'Không tìm thấy mô hình nào phù hợp với bộ lọc hiện tại.',
+  className = '',
+} = Astro.props;
+---
+
+{
+  products.length === 0 ? (
+    <div class="w-full py-16 px-4 text-center bg-white rounded-3xl border-2 border-dashed border-[#D8D4D0]">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[#FFF4DC] border-2 border-[#17141F] flex items-center justify-center text-2xl shadow-[2px_2px_0px_#17141F]">
+        📦
+      </div>
+      <h3 class="font-display text-xl uppercase tracking-wider text-[#17141F] mb-2">
+        KHÔNG CÓ DỮ LIỆU
+      </h3>
+      <p class="text-sm text-[#534F5C] max-w-md mx-auto mb-6">
+        {emptyMessage}
+      </p>
+      <a
+        href="/figures"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FFD44A] text-[#17141F] font-bold border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:-translate-y-0.5 transition-all text-sm"
+      >
+        <span>Xem tất cả mô hình</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+        </svg>
+      </a>
+    </div>
+  ) : (
+    <div class={`grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 ${className}`}>
+      {products.map((product) => (
+        <ProductCard product={product} />
+      ))}
+    </div>
+  )
+}

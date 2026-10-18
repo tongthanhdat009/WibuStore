@@ -1,0 +1,60 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+import { formatCurrency } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface LevelRow { on_hand: number; reserved: number; available: number }
+
+const { data: invData } = await apiGet<LevelRow[]>('/admin/inventory?per_page=200', Astro);
+const levels = invData ?? [];
+const totalOnHand = levels.reduce((a, l) => a + l.on_hand, 0);
+const totalReserved = levels.reduce((a, l) => a + l.reserved, 0);
+const lowCount = levels.filter((l) => l.available > 0 && l.available <= 3).length;
+const outCount = levels.filter((l) => l.available <= 0).length;
+---
+
+<AdminLayout
+  title="Báo cáo sức khỏe tồn kho (Inventory Health)"
+  description="Đánh giá số ngày tồn kho khả dụng, tỉ lệ hàng găm cọc và cảnh báo hao hụt"
+  breadcrumbs={[
+    { label: 'Báo cáo', href: '/analytics' },
+    { label: 'Báo cáo tồn kho' },
+  ]}
+>
+  <div slot="actions">
+    <Button variant="secondary" size="sm" href="/inventory">
+      Xem bảng tồn kho chi tiết →
+    </Button>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="p-5 bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs">
+      <div class="text-[12px] font-bold text-[#6A6572] uppercase">Tổng SKU theo dõi</div>
+      <div class="text-[24px] font-black text-[#17141F] tabular-nums mt-1">{levels.length} SKU</div>
+      <div class="text-[12px] text-[#534F5C] mt-1">Tồn thực: {totalOnHand} • Đang giữ: {totalReserved}</div>
+    </div>
+    <div class="p-5 bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs">
+      <div class="text-[12px] font-bold text-[#6A6572] uppercase">Tồn thấp (≤3)</div>
+      <div class="text-[24px] font-black text-[#9A5A00] tabular-nums mt-1">{lowCount} SKU</div>
+      <div class="text-[12px] text-[#534F5C] mt-1">Cần nhập bổ sung</div>
+    </div>
+    <div class="p-5 bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs">
+      <div class="text-[12px] font-bold text-[#6A6572] uppercase">Hết hàng</div>
+      <div class="text-[24px] font-black text-[#B42318] tabular-nums mt-1">{outCount} SKU</div>
+      <div class="text-[12px] text-[#534F5C] mt-1">Khả dụng bằng 0</div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+    <h2 class="text-[16px] font-bold text-[#17141F] mb-3 pb-2 border-b border-[#F2EFE9]">
+      Chi tiết xem tại bảng tồn kho
+    </h2>
+    <a href="/inventory" class="text-[13px] font-bold text-[#3258D7] hover:underline">
+      Mở bảng tồn kho chi tiết →
+    </a>
+  </div>
+</AdminLayout>

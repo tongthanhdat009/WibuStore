@@ -1,0 +1,350 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+const { data: seriesData } = await apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro);
+const { data: makerData } = await apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro);
+const { data: catData } = await apiGet<{ id: number; name: string }[]>('/admin/categories', Astro);
+const seriesList = seriesData ?? [];
+const makerList = makerData ?? [];
+const catList = catData ?? [];
+---
+
+<AdminLayout
+  title="Tạo sản phẩm figure mới"
+  description="Thêm mô hình anime, thiết lập biến thể, hình ảnh gallery và đồng bộ lên cửa hàng"
+  breadcrumbs={[
+    { label: 'Sản phẩm', href: '/products' },
+    { label: 'Tất cả sản phẩm', href: '/products' },
+    { label: 'Tạo mới' },
+  ]}
+>
+  <!-- Sticky Header Action Bar -->
+  <div slot="actions" class="flex items-center gap-2">
+    <Button variant="secondary" size="sm" href="/products">
+      Hủy bỏ
+    </Button>
+    <button id="save-draft-btn" type="button" class="inline-flex items-center px-3 py-1.5 rounded-[8px] border border-[#D8D4D0] bg-white text-[13px] font-bold hover:bg-[#F7F5F0]">
+      Lưu bản nháp
+    </button>
+    <button id="publish-btn" type="button" class="inline-flex items-center px-3 py-1.5 rounded-[8px] bg-[#D6284F] text-white text-[13px] font-bold">
+      Tạo & Xuất bản
+    </button>
+  </div>
+
+  <div id="product-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+  <form id="product-form" class="space-y-6" onsubmit="return false;">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left 2 Cols: Form Fields -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- 1. Basic Info -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            1. Thông tin cơ bản
+          </h2>
+
+          <Input
+            label="Tên sản phẩm tiếng Anh / Quốc tế"
+            name="name"
+            placeholder="Ví dụ: Gojo Satoru Shibuya Incident 1/7 Scale Figure"
+            required
+          />
+
+          <Input
+            label="Tiêu đề hiển thị tiếng Việt"
+            name="vietnameseTitle"
+            placeholder="Ví dụ: Mô hình Satoru Gojo — Arc Biến Cố Shibuya 1/7 Scale"
+          />
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="URL Slug (đường dẫn)"
+              name="slug"
+              placeholder="gojo-satoru-shibuya-1-7"
+              hint="Tự động tạo từ tên sản phẩm nếu để trống"
+            />
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[13px] font-semibold text-[#17141F]">Trạng thái phân phối</label>
+              <select name="stockStatus" class="h-10 px-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F]">
+                <option value="in_stock">Có sẵn tại kho (In Stock)</option>
+                <option value="pre_order">Nhận đặt trước (Pre-order)</option>
+                <option value="coming_soon">Sắp phát hành (Coming Soon)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[13px] font-semibold text-[#17141F]">Mô tả chi tiết sản phẩm</label>
+            <textarea
+              name="description"
+              rows="4"
+              placeholder="Mô tả tác phẩm điêu khắc, các chi tiết phụ kiện, chất liệu sơn và cảm hứng thiết kế..."
+              class="w-full p-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- 2. Classification -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            2. Phân loại Anime & Nhà sản xuất
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[13px] font-semibold text-[#17141F]">Anime Series</label>
+              <select name="anime_series_id" class="h-10 px-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F]">
+                <option value="">— Không thuộc series —</option>
+                {seriesList.map((s) => (
+                  <option value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[13px] font-semibold text-[#17141F]">Hãng sản xuất</label>
+              <select name="manufacturer_id" class="h-10 px-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F]">
+                <option value="">— Chưa chọn —</option>
+                {makerList.map((m) => (
+                  <option value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[13px] font-semibold text-[#17141F]">Dòng Figure</label>
+              <select name="category_ids" class="h-10 px-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] text-[#17141F]">
+                <option value="">— Chưa chọn —</option>
+                {catList.map((c) => (
+                  <option value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <Input
+              label="Mô tả ngắn"
+              name="short_description"
+              placeholder="Mô tả ngắn hiển thị ngoài listing"
+            />
+          </div>
+        </div>
+
+        <!-- 3. Media & Gallery -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-2">
+            <h2 class="text-[16px] font-bold text-[#17141F]">
+              3. Hình ảnh mô hình (Media Library)
+            </h2>
+            <Button variant="ghost" size="sm" href="/media">
+              Mở Media Picker ↗
+            </Button>
+          </div>
+
+          <div class="border-2 border-dashed border-[#D8D4D0] rounded-[10px] p-6 text-center hover:bg-[#FAF8F5] transition-colors cursor-pointer">
+            <div class="w-12 h-12 rounded-full bg-[#EDF3FF] text-[#1D58D8] flex items-center justify-center mx-auto mb-2 font-bold text-[18px]">
+              ↑
+            </div>
+            <div class="text-[14px] font-bold text-[#17141F]">Kéo thả ảnh figure hoặc chọn từ máy tính</div>
+            <p class="text-[12px] text-[#6A6572] mt-1">Định dạng hỗ trợ: JPG, PNG, WEBP (Khuyến nghị tỉ lệ 1:1 hoặc 4:5, dung lượng &lt; 5MB)</p>
+          </div>
+        </div>
+
+        <!-- 4. Pricing & Variants -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            4. Giá niêm yết & Biến thể (Variants)
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Input
+              label="SKU (mã duy nhất) *"
+              name="sku"
+              placeholder="VD: GSC-GOJO-17-STD"
+              required
+            />
+            <Input
+              label="Tên phiên bản *"
+              name="variant_label"
+              placeholder="Standard"
+              required
+            />
+            <Input
+              label="Giá bán tiêu chuẩn (VND) *"
+              name="price_amount"
+              type="number"
+              placeholder="5850000"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- 5. Logistics Specifications -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            5. Thông số kỹ thuật & Đóng gói
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Tỉ lệ mô hình (Scale)" name="scale" placeholder="1/7 Scale hoặc Non-scale" />
+            <Input label="Kích thước thực tế" name="dimensions" placeholder="Cao 330mm x Rộng 260mm..." />
+            <Input label="Chất liệu chế tác" name="material" placeholder="PVC, ABS đúc cao cấp" />
+            <Input label="Dự kiến phát hành" name="releaseDate" placeholder="Tháng 12/2026" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Right 1 Col: Status, Preview & SEO -->
+      <div class="space-y-6">
+        <!-- Status & Channels -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            Trạng thái hiển thị
+          </h2>
+
+          <div>
+            <label class="text-[13px] font-semibold text-[#17141F] block mb-1">Trạng thái phát hành</label>
+            <select name="publishStatus" class="w-full h-10 px-3.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[14px] font-bold text-[#17141F]">
+              <option value="draft">Bản nháp (Draft - Ẩn khỏi web)</option>
+              <option value="published">Công khai (Published - Storefront)</option>
+              <option value="archived">Lưu trữ (Archived - Ngừng bán)</option>
+            </select>
+          </div>
+
+          <div class="pt-2 border-t border-[#F2EFE9] space-y-2 text-[13px]">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="isFeatured" class="rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]" />
+              <span class="font-semibold text-[#17141F]">Nổi bật tại trang chủ (Featured)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="isTrending" class="rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]" />
+              <span class="font-semibold text-[#17141F]">Xuất hiện tại mục Xu Hướng (Trending)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Realtime Product Card Preview -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-2">
+            <h2 class="text-[14px] font-bold text-[#17141F] uppercase tracking-wider">
+              Preview Card Storefront
+            </h2>
+            <Badge variant="yellow" size="sm">Comic Pop</Badge>
+          </div>
+
+          <div class="p-3 bg-[#FFFDF7] rounded-[10px] border border-[#D8D4D0]">
+            <div class="aspect-square bg-[#F7F5F0] rounded-[8px] flex items-center justify-center border border-[#E8E5E1] text-[#6A6572] text-[13px] font-semibold mb-3">
+              Ảnh mô hình đại diện
+            </div>
+            <div class="text-[11px] font-bold text-[#D6284F] uppercase tracking-wide">Jujutsu Kaisen</div>
+            <div class="text-[14px] font-bold text-[#17141F] mt-0.5 line-clamp-1">Tên figure demo preview</div>
+            <div class="flex items-center justify-between mt-2 pt-2 border-t border-[#E8E5E1]">
+              <span class="text-[15px] font-black text-[#17141F]">5.850.000 ₫</span>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-[#FFD44A] text-[#17141F]">CÓ SẴN</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-[#6A6572] italic text-center">
+            Hiển thị thực tế sẽ kế thừa đúng tỉ lệ và style Comic Card ngoài website khách hàng.
+          </p>
+        </div>
+
+        <!-- SEO Card -->
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+          <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+            Tối ưu hóa SEO
+          </h2>
+
+          <Input
+              label="Meta Title (Tiêu đề Google)"
+              name="seo_title"
+              placeholder="Mô hình Figure chính hãng | Wibu Store"
+            />
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[13px] font-semibold text-[#17141F]">Meta Description</label>
+              <textarea
+                name="seo_description"
+                rows="3"
+                placeholder="Tóm tắt nội dung để hiển thị trên kết quả tìm kiếm..."
+                class="w-full p-2.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[13px] text-[#17141F]"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <script>
+      import { mutate } from '../../lib/api';
+
+      function collect(publish: boolean) {
+        const form = document.getElementById('product-form') as HTMLFormElement | null;
+        const fd = new FormData(form ?? undefined);
+        const str = (k: string) => String(fd.get(k) || '').trim();
+        const num = (k: string) => {
+          const v = Number(fd.get(k));
+          return Number.isFinite(v) && v !== 0 ? v : undefined;
+        };
+        const payload: Record<string, unknown> = {
+          name: str('name'),
+          short_description: str('short_description') || undefined,
+          description: str('description') || undefined,
+          status: publish ? 'active' : 'draft',
+          seo_title: str('seo_title') || undefined,
+          seo_description: str('seo_description') || undefined,
+          variants: [
+            {
+              sku: str('sku'),
+              label: str('variant_label') || 'Standard',
+              price_amount: Number(fd.get('price_amount')) || 0,
+            },
+          ],
+        };
+        if (str('slug')) payload.slug = str('slug');
+        if (num('anime_series_id')) payload.anime_series_id = num('anime_series_id');
+        if (num('manufacturer_id')) payload.manufacturer_id = num('manufacturer_id');
+        const cat = num('category_ids');
+        if (cat) payload.category_ids = [cat];
+        return payload;
+      }
+
+      async function submit(publish: boolean) {
+        const errEl = document.getElementById('product-error');
+        const payload = collect(publish);
+        if (!payload.name) {
+          if (errEl) {
+            errEl.textContent = 'Nhập tên sản phẩm.';
+            errEl.classList.remove('hidden');
+          }
+          return;
+        }
+        const first = (payload.variants as { sku: string }[])[0];
+        if (!first.sku) {
+          if (errEl) {
+            errEl.textContent = 'Nhập SKU cho phiên bản.';
+            errEl.classList.remove('hidden');
+          }
+          return;
+        }
+        const { data, error } = await mutate<{ id: number }>('/admin/products', 'POST', payload);
+        if (error || !data) {
+          if (errEl) {
+            errEl.textContent = error?.message || 'Tạo sản phẩm thất bại.';
+            errEl.classList.remove('hidden');
+          }
+          return;
+        }
+        window.location.href = `/products/${data.id}/edit`;
+      }
+
+      document.getElementById('save-draft-btn')?.addEventListener('click', () => submit(false));
+      document.getElementById('publish-btn')?.addEventListener('click', () => submit(true));
+    </script>
+  </AdminLayout>

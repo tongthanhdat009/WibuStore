@@ -1,0 +1,99 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+const { data: saved } = await apiGet<Record<string, string>>('/admin/settings', Astro);
+const v = (k: string, d: string) => (saved && typeof saved[k] === 'string' ? (saved[k] as string) : d);
+---
+
+<AdminLayout
+  title="Cấu hình hệ thống cửa hàng"
+  description="Thông tin liên hệ, chính sách cọc pre-order, ngưỡng cảnh báo tồn kho và thiết lập chung"
+  breadcrumbs={[{ label: 'Hệ thống' }, { label: 'Cấu hình cửa hàng' }]}
+>
+  <div slot="actions">
+    <span class="text-[12px] text-[#6A6572]">Nhấn “Lưu cấu hình” trong form.</span>
+  </div>
+
+  <div class="max-w-3xl space-y-6">
+    <div id="settings-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+    <div id="settings-ok" class="hidden p-3 rounded-[8px] bg-[#EDF7F0] border border-[#147A4B]/30 text-[12px] text-[#147A4B]">Đã lưu cấu hình.</div>
+    <!-- Store General Info -->
+    <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-6 shadow-xs space-y-4">
+      <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-3">
+        1. Thông tin thương hiệu Wibu Store
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input label="Tên cửa hàng" name="store_name" value={v('store_name', 'Wibu Store — Anime Collectibles')} required />
+        <Input label="Múi giờ vận hành" name="timezone" value="Asia/Ho_Chi_Minh (GMT+7)" disabled />
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input label="Hotline hỗ trợ CSKH" name="hotline" value={v('hotline', '1900 6868')} />
+        <Input label="Email hỗ trợ khách hàng" name="support_email" value={v('support_email', 'support@wibustore.vn')} />
+      </div>
+
+      <Input label="Địa chỉ văn phòng / Storefront Studio" name="address" value={v('address', 'Số 42 Đường Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. HCM')} />
+    </div>
+
+    <!-- Inventory & Pre-order Thresholds -->
+    <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-6 shadow-xs space-y-4">
+      <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-3">
+        2. Quy tắc kho & Pre-order
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input
+          label="Ngưỡng cảnh báo tồn kho thấp mặc định"
+          name="low_stock_threshold"
+          type="number"
+          value={v('low_stock_threshold', '3')}
+          hint="Hệ thống gửi cảnh báo khi số lượng khả dụng <= mức này"
+        />
+        <Input
+          label="Tỷ lệ đặt cọc tối thiểu (%)"
+          name="deposit_ratio"
+          type="number"
+          value={v('deposit_ratio', '30')}
+          hint="Áp dụng cho các chiến dịch Pre-order tiêu chuẩn"
+        />
+      </div>
+
+      <div class="pt-2">
+        <button id="settings-save" type="button" class="px-4 py-2 rounded-[8px] bg-[#D6284F] text-white text-[13px] font-bold">
+          Lưu cấu hình
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    document.getElementById('settings-save')?.addEventListener('click', async () => {
+      const settings: Record<string, string> = {};
+      document.querySelectorAll('input[name]').forEach((el) => {
+        const input = el as HTMLInputElement;
+        if (!input.disabled) settings[input.name] = input.value;
+      });
+      const { error } = await mutate('/admin/settings', 'PATCH', { settings });
+      const okEl = document.getElementById('settings-ok');
+      const errEl = document.getElementById('settings-error');
+      if (error) {
+        if (errEl) {
+          errEl.textContent = error.message || 'Lưu thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      errEl?.classList.add('hidden');
+      okEl?.classList.remove('hidden');
+    });
+  </script>
+</AdminLayout>

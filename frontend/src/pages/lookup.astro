@@ -1,0 +1,60 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout title="Tra cứu đơn hàng | Wibu Store" description="Tra cứu trạng thái đơn hàng bằng mã đơn và email đặt hàng.">
+  <div class="max-w-[520px] mx-auto px-4 sm:px-6 py-10">
+    <Breadcrumb items={[{ label: 'Tra cứu đơn hàng' }]} className="mb-6" />
+    <div class="bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[5px_5px_0px_#17141F]">
+      <div class="flex items-center gap-2 mb-2">
+        <StickerBadge text="TRACKING" variant="yellow" angle="left" size="sm" />
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl text-[#17141F] uppercase tracking-tight mb-6">TRA CỨU ĐƠN</h1>
+      <div id="lookup-error" class="hidden mb-4 p-3 rounded-xl bg-[#FFF0F3] border border-[#D6284F]/30 text-xs text-[#A61B3F]"></div>
+      <div id="lookup-result" class="hidden mb-4 p-4 rounded-xl bg-[#EDF7F0] border border-[#147A4B]/30 text-xs space-y-1"></div>
+      <form id="lookup-form" class="space-y-4 text-xs">
+        <div>
+          <label for="lookup-number" class="block font-bold text-[#17141F] mb-1">Mã đơn hàng *</label>
+          <input id="lookup-number" type="text" required placeholder="WB-20261017-000123" class="w-full bg-[#F7F5F0] focus:bg-white font-mono font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+        </div>
+        <div>
+          <label for="lookup-email" class="block font-bold text-[#17141F] mb-1">Email đặt hàng *</label>
+          <input id="lookup-email" type="email" required placeholder="wibu@example.com" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+        </div>
+        <button type="submit" class="w-full py-3.5 rounded-2xl bg-[#17141F] text-white font-display text-base uppercase tracking-wider border-2 border-[#17141F] shadow-[4px_4px_0px_#D6284F] cursor-pointer">
+          Tra cứu
+        </button>
+      </form>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { lookupOrder } from '../lib/auth';
+
+  document.getElementById('lookup-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const order_number = (document.getElementById('lookup-number') as HTMLInputElement).value.trim();
+    const email = (document.getElementById('lookup-email') as HTMLInputElement).value.trim();
+    const errEl = document.getElementById('lookup-error');
+    const resEl = document.getElementById('lookup-result');
+    errEl?.classList.add('hidden');
+    resEl?.classList.add('hidden');
+    const { data, error } = await lookupOrder(order_number, email);
+    if (error || !data) {
+      if (errEl) {
+        errEl.textContent = error || 'Không tìm thấy đơn. Kiểm tra lại mã đơn và email.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+    if (resEl) {
+      resEl.innerHTML = `
+        <div><span class="text-[#534F5C]">Trạng thái đơn:</span> <strong class="text-[#17141F]">${data.order_status}</strong></div>
+        <div><span class="text-[#534F5C]">Thanh toán:</span> <strong class="text-[#17141F]">${data.payment_status}</strong></div>`;
+      resEl.classList.remove('hidden');
+    }
+  });
+</script>

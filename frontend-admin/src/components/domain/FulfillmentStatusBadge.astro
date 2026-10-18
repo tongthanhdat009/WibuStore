@@ -1,0 +1,26 @@
+---
+import Badge from '../ui/Badge.astro';
+import type { FulfillmentStatus } from '../../types';
+
+interface Props {
+  status: FulfillmentStatus;
+  size?: 'sm' | 'md';
+}
+
+const { status, size = 'md' } = Astro.props;
+
+const config: Record<FulfillmentStatus, { label: string; variant: 'info' | 'warning' | 'success' | 'danger' | 'neutral' }> = {
+  unfulfilled: { label: 'Chờ xuất kho', variant: 'neutral' },
+  picking: { label: 'Đang soạn hàng', variant: 'info' },
+  packed: { label: 'Đã đóng gói', variant: 'info' },
+  shipped: { label: 'Đang vận chuyển', variant: 'warning' },
+  delivered: { label: 'Đã giao hàng', variant: 'success' },
+  returned: { label: 'Hàng hoàn về', variant: 'danger' },
+};
+
+const current = config[status] || { label: status, variant: 'neutral' };
+---
+
+<Badge variant={current.variant} size={size}>
+  {current.label}
+</Badge>

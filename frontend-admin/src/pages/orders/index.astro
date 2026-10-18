@@ -1,0 +1,195 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import OrderStatusBadge from '../../components/domain/OrderStatusBadge.astro';
+import PaymentStatusBadge from '../../components/domain/PaymentStatusBadge.astro';
+import FulfillmentStatusBadge from '../../components/domain/FulfillmentStatusBadge.astro';
+import Button from '../../components/ui/Button.astro';
+import { apiGet, currentPage, requireStaff } from '../../lib/api';
+import Pagination from '../../components/ui/Pagination.astro';
+import { formatCurrency, formatDateTime } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface AdminOrder {
+  id: number;
+  order_number: string;
+  customer_name: string;
+  phone: string;
+  checkout_type: string;
+  items_count: number;
+  order_status: string;
+  payment_status: string;
+  fulfillment_status: string;
+  total_amount: number;
+  created_at: string;
+}
+
+const statusFilter = Astro.url.searchParams.get('status') ?? '';
+const listParams: Record<string, string> = { per_page: '20', page: String(page) };
+if (statusFilter) listParams.order_status = statusFilter;
+const { data: orderData, meta: orderMeta } = await apiGet<AdminOrder[]>(`/admin/orders?${new URLSearchParams(listParams).toString()}`, Astro);
+const orders = orderData ?? [];
+const pageParams: Record<string, string> = statusFilter ? { status: statusFilter } : {};
+---
+
+<AdminLayout
+  title="Quản lý đơn hàng"
+  description="Theo dõi toàn bộ đơn mua sắm figure, tiến độ giao vận và đối soát thanh toán"
+  breadcrumbs={[{ label: 'Bán hàng' }, { label: 'Đơn hàng' }]}
+>
+  <div slot="actions" class="flex gap-2">
+    <Button variant="secondary" size="sm">
+      <svg class="w-4 h-4 text-[#534F5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+      </svg>
+      <span>Xuất danh sách</span>
+    </Button>
+  </div>
+
+  <!-- Status Tabs -->
+  <div class="flex items-center gap-2 border-b border-[#D8D4D0] pb-3 overflow-x-auto">
+    {[
+      ['', 'Tất cả'],
+      ['pending', 'Chờ xác nhận'],
+      ['confirmed', 'Đã xác nhận'],
+      ['processing', 'Đang xử lý'],
+      ['shipped', 'Đang giao'],
+      ['delivered', 'Đã giao'],
+      ['completed', 'Hoàn tất'],
+      ['cancelled', 'Đã hủy'],
+    ].map(([v, label]) => (
+      <a
+        href={v ? `/orders?status=${v}` : '/orders'}
+        class={`px-3.5 py-1.5 rounded-[8px] font-semibold text-[13px] whitespace-nowrap ${statusFilter === v ? 'bg-[#17141F] text-white font-bold shadow-xs' : 'bg-white border border-[#D8D4D0] text-[#534F5C]'}`}
+      >
+        {label}{v === '' ? ` (${orders.length})` : ''}
+      </a>
+    ))}
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="bg-white rounded-[12px] border border-[#D8D4D0] p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-2.5 flex-1">
+      <div class="relative w-full sm:w-64">
+        <input
+          type="text"
+          placeholder="Tìm mã đơn, tên, sđt khách..."
+          class="w-full h-9 pl-8 pr-3 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
+        />
+        <svg class="w-4 h-4 text-[#6A6572] absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+
+      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
+        <option>Tất cả thanh toán</option>
+        <option>Đã thanh toán</option>
+        <option>Chờ thanh toán / cọc</option>
+        <option>Chưa thanh toán</option>
+      </select>
+
+      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
+        <option>Tất cả vận chuyển</option>
+        <option>Chờ đóng gói</option>
+        <option>Đã đóng gói</option>
+        <option>Đang giao</option>
+        <option>Đã giao</option>
+      </select>
+
+      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
+        <option>Loại: Tất cả</option>
+        <option>Đơn tiêu chuẩn</option>
+        <option>Đơn Pre-order</option>
+      </select>
+
+      <a href="/orders" class="text-[12px] font-bold text-[#D6284F] hover:underline px-2">
+        Đặt lại bộ lọc
+      </a>
+    </div>
+
+    <div class="text-[12px] text-[#6A6572] shrink-0 font-medium">
+      Hiển thị <strong>{orders.length}</strong> đơn hàng
+    </div>
+  </div>
+
+  <!-- Orders Table -->
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4 w-10">
+              <input type="checkbox" class="rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]" />
+            </th>
+            <th class="py-3.5 px-4">Mã đơn</th>
+            <th class="py-3.5 px-4">Khách hàng</th>
+            <th class="py-3.5 px-4">Loại & Mặt hàng</th>
+            <th class="py-3.5 px-4">Đơn hàng</th>
+            <th class="py-3.5 px-4">Thanh toán</th>
+            <th class="py-3.5 px-4">Giao vận</th>
+            <th class="py-3.5 px-4 text-right">Tổng thanh toán</th>
+            <th class="py-3.5 px-4 text-center">Hành động</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {orders.map((ord) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-4 px-4">
+                <input type="checkbox" class="rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]" />
+              </td>
+              <td class="py-4 px-4 font-mono font-bold">
+                <a href={`/orders/${ord.id}`} class="text-[#3258D7] hover:underline text-[14px]">
+                  {ord.order_number}
+                </a>
+                <div class="text-[11px] font-sans text-[#6A6572] font-normal mt-0.5">
+                  {formatDateTime(ord.created_at)}
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <div class="font-bold text-[#17141F]">{ord.customer_name}</div>
+                <div class="text-[11px] text-[#6A6572]">{ord.phone}</div>
+              </td>
+              <td class="py-4 px-4">
+                <div class="flex items-center gap-2">
+                  {ord.checkout_type === 'preorder' ? (
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#FFF4DC] text-[#9A5A00] border border-[#FFD44A]">
+                      Pre-order
+                    </span>
+                  ) : (
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#F0ECE6] text-[#534F5C]">
+                      Standard
+                    </span>
+                  )}
+                  <span class="text-[12px] text-[#534F5C]">
+                    {ord.items_count} món
+                  </span>
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <OrderStatusBadge status={ord.order_status} size="sm" />
+              </td>
+              <td class="py-4 px-4">
+                <PaymentStatusBadge status={ord.payment_status} size="sm" />
+              </td>
+              <td class="py-4 px-4">
+                <FulfillmentStatusBadge status={ord.fulfillment_status} size="sm" />
+              </td>
+              <td class="py-4 px-4 text-right font-bold text-[#17141F] tabular-nums text-[14px]">
+                {formatCurrency(ord.total_amount)}
+              </td>
+              <td class="py-4 px-4 text-center">
+                <Button variant="secondary" size="sm" href={`/orders/${ord.id}`}>
+                  Chi tiết
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <Pagination meta={orderMeta} pathname="/orders" params={pageParams} />
+  </div>
+</AdminLayout>

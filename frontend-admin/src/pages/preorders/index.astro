@@ -1,0 +1,234 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+import { formatCurrency, formatDate } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface Campaign {
+  id: number;
+  status: string;
+  quota: number;
+  reserved_quantity: number;
+  available: number;
+  deposit_per_unit_amount: number;
+  sale_price_per_unit_amount: number;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  expected_release_at?: string | null;
+  expected_arrival_at?: string | null;
+  sku?: string;
+  variant_label?: string;
+  product_name?: string;
+}
+
+const { data: campData } = await apiGet<Campaign[]>('/admin/preorder-campaigns?per_page=20', Astro);
+const preorders = campData ?? [];
+
+const { data: invData } = await apiGet<{ variant_id: number; sku?: string; product_name?: string }[]>('/admin/inventory?per_page=200', Astro);
+const skuOptions = invData ?? [];
+
+const statusConfigs: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'danger' | 'neutral' }> = {
+  open: { label: 'Đang nhận đặt cọc', variant: 'success' },
+  draft: { label: 'Bản nháp', variant: 'neutral' },
+  closed: { label: 'Đã đóng cọc', variant: 'neutral' },
+  arrived: { label: 'Hàng đã về kho', variant: 'info' },
+  cancelled: { label: 'Đã hủy', variant: 'danger' },
+};
+---
+
+<AdminLayout
+  title="Quản lý chiến dịch Pre-order"
+  description="Theo dõi các đợt mở cọc mô hình figure, quota suất đặt, lịch phát hành dự kiến từ Nhật Bản và danh sách cọc"
+  breadcrumbs={[{ label: 'Bán hàng' }, { label: 'Pre-order' }]}
+>
+  <div slot="actions">
+    <button id="open-camp-modal" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#17141F] text-white text-[13px] font-bold cursor-pointer">
+      + Mở đợt Pre-order mới
+    </button>
+  </div>
+
+  <!-- Cards Grid View -->
+  {preorders.length === 0 && (
+    <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-10 text-center text-[13px] text-[#6A6572]">
+      Chưa có chiến dịch pre-order nào. Bấm “Mở đợt Pre-order mới” để tạo.
+    </div>
+  )}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {preorders.map((batch) => {
+      const percent = batch.quota > 0 ? Math.round((batch.reserved_quantity / batch.quota) * 100) : 0;
+      const conf = statusConfigs[batch.status] || { label: batch.status, variant: 'neutral' };
+
+      return (
+        <div class="bg-white rounded-[16px] border border-[#D8D4D0] overflow-hidden shadow-xs hover:shadow transition-all flex flex-col justify-between">
+          <div class="p-5">
+            <!-- Header batch info -->
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <span class="text-[11px] font-mono font-bold text-[#6A6572] uppercase bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#D8D4D0]">
+                  Campaign #{batch.id} • {batch.sku ?? ''}
+                </span>
+                <h3 class="text-[17px] font-extrabold text-[#17141F] mt-1.5 leading-snug">
+                  {batch.product_name ?? '—'}
+                </h3>
+                <div class="text-[12px] text-[#534F5C]">
+                  {batch.variant_label ?? ''}
+                </div>
+              </div>
+              <Badge variant={conf.variant} size="md">
+                {conf.label}
+              </Badge>
+            </div>
+
+            <!-- Slots Progress -->
+            <div class="my-4 space-y-2 text-[13px]">
+              <div class="flex justify-between items-baseline">
+                <span class="text-[#6A6572]">Tiến độ nhận slot:</span>
+                <span class="font-bold text-[#17141F]">
+                  {batch.reserved_quantity}/{batch.quota} slot ({percent}%)
+                </span>
+              </div>
+              <!-- Progress bar -->
+              <div class="w-full bg-[#EAE7E4] rounded-full h-2.5 overflow-hidden">
+                <div
+                  class="bg-[#D6284F] h-2.5 rounded-full transition-all"
+                  style={`width: ${percent}%`}
+                ></div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-1 text-[12px]">
+                <div>
+                  <span class="text-[#6A6572] block">Tiền cọc tối thiểu:</span>
+                  <strong class="text-[#D6284F]">{formatCurrency(batch.deposit_per_unit_amount)}</strong>
+                </div>
+                <div>
+                  <span class="text-[#6A6572] block">Giá chính thức:</span>
+                  <strong class="text-[#17141F]">{formatCurrency(batch.sale_price_per_unit_amount)}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Timeline meta -->
+            <div class="p-3 bg-[#FAF8F5] rounded-[8px] border border-[#E8E5E1] text-[12px] space-y-1">
+              <div class="flex justify-between">
+                <span class="text-[#6A6572]">Thời gian nhận cọc:</span>
+                <span class="font-semibold text-[#17141F]">{batch.opens_at ? formatDate(batch.opens_at) : '—'} – {batch.closes_at ? formatDate(batch.closes_at) : '—'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[#6A6572]">Dự kiến phát hành (Hãng):</span>
+                <span class="font-bold text-[#9A5A00]">{batch.expected_release_at ? formatDate(batch.expected_release_at) : '—'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[#6A6572]">Hàng cập cảng VN:</span>
+                <span class="font-bold text-[#147A4B]">{batch.expected_arrival_at ? formatDate(batch.expected_arrival_at) : '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Actions -->
+          <div class="px-5 py-3.5 bg-[#FDFBF7] border-t border-[#D8D4D0] flex items-center justify-between">
+            <span class="text-[12px] text-[#6A6572]">
+              Còn lại <strong>{batch.available} suất cọc</strong>
+            </span>
+            <div class="flex gap-2" data-campaign-actions={batch.id} data-campaign-status={batch.status}>
+              {batch.status === 'draft' && (
+                <button type="button" data-open-campaign={batch.id} class="px-3 py-1.5 rounded-[8px] text-[12px] font-bold bg-[#17141F] text-white">Mở cọc</button>
+              )}
+              {batch.status === 'open' && (
+                <button type="button" data-close-campaign={batch.id} class="px-3 py-1.5 rounded-[8px] text-[12px] font-bold border border-[#D8D4D0]">Đóng cọc</button>
+              )}
+              <Button variant="secondary" size="sm" href={`/preorders/${batch.id}`}>
+                Chi tiết →
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  <div id="camp-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[16px] max-w-md w-full p-6 border-2 border-[#17141F] space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[16px] font-black text-[#17141F]">Mở đợt Pre-order mới</h3>
+        <button type="button" data-close-modal class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg cursor-pointer">✕</button>
+      </div>
+      <div id="camp-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+      <div class="space-y-3 text-[13px]">
+        <select id="camp-variant" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]">
+          {skuOptions.map((o) => (
+            <option value={o.variant_id}>{o.sku} — {o.product_name ?? ''}</option>
+          ))}
+        </select>
+        <input id="camp-quota" type="number" placeholder="Quota" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="camp-deposit" type="number" placeholder="Cọc/suất" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="camp-price" type="number" placeholder="Giá bán/suất" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <button type="button" data-close-modal class="px-4 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px] cursor-pointer">Hủy</button>
+        <button id="camp-submit" type="button" class="px-4 h-10 rounded-[8px] bg-[#17141F] text-white font-bold text-[13px] cursor-pointer">+ Tạo (nháp)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    const campModal = document.getElementById('camp-modal');
+    document.getElementById('open-camp-modal')?.addEventListener('click', () => {
+      campModal?.classList.remove('hidden');
+      campModal?.classList.add('flex');
+    });
+    campModal?.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        campModal?.classList.add('hidden');
+        campModal?.classList.remove('flex');
+      });
+    });
+
+    document.getElementById('camp-submit')?.addEventListener('click', async () => {
+      const variant_id = Number((document.getElementById('camp-variant') as HTMLSelectElement | null)?.value);
+      const quota = Number((document.getElementById('camp-quota') as HTMLInputElement | null)?.value);
+      const deposit_per_unit_amount = Number((document.getElementById('camp-deposit') as HTMLInputElement | null)?.value);
+      const sale_price_per_unit_amount = Number((document.getElementById('camp-price') as HTMLInputElement | null)?.value);
+      const errEl = document.getElementById('camp-error');
+      if (!variant_id || !(quota >= 0) || !(deposit_per_unit_amount >= 0) || !(sale_price_per_unit_amount > 0) || deposit_per_unit_amount > sale_price_per_unit_amount) {
+        if (errEl) {
+          errEl.textContent = 'Kiểm tra SKU, quota, cọc ≤ giá bán.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      const { error } = await mutate('/admin/preorder-campaigns', 'POST', { variant_id, quota, deposit_per_unit_amount, sale_price_per_unit_amount });
+      if (error) {
+        if (errEl) {
+          errEl.textContent = error.message || 'Tạo thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      window.location.reload();
+    });
+
+    document.querySelectorAll('button[data-open-campaign]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.openCampaign;
+        const { error } = await mutate(`/admin/preorder-campaigns/${id}/open`, 'POST', {});
+        if (error) return alert(error.message || 'Mở cọc thất bại.');
+        window.location.reload();
+      });
+    });
+    document.querySelectorAll('button[data-close-campaign]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.closeCampaign;
+        if (!confirm('Đóng chiến dịch pre-order này?')) return;
+        const { error } = await mutate(`/admin/preorder-campaigns/${id}/close`, 'POST', {});
+        if (error) return alert(error.message || 'Đóng cọc thất bại.');
+        window.location.reload();
+      });
+    });
+  </script>
+</AdminLayout>

@@ -1,0 +1,416 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import Button from '../components/ui/Button.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout
+  title="Thanh toán an toàn | Wibu Store"
+  description="Hoàn tất đơn đặt hàng mô hình chính hãng với phương thức thanh toán linh hoạt và an toàn."
+>
+  <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb
+      items={[
+        { label: 'Giỏ hàng', href: '/cart' },
+        { label: 'Thanh toán' },
+      ]}
+      className="mb-6"
+    />
+
+    <div class="flex items-center gap-2 mb-6">
+      <StickerBadge text="CHECKOUT" variant="brand" angle="left" size="sm" />
+      <h1 class="font-display text-2xl sm:text-3xl text-[#17141F] uppercase tracking-tight">
+        XÁC NHẬN ĐƠN HÀNG
+      </h1>
+    </div>
+
+    <!-- Main Checkout Grid -->
+    <div id="checkout-main-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Left: Form Steps (7 cols) -->
+      <form id="checkout-form" class="lg:col-span-7 space-y-6">
+        <!-- Step 1: Customer Contact -->
+        <div class="bg-white p-6 rounded-2xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]">
+          <h2 class="font-display text-base uppercase text-[#17141F] pb-3 border-b border-[#D8D4D0] mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#17141F] text-white text-xs flex items-center justify-center font-bold">1</span>
+            THÔNG TIN KHÁCH HÀNG
+          </h2>
+
+          <div class="space-y-4 text-xs">
+            <div>
+              <label for="cust-name" class="block font-bold text-[#17141F] mb-1">
+                Họ và tên người nhận <span class="text-[#D6284F]">*</span>
+              </label>
+              <input
+                id="cust-name"
+                type="text"
+                required
+                placeholder="Nguyễn Văn A"
+                class="w-full bg-[#F7F5F0] focus:bg-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+              />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="cust-phone" class="block font-bold text-[#17141F] mb-1">
+                  Số điện thoại <span class="text-[#D6284F]">*</span>
+                </label>
+                <input
+                  id="cust-phone"
+                  type="tel"
+                  required
+                  placeholder="0912 345 678"
+                  class="w-full bg-[#F7F5F0] focus:bg-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label for="cust-email" class="block font-bold text-[#17141F] mb-1">
+                  Địa chỉ Email nhận vận đơn <span class="text-[#D6284F]">*</span>
+                </label>
+                <input
+                  id="cust-email"
+                  type="email"
+                  required
+                  placeholder="wibu@example.com"
+                  class="w-full bg-[#F7F5F0] focus:bg-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Shipping Address -->
+        <div class="bg-white p-6 rounded-2xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]">
+          <h2 class="font-display text-base uppercase text-[#17141F] pb-3 border-b border-[#D8D4D0] mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#17141F] text-white text-xs flex items-center justify-center font-bold">2</span>
+            ĐỊA CHỈ NHẬN HÀNG
+          </h2>
+
+          <div class="space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="cust-city" class="block font-bold text-[#17141F] mb-1">Tỉnh / Thành phố *</label>
+                <select
+                  id="cust-city"
+                  required
+                  class="w-full bg-[#F7F5F0] text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F]"
+                >
+                  <option value="">Chọn Tỉnh / Thành</option>
+                  <option value="hcm" selected>Hồ Chí Minh</option>
+                  <option value="hn">Hà Nội</option>
+                  <option value="dn">Đà Nẵng</option>
+                  <option value="other">Tỉnh thành khác</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="cust-district" class="block font-bold text-[#17141F] mb-1">Quận / Huyện *</label>
+                <input
+                  id="cust-district"
+                  type="text"
+                  required
+                  placeholder="Quận 1 / Cầu Giấy..."
+                  class="w-full bg-[#F7F5F0] focus:bg-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label for="cust-address" class="block font-bold text-[#17141F] mb-1">Địa chỉ chi tiết (Số nhà, tên đường) *</label>
+              <input
+                id="cust-address"
+                type="text"
+                required
+                placeholder="Số 123 Đường Nguyễn Trãi, Phường Bến Thành"
+                class="w-full bg-[#F7F5F0] focus:bg-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Payment Method -->
+        <div class="bg-white p-6 rounded-2xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]">
+          <h2 class="font-display text-base uppercase text-[#17141F] pb-3 border-b border-[#D8D4D0] mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-[#17141F] text-white text-xs flex items-center justify-center font-bold">3</span>
+            PHƯƠNG THỨC THANH TOÁN
+          </h2>
+
+          <div class="space-y-2 text-xs">
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-[#17141F] bg-[#FFFDF7] cursor-pointer">
+              <input type="radio" name="payment_method" value="cod" checked class="text-[#D6284F]" />
+              <div>
+                <span class="font-bold text-[#17141F]">Thanh toán khi nhận hàng (COD)</span>
+                <span class="block text-[11px] text-[#534F5C]">Kiểm tra niêm phong hộp trước khi trả tiền cho shipper</span>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-[#D8D4D0] hover:border-[#17141F] bg-white cursor-pointer">
+              <input type="radio" name="payment_method" value="vnpay" class="text-[#D6284F]" />
+              <div>
+                <span class="font-bold text-[#17141F]">Cổng VNPay QR (Miễn phí giao dịch)</span>
+                <span class="block text-[11px] text-[#534F5C]">Quét mã QR qua app ngân hàng hoặc ví điện tử VNPAY</span>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-[#D8D4D0] hover:border-[#17141F] bg-white cursor-pointer">
+              <input type="radio" name="payment_method" value="momo" class="text-[#D6284F]" />
+              <div>
+                <span class="font-bold text-[#17141F]">Ví MoMo</span>
+                <span class="block text-[11px] text-[#534F5C]">Thanh toán nhanh chóng qua ví điện tử MoMo</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Terms agreement -->
+        <div class="p-4 rounded-xl bg-[#F7F5F0] border border-[#D8D4D0] text-xs">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="terms-agree" required class="mt-0.5 rounded text-[#D6284F]" />
+            <span class="text-[#534F5C]">
+              Tôi đã đọc và đồng ý với <a href="/policies/shipping" class="font-bold text-[#17141F] underline">Chính sách vận chuyển</a> và <a href="/policies/pre-order" class="font-bold text-[#17141F] underline">Quy định đặt cọc Pre-order</a> của Wibu Store.
+            </span>
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-4 px-6 rounded-2xl bg-[#D6284F] hover:bg-[#AF1E40] text-white font-display text-lg uppercase tracking-wider border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_#17141F] transition-all cursor-pointer"
+        >
+          Xác nhận đặt hàng
+        </button>
+      </form>
+
+      <!-- Right: Order Summary (5 cols) -->
+      <div class="lg:col-span-5 bg-white p-6 rounded-2xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] sticky top-24 space-y-4">
+        <h2 class="font-display text-base uppercase text-[#17141F] pb-3 border-b-2 border-[#17141F]">
+          ĐƠN HÀNG CỦA BẠN
+        </h2>
+
+        <!-- Order Items List -->
+        <div id="checkout-items-list" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+          <!-- Injected by JS -->
+        </div>
+
+        <!-- Coupon -->
+        <div class="flex items-center gap-2">
+          <input
+            id="checkout-coupon"
+            type="text"
+            placeholder="Mã giảm giá (VD: WIBU10)"
+            class="flex-1 min-w-0 bg-[#F7F5F0] focus:bg-white text-xs font-mono font-bold uppercase px-3 py-2 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+          />
+          <button
+            id="coupon-apply-btn"
+            type="button"
+            class="px-3 py-2 rounded-xl bg-[#17141F] text-white text-xs font-bold cursor-pointer shrink-0"
+          >
+            Áp dụng
+          </button>
+        </div>
+        <div id="coupon-msg" class="hidden text-[11px] font-bold"></div>
+
+        <!-- Pricing Breakdown -->
+        <div class="pt-4 border-t border-[#D8D4D0] space-y-2 text-xs">
+          <div class="flex items-center justify-between text-[#534F5C]">
+            <span>Tiền hàng:</span>
+            <span id="checkout-subtotal" class="font-bold text-[#17141F]">0 ₫</span>
+          </div>
+          <div id="checkout-discount-row" class="hidden flex items-center justify-between text-[#147A4B]">
+            <span>Giảm giá:</span>
+            <span id="checkout-discount" class="font-bold">0 ₫</span>
+          </div>
+
+          <div class="flex items-center justify-between text-[#534F5C]">
+            <span>Phí vận chuyển:</span>
+            <span class="font-bold text-emerald-700">Miễn phí toàn quốc</span>
+          </div>
+
+          <div class="pt-3 border-t-2 border-[#17141F] flex items-baseline justify-between">
+            <span class="font-bold text-sm text-[#17141F]">Tổng thanh toán:</span>
+            <span id="checkout-final-total" class="font-sans text-2xl font-black text-[#D6284F]">
+              0 ₫
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Confirmation State (Hidden initially) -->
+    <div id="checkout-success-view" class="hidden max-w-2xl mx-auto py-12 px-6 bg-white rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] text-center">
+      <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-emerald-100 border-2 border-[#17141F] flex items-center justify-center text-4xl shadow-[3px_3px_0px_#17141F]">
+        🎉
+      </div>
+      <h2 class="font-display text-3xl uppercase tracking-tight text-[#17141F]">
+        ĐẶT HÀNG THÀNH CÔNG!
+      </h2>
+      <p class="text-xs sm:text-sm text-[#534F5C] mt-2">
+        Mã đơn hàng: <strong id="success-order-id" class="text-[#D6284F]">WIBU-2026-9812</strong>
+      </p>
+      <div class="mt-6 p-4 rounded-2xl bg-[#FFFDF7] border-2 border-[#17141F] text-left text-xs space-y-2 max-w-md mx-auto">
+        <p>• Nhân viên hỗ trợ sẽ liên hệ xác nhận đơn hàng qua SĐT của bạn trong vòng 2 giờ làm việc.</p>
+        <p>• Thông tin vận đơn chi tiết đã được gửi tới email của bạn.</p>
+        <p>• Thời gian nhận hàng dự kiến: <strong>2 - 4 ngày làm việc</strong>.</p>
+      </div>
+      <div class="mt-8 flex justify-center gap-3">
+        <Button href="/" variant="primary" size="md">
+          <span>Về trang chủ</span>
+        </Button>
+        <Button href="/figures" variant="outline" size="md">
+          <span>Tiếp tục mua sắm</span>
+        </Button>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { getStoredCart, clearCart } from '../lib/cart';
+  import { formatVND } from '../lib/utils';
+  import { createOrder, previewTotals } from '../lib/api';
+
+  let appliedCoupon = '';
+
+  function initCheckout() {
+    const listEl = document.getElementById('checkout-items-list');
+    const subtotalEl = document.getElementById('checkout-subtotal');
+    const finalTotalEl = document.getElementById('checkout-final-total');
+    const form = document.getElementById('checkout-form');
+    const mainGrid = document.getElementById('checkout-main-grid');
+    const successView = document.getElementById('checkout-success-view');
+    const orderIdEl = document.getElementById('success-order-id');
+
+    const cart = getStoredCart();
+    const subtotal = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+
+    if (subtotalEl) subtotalEl.textContent = formatVND(subtotal);
+    if (finalTotalEl) finalTotalEl.textContent = formatVND(subtotal);
+
+    const couponInput = document.getElementById('checkout-coupon') as HTMLInputElement | null;
+    const couponMsg = document.getElementById('coupon-msg');
+    const discountRow = document.getElementById('checkout-discount-row');
+    const discountEl = document.getElementById('checkout-discount');
+
+    async function refreshTotals() {
+      const items = getStoredCart().filter((i) => i.variantId);
+      if (items.length === 0) return;
+      const calc = await previewTotals({
+        items: items.map((i) => ({ variant_id: i.variantId as number, quantity: i.quantity })),
+        ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
+      });
+      if (!calc || !subtotalEl || !finalTotalEl) return;
+      subtotalEl.textContent = formatVND(calc.subtotal);
+      finalTotalEl.textContent = formatVND(calc.total);
+      if (discountRow && discountEl) {
+        if (calc.discount > 0) {
+          discountEl.textContent = `-${formatVND(calc.discount)}`;
+          discountRow.classList.remove('hidden');
+        } else {
+          discountRow.classList.add('hidden');
+        }
+      }
+    }
+
+    document.getElementById('coupon-apply-btn')?.addEventListener('click', async () => {
+      appliedCoupon = (couponInput?.value || '').trim().toUpperCase();
+      if (!appliedCoupon) return;
+      await refreshTotals();
+      const calc = await previewTotals({
+        items: getStoredCart()
+          .filter((i) => i.variantId)
+          .map((i) => ({ variant_id: i.variantId as number, quantity: i.quantity })),
+        coupon_code: appliedCoupon,
+      });
+      if (couponMsg) {
+        couponMsg.classList.remove('hidden');
+        if (calc && calc.discount > 0) {
+          couponMsg.textContent = `Đã áp dụng mã ${appliedCoupon}.`;
+          couponMsg.className = 'text-[11px] font-bold text-[#147A4B]';
+        } else {
+          appliedCoupon = '';
+          couponMsg.textContent = 'Mã không hợp lệ hoặc không đủ điều kiện.';
+          couponMsg.className = 'text-[11px] font-bold text-[#D6284F]';
+        }
+      }
+    });
+
+    if (listEl) {
+      if (cart.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-6 text-center text-xs text-[#534F5C]">
+            Chưa có sản phẩm nào trong giỏ hàng.
+            <div class="mt-2"><a href="/figures" class="font-bold text-[#D6284F]">← Quay lại chọn mô hình</a></div>
+          </div>
+        `;
+      } else {
+        listEl.innerHTML = cart
+          .map(
+            (item) => `
+          <div class="flex items-center gap-3 py-2 border-b border-[#D8D4D0]/60 last:border-b-0 text-xs">
+            <div class="w-12 h-12 rounded-lg overflow-hidden bg-[#F7F5F0] border border-[#17141F]/20 shrink-0">
+              <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-[#17141F] truncate leading-tight">${item.name}</h4>
+              <span class="text-[10px] text-[#534F5C]">SL: ${item.quantity}</span>
+            </div>
+            <span class="font-bold text-[#D6284F] shrink-0">${formatVND(item.price * item.quantity)}</span>
+          </div>
+        `
+          )
+          .join('');
+      }
+    }
+
+    const submitBtn = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    const val = (id: string) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() || '';
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const items = getStoredCart().filter((i) => i.variantId);
+      if (items.length === 0) {
+        alert('Giỏ hàng chưa có sản phẩm đặt được từ kho thật. Hãy chọn sản phẩm có ảnh thật từ trang Figures.');
+        return;
+      }
+      const method = (document.querySelector('input[name="payment_method"]:checked') as HTMLInputElement | null)?.value;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'ĐANG GỬI ĐƠN...';
+      }
+      const result = await createOrder({
+        items: items.map((i) => ({ variant_id: i.variantId as number, quantity: i.quantity })),
+        customer: { name: val('cust-name'), email: val('cust-email'), phone: val('cust-phone') },
+        payment_method: method === 'cod' ? 'cod' : 'bank_transfer',
+        ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
+        addresses: [
+          {
+            type: 'shipping',
+            recipient_name: val('cust-name'),
+            phone: val('cust-phone'),
+            line1: `${val('cust-address')}, ${val('cust-district')}, ${val('cust-city')}`,
+          },
+        ],
+      });
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Xác nhận đặt hàng';
+      }
+      if (!result.ok || !result.order) {
+        alert(result.error || 'Đặt hàng thất bại. Vui lòng thử lại.');
+        return;
+      }
+      if (orderIdEl) orderIdEl.textContent = result.order.order_number;
+
+      clearCart();
+
+      if (mainGrid && successView) {
+        mainGrid.classList.add('hidden');
+        successView.classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  }
+
+  initCheckout();
+  document.addEventListener('astro:page-load', initCheckout);
+</script>

@@ -1,0 +1,48 @@
+import type { CategoryInfo } from '../types';
+
+export const categories: CategoryInfo[] = [
+  {
+    id: 'scale',
+    slug: 'scale-figures',
+    name: 'Scale Figures',
+    englishTitle: 'PREMIUM SCALE',
+    description: 'Mô hình tỉ lệ 1/7, 1/4, 1/8 được hoàn thiện tinh xảo từng chi tiết sắc nét từ các studio Nhật Bản.',
+    image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80',
+    badge: '1/7 & 1/4',
+    accentColor: '#FFD44A',
+    itemCount: 42,
+  },
+  {
+    id: 'nendoroid',
+    slug: 'nendoroid',
+    name: 'Nendoroid & Chibi',
+    englishTitle: 'CHIBI OBSESSION',
+    description: 'Dòng mô hình khớp mini đáng yêu từ Good Smile Company với các biểu cảm và phụ kiện phong phú.',
+    image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80',
+    badge: 'GOOD SMILE',
+    accentColor: '#FFE6ED',
+    itemCount: 38,
+  },
+  {
+    id: 'action',
+    slug: 'action-figures',
+    name: 'Action Figures',
+    englishTitle: 'DYNAMIC POSE',
+    description: 'Mô hình khớp cử động linh hoạt Figma, S.H.Figuarts, Revoltech cho phép tái hiện mọi thế đánh manga.',
+    image: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=600&auto=format&fit=crop&q=80',
+    badge: 'FIGMA & SHF',
+    accentColor: '#DDF9EB',
+    itemCount: 29,
+  },
+  {
+    id: 'model_kit',
+    slug: 'model-kits',
+    name: 'Model Kits & Gunpla',
+    englishTitle: 'BUILD & CRAFT',
+    description: 'Bộ lắp ráp Gundam RG/MG/PG, Kotobukiya Megami Device thỏa mãn đam mê lắp ráp và tùy biến.',
+    image: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=600&auto=format&fit=crop&q=80',
+    badge: 'BANDAI / KOTO',
+    accentColor: '#E2E8F0',
+    itemCount: 24,
+  },
+];

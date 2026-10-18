@@ -1,0 +1,61 @@
+---
+interface Props {
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'comic';
+  size?: 'sm' | 'md' | 'lg';
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+  class?: string;
+  id?: string;
+  disabled?: boolean;
+}
+
+const {
+  variant = 'secondary',
+  size = 'md',
+  href,
+  type = 'button',
+  class: className = '',
+  id,
+  disabled = false,
+  ...rest
+} = Astro.props;
+
+const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-[8px] transition-all duration-150 cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-[#3258D7] focus:ring-offset-1 text-center';
+
+const variantClasses = {
+  primary: 'bg-[#D6284F] hover:bg-[#AF1E40] text-white shadow-sm active:translate-y-[1px]',
+  secondary: 'bg-white hover:bg-[#F7F5F0] text-[#17141F] border border-[#D8D4D0] shadow-sm active:bg-[#ECE8E1]',
+  danger: 'bg-[#B42318] hover:bg-[#8E1B13] text-white shadow-sm active:translate-y-[1px]',
+  ghost: 'bg-transparent hover:bg-[#F0ECE6] text-[#534F5C] hover:text-[#17141F]',
+  comic: 'bg-[#FFD44A] hover:bg-[#FFCA28] text-[#17141F] border-2 border-[#17141F] font-bold comic-shadow-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none',
+};
+
+const sizeClasses = {
+  sm: 'text-[13px] px-3 py-1.5 h-8 gap-1.5',
+  md: 'text-[14px] px-4 py-2 h-10 gap-2',
+  lg: 'text-[15px] px-5 py-2.5 h-12 gap-2.5',
+};
+---
+
+{
+  href ? (
+    <a
+      href={href}
+      id={id}
+      class={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...rest}
+    >
+      <slot />
+    </a>
+  ) : (
+    <button
+      type={type}
+      id={id}
+      disabled={disabled}
+      class={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...rest}
+    >
+      <slot />
+    </button>
+  )
+}

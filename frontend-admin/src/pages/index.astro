@@ -1,0 +1,291 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import MetricCard from '../components/domain/MetricCard.astro';
+import OrderStatusBadge from '../components/domain/OrderStatusBadge.astro';
+import PaymentStatusBadge from '../components/domain/PaymentStatusBadge.astro';
+import Button from '../components/ui/Button.astro';
+import Badge from '../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../lib/api';
+import { formatCurrency, formatDateTime } from '../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface Overview { revenue_collected: number; orders_pending: number; orders_processing: number; preorders_open: number; low_stock_skus: number }
+interface OrderRow { id: number; order_number: string; customer_name: string; phone: string; checkout_type: string; items_count: number; order_status: string; payment_status: string; total_amount: number; created_at: string }
+interface SaleRow { day: string; orders: number; gmv: number; collected: number }
+interface ProdRow { id: number; name: string; min_price: number | null; image_url: string | null }
+
+const { data: overview } = await apiGet<Overview>('/admin/dashboard/overview', Astro);
+const { data: orderData } = await apiGet<OrderRow[]>('/admin/orders?per_page=5', Astro);
+const { data: sales } = await apiGet<SaleRow[]>('/admin/reports/sales', Astro);
+const { data: prodData } = await apiGet<ProdRow[]>('/admin/products?per_page=5', Astro);
+
+const recentOrders = orderData ?? [];
+const topProducts = prodData ?? [];
+const bars = (sales ?? []).slice(0, 7).reverse();
+const maxCollected = Math.max(1, ...bars.map((b) => Number(b.collected)));
+const weekTotal = bars.reduce((a, b) => a + Number(b.collected), 0);
+const weekOrders = bars.reduce((a, b) => a + Number(b.orders), 0);
+const tasks = [
+  ...recentOrders.filter((o) => o.order_status === 'pending').slice(0, 2).map((o) => ({ tag: 'Chờ xác nhận', title: `Xác nhận đơn ${o.order_number} — ${o.customer_name}`, link: `/orders/${o.id}` })),
+  ...(overview && overview.low_stock_skus > 0 ? [{ tag: 'Kho thấp', title: `${overview.low_stock_skus} SKU sắp hết hàng cần nhập thêm`, link: '/inventory' }] : []),
+  ...(overview && overview.preorders_open > 0 ? [{ tag: 'Pre-order', title: `${overview.preorders_open} chiến dịch pre-order đang mở`, link: '/preorders' }] : []),
+].slice(0, 4);
+---
+
+<AdminLayout
+  title="Tổng quan vận hành"
+  description="Theo dõi doanh thu, trạng thái đơn hàng, kho figure và tác vụ cần xử lý ngay"
+>
+  <!-- Page Header Actions Slot -->
+  <div slot="actions" class="flex items-center gap-2">
+    <div class="relative">
+      <select class="h-9 px-3 text-[13px] font-semibold bg-white border border-[#D8D4D0] rounded-[8px] text-[#17141F] focus:outline-none focus:ring-2 focus:ring-[#3258D7]">
+        <option>Hôm nay (17/10)</option>
+        <option>7 ngày gần nhất</option>
+        <option>30 ngày gần nhất</option>
+        <option>Tháng này (10/2026)</option>
+      </select>
+    </div>
+    <Button variant="secondary" size="sm">
+      <svg class="w-4 h-4 text-[#534F5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      <span>Xuất báo cáo</span>
+    </Button>
+  </div>
+
+  <!-- 1. KPI Cards Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <MetricCard
+      title="Doanh thu thực nhận"
+      value={formatCurrency(overview?.revenue_collected ?? 0)}
+      subtext="từ payments đã xác nhận"
+      link="/analytics"
+    />
+    <MetricCard
+      title="Đơn chờ xác nhận"
+      value={`${overview?.orders_pending ?? 0} đơn`}
+      subtext={`${overview?.orders_processing ?? 0} đơn đang chuẩn bị`}
+      badge="Hôm nay"
+      badgeVariant="brand"
+      link="/orders"
+    />
+    <MetricCard
+      title="Pre-order đang mở"
+      value={`${overview?.preorders_open ?? 0} chiến dịch`}
+      subtext="theo dõi đặt cọc đúng hạn"
+      badge="Ưu tiên"
+      badgeVariant="warning"
+      link="/preorders"
+    />
+    <MetricCard
+      title="Cảnh báo tồn kho"
+      value={`${overview?.low_stock_skus ?? 0} SKU`}
+      subtext="Dưới ngưỡng tồn an toàn (<=3)"
+      badge="Kho thấp"
+      badgeVariant="danger"
+      link="/inventory"
+    />
+  </div>
+
+  <!-- 2. Main 2-column layout: Left (Charts + Orders), Right (Tasks + Top Sellers) -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column (2 cols on desktop) -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Revenue Trend Chart Card -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-[16px] font-bold text-[#17141F]">
+              Biểu đồ Doanh thu & Tăng trưởng đơn hàng
+            </h2>
+            <p class="text-[12px] text-[#534F5C] mt-0.5">
+              Thống kê theo 7 ngày qua (đơn vị: Triệu VNĐ)
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#17141F]">
+              <span class="w-3 h-3 rounded-sm bg-[#D6284F]"></span> Doanh thu
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#534F5C] ml-2">
+              <span class="w-3 h-3 rounded-sm bg-[#3258D7]"></span> Số đơn
+            </span>
+          </div>
+        </div>
+
+        <!-- Visual Bar Chart with SVGs -->
+        <div class="h-64 flex items-end justify-between gap-2 sm:gap-4 pt-6 pb-2 px-2 border-b border-[#F2EFE9]">
+          {bars.length === 0 && (
+            <div class="w-full text-center text-[12px] text-[#6A6572] pb-10">Chưa có doanh số. Đơn hàng mới sẽ hiện ở đây.</div>
+          )}
+          {bars.map((b) => (
+            <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+              <div class="text-[11px] font-bold text-[#17141F] opacity-0 group-hover:opacity-100 transition-opacity">{formatCurrency(Number(b.collected))}</div>
+              <div
+                class="w-full max-w-[36px] bg-[#D6284F] rounded-t-[4px] transition-all group-hover:brightness-110"
+                style={`height: ${Math.max(4, Math.round((Number(b.collected) / maxCollected) * 100))}%`}
+              ></div>
+              <div class="text-[11px] font-semibold text-[#6A6572]">{new Date(b.day).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ({b.orders})</div>
+            </div>
+          ))}
+        </div>
+
+        <div class="flex items-center justify-between mt-3 text-[12px] text-[#6A6572]">
+          <span>Tổng thu {bars.length} ngày gần nhất: <strong class="text-[#17141F]">{formatCurrency(weekTotal)}</strong> ({weekOrders} đơn)</span>
+          <span class="text-[#147A4B] font-semibold">Đối soát từ payments đã xác nhận</span>
+        </div>
+      </div>
+
+      <!-- Recent Orders Table -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+        <div class="px-5 py-4 border-b border-[#D8D4D0] flex items-center justify-between">
+          <div>
+            <h2 class="text-[16px] font-bold text-[#17141F]">
+              Đơn hàng gần đây
+            </h2>
+            <p class="text-[12px] text-[#534F5C]">
+              Các giao dịch phát sinh mới nhất cần điều phối
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" href="/orders">
+            Xem tất cả đơn hàng →
+          </Button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-[13px] border-collapse">
+            <thead>
+              <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+                <th class="py-3 px-4">Mã đơn</th>
+                <th class="py-3 px-4">Khách hàng</th>
+                <th class="py-3 px-4">Loại đơn</th>
+                <th class="py-3 px-4">Trạng thái</th>
+                <th class="py-3 px-4">Thanh toán</th>
+                <th class="py-3 px-4 text-right">Tổng tiền</th>
+                <th class="py-3 px-4 text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#F2EFE9]">
+              {recentOrders.map((ord) => (
+                <tr class="hover:bg-[#FDFBF7] transition-colors">
+                  <td class="py-3.5 px-4 font-mono font-bold text-[#17141F]">
+                    <a href={`/orders/${ord.id}`} class="text-[#3258D7] hover:underline">
+                      {ord.order_number}
+                    </a>
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <div class="font-bold text-[#17141F]">{ord.customer_name}</div>
+                    <div class="text-[11px] text-[#6A6572]">{ord.phone}</div>
+                  </td>
+                  <td class="py-3.5 px-4">
+                    {ord.checkout_type === 'preorder' ? (
+                      <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-[#FFF4DC] text-[#9A5A00] border border-[#FFD44A]">
+                        Pre-order
+                      </span>
+                    ) : (
+                      <span class="text-[11px] font-semibold text-[#534F5C]">Tiêu chuẩn</span>
+                    )}
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <OrderStatusBadge status={ord.order_status} size="sm" />
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <PaymentStatusBadge status={ord.payment_status} size="sm" />
+                  </td>
+                  <td class="py-3.5 px-4 text-right font-bold text-[#17141F] tabular-nums">
+                    {formatCurrency(ord.total_amount)}
+                  </td>
+                  <td class="py-3.5 px-4 text-center">
+                    <a
+                      href={`/orders/${ord.id}`}
+                      class="inline-flex items-center px-2.5 py-1 text-[12px] font-semibold rounded-[6px] border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[#17141F] transition-colors"
+                    >
+                      Xử lý
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column (1 col on desktop: Work Queue + Top Selling) -->
+    <div class="space-y-6">
+      <!-- Work Queue / Tasks -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <div class="flex items-center justify-between mb-3.5">
+          <div class="flex items-center gap-2">
+            <h2 class="text-[16px] font-bold text-[#17141F]">
+              Việc cần xử lý
+            </h2>
+            <Badge variant="brand" size="sm">{tasks.length} tác vụ</Badge>
+          </div>
+          <a href="/tasks" class="text-[12px] font-bold text-[#3258D7] hover:underline">
+            Tất cả →
+          </a>
+        </div>
+
+        <ul class="space-y-3">
+          {tasks.length === 0 && (
+            <li class="text-[12px] text-[#6A6572]">Không có việc tồn đọng. Kho + đơn đều ổn.</li>
+          )}
+          {tasks.map((task) => (
+            <li class="p-3 rounded-[10px] bg-[#FAF8F5] border border-[#E8E5E1] hover:border-[#D8D4D0] transition-colors">
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded leading-none bg-[#FFF3DA] text-[#9A5A00]">
+                  {task.tag}
+                </span>
+              </div>
+              <a href={task.link} class="block text-[13px] font-bold text-[#17141F] hover:text-[#D6284F] mt-1.5 leading-snug">
+                {task.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Top Selling Products -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-[16px] font-bold text-[#17141F]">
+            Figure Bán Chạy Nhất
+          </h2>
+          <a href="/analytics/products" class="text-[12px] font-bold text-[#3258D7] hover:underline">
+            Báo cáo →
+          </a>
+        </div>
+
+        <div class="space-y-3.5">
+          {topProducts.map((p, index) => (
+            <div class="flex items-center gap-3 pb-3 border-b border-[#F2EFE9] last:border-0 last:pb-0">
+              <span class="w-5 font-['Anton'] text-[16px] text-[#6A6572] text-center">
+                #{index + 1}
+              </span>
+              {p.image_url ? (
+                <img
+                  src={p.image_url}
+                  alt={p.name}
+                  class="w-12 h-12 rounded-[6px] object-cover border border-[#D8D4D0] shrink-0"
+                />
+              ) : (
+                <div class="w-12 h-12 rounded-[6px] bg-[#F2EFE9] border border-[#D8D4D0] shrink-0"></div>
+              )}
+              <div class="flex-1 min-w-0">
+                <a href={`/products/${p.id}/edit`} class="text-[13px] font-bold text-[#17141F] hover:text-[#D6284F] truncate block">
+                  {p.name}
+                </a>
+                <div class="text-[11px] text-[#6A6572] mt-0.5">
+                  Giá từ: <strong class="text-[#17141F]">{p.min_price != null ? formatCurrency(p.min_price) : '—'}</strong>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>

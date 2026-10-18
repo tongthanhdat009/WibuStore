@@ -1,0 +1,17 @@
+---
+interface Props {
+  current: number | string;
+  total?: number | string;
+  label?: string;
+  className?: string;
+}
+
+const { current, total = '04', label, className = '' } = Astro.props;
+---
+
+<div class={`inline-flex items-center gap-1.5 font-display text-sm tracking-wider px-3 py-1 bg-white border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F] rounded-md ${className}`}>
+  {label && <span class="text-xs text-[#534F5C] uppercase tracking-normal mr-1">{label}</span>}
+  <span class="text-[#D6284F] font-bold text-base">{typeof current === 'number' && current < 10 ? `0${current}` : current}</span>
+  <span class="text-[#17141F]">/</span>
+  <span class="text-[#534F5C]">{total}</span>
+</div>

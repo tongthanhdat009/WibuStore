@@ -1,0 +1,343 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ComicCoverHero from '../components/comic/ComicCoverHero.astro';
+import CategoryComicCard from '../components/comic/CategoryComicCard.astro';
+import FeaturedCollectionBanner from '../components/comic/FeaturedCollectionBanner.astro';
+import AnimeSeriesCard from '../components/comic/AnimeSeriesCard.astro';
+import ProductCard from '../components/catalog/ProductCard.astro';
+import Button from '../components/ui/Button.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+
+import { heroCampaigns } from '../data/heroCampaigns';
+import { categories } from '../data/categories';
+import { products as staticProducts } from '../data/products';
+import { animeSeriesList } from '../data/anime';
+import { collections } from '../data/collections';
+import { formatVND } from '../lib/utils';
+import { getCatalogProducts } from '../lib/catalog';
+
+const { products } = await getCatalogProducts();
+
+// Filter products for various sections
+const trendingProducts = products.filter((p) => p.isTrending || p.isFeatured).slice(0, 8);
+const liveTrending = trendingProducts.length > 0 ? trendingProducts : products.slice(0, 8);
+const preOrderProducts = products.filter((p) => p.status === 'pre_order').slice(0, 4);
+const newArrivalProducts = products.filter((p) => p.isNewArrival || p.status === 'in_stock').slice(0, 4);
+const featuredCollection = collections[0];
+const featuredCollectionProducts = products.filter((p) =>
+  featuredCollection.productSlugs.includes(p.slug)
+);
+---
+
+<BaseLayout
+  title="Wibu Store — Anime Pop Comic Figures & Collectibles"
+  description="Thế giới mô hình Anime Pop & Comic Editorial: Scale figure 1/7, Nendoroid, Action Figure, Gunpla chính hãng 100%."
+>
+  <!-- 1. Comic Cover Hero -->
+  <ComicCoverHero campaigns={heroCampaigns} />
+
+  <!-- 2. Quick Explore / Shop by Category -->
+  <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pt-8 lg:pb-16">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <div>
+        <div class="flex items-center gap-2 mb-1.5">
+          <StickerBadge text="EXPLORE" variant="brand" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            CHUYÊN MỤC SƯU TẦM
+          </span>
+        </div>
+        <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
+          SHOP BY CATEGORY
+        </h2>
+        <p class="text-xs sm:text-sm text-[#534F5C] mt-1">
+          Lựa chọn dòng mô hình phù hợp với không gian trưng bày và sở thích của bạn
+        </p>
+      </div>
+
+      <a
+        href="/figures"
+        class="inline-flex items-center gap-1.5 font-bold text-xs text-[#D6284F] hover:underline shrink-0"
+      >
+        <span>Xem tất cả danh mục</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Category Comic Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {categories.map((cat) => (
+        <CategoryComicCard category={cat} />
+      ))}
+    </div>
+  </section>
+
+  <!-- 3. Trending Figures (Commercial Clarity) -->
+  <section class="bg-[#F7F5F0] border-y-2 border-[#17141F] py-12 lg:py-18">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div>
+          <div class="flex items-center gap-2 mb-1.5">
+            <StickerBadge text="HOT DROP" variant="yellow" angle="left" size="sm" />
+            <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+              TOP SẢN PHẨM TUẦN NÀY
+            </span>
+          </div>
+          <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
+            TRENDING FIGURES
+          </h2>
+          <p class="text-xs sm:text-sm text-[#534F5C] mt-1">
+            Những mô hình đang được cộng đồng wibu và các nhà sưu tầm săn đón nhiều nhất
+          </p>
+        </div>
+
+        <!-- Filter tabs mock -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+          <button
+            type="button"
+            class="px-3.5 py-1.5 rounded-xl border-2 border-[#17141F] bg-[#17141F] text-white text-xs font-bold shadow-[2px_2px_0px_#FFD44A] cursor-pointer"
+          >
+            Tất cả nổi bật
+          </button>
+          <a
+            href="/figures?status=in_stock"
+            class="px-3.5 py-1.5 rounded-xl border border-[#D8D4D0] bg-white hover:border-[#17141F] text-[#534F5C] text-xs font-bold transition-all shrink-0"
+          >
+            Có sẵn giao ngay
+          </a>
+          <a
+            href="/pre-orders"
+            class="px-3.5 py-1.5 rounded-xl border border-[#D8D4D0] bg-white hover:border-[#17141F] text-[#534F5C] text-xs font-bold transition-all shrink-0"
+          >
+            Pre-order hot
+          </a>
+        </div>
+      </div>
+
+      <!-- 4 cols desktop / 2 cols mobile -->
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        {liveTrending.map((p) => (
+          <ProductCard product={p} />
+        ))}
+      </div>
+
+      <div class="mt-10 text-center">
+        <Button href="/figures" variant="outline" size="lg">
+          <span>Xem thêm 150+ mô hình khác</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </Button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Featured Manga Collection (Asymmetric Comic Collage) -->
+  <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+    <FeaturedCollectionBanner
+      collection={featuredCollection}
+      featuredProducts={featuredCollectionProducts}
+    />
+  </section>
+
+  <!-- 5. Pre-order Spotlight (Pre-order Zone) -->
+  <section class="bg-[#FFF4DC] border-y-2 border-[#17141F] py-12 lg:py-18 relative overflow-hidden">
+    <!-- Subtle comic halftone pattern -->
+    <div class="absolute inset-0 pattern-halftone opacity-15 pointer-events-none"></div>
+
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+        <div>
+          <div class="flex items-center gap-2 mb-1.5">
+            <StickerBadge text="PRE-ORDER ZONE" variant="brand" angle="left" size="sm" />
+            <span class="font-display text-xs tracking-wider text-[#9A5A00] uppercase font-bold">
+              ĐẶT TRƯỚC SỚM — GIỮ SUẤT CHÍNH HÃNG
+            </span>
+          </div>
+          <h2 class="font-display text-4xl sm:text-5xl text-[#17141F] uppercase tracking-tight">
+            PRE-ORDER SPOTLIGHT
+          </h2>
+          <p class="text-sm sm:text-base text-[#534F5C] mt-1">
+            Đặt cọc giữ suất từ 20% - 30%, cam kết giá không đổi và nhận hàng đúng thời hạn công bố
+          </p>
+        </div>
+
+        <a
+          href="/policies/pre-order"
+          class="inline-flex items-center gap-1.5 text-xs font-bold text-[#9A5A00] hover:text-[#17141F] underline decoration-2 underline-offset-4"
+        >
+          <span>Quy định & điều khoản cọc</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Pre-order items with timeline and deposit tags -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {preOrderProducts.map((p) => (
+          <div class="bg-white rounded-2xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] p-4 flex flex-col justify-between">
+            <div>
+              <div class="aspect-square rounded-xl overflow-hidden bg-[#F7F5F0] border border-[#17141F]/15 mb-3 relative group">
+                <img
+                  src={p.images[0]}
+                  alt={p.name}
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+                <span class="absolute top-2 left-2 font-display text-[10px] bg-[#FFD44A] text-[#17141F] px-2 py-0.5 rounded border border-[#17141F]">
+                  DỰ KIẾN: {p.releaseDate}
+                </span>
+              </div>
+
+              <span class="text-xs font-bold text-[#3258D7]">{p.series}</span>
+              <h3 class="text-sm sm:text-base font-bold text-[#17141F] line-clamp-2 mt-0.5 leading-snug">
+                <a href={`/products/${p.slug}`} class="hover:text-[#D6284F]">
+                  {p.name}
+                </a>
+              </h3>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-[#D8D4D0]">
+              <div class="flex items-center justify-between text-sm mb-1">
+                <span class="text-[#534F5C]">Tổng giá:</span>
+                <span class="font-bold text-[#17141F]">{formatVND(p.price)}</span>
+              </div>
+              {p.depositPrice && (
+                <div class="flex items-center justify-between text-sm mb-3">
+                  <span class="text-[#9A5A00] font-bold">Tiền cọc:</span>
+                  <span class="font-black text-[#D6284F]">{formatVND(p.depositPrice)}</span>
+                </div>
+              )}
+
+              <Button href={`/products/${p.slug}`} variant="yellow" size="sm" className="w-full">
+                <span>Đặt trước ngay</span>
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Shop by Anime (Franchises) -->
+  <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-18">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <div>
+        <div class="flex items-center gap-2 mb-1.5">
+          <StickerBadge text="FRANCHISES" variant="mint" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            VŨ TRỤ ANIME YÊU THÍCH
+          </span>
+        </div>
+        <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
+          SHOP BY ANIME
+        </h2>
+        <p class="text-xs sm:text-sm text-[#534F5C] mt-1">
+          Khám phá trọn bộ mô hình từ các series manga & anime đình đám nhất hiện nay
+        </p>
+      </div>
+
+      <a
+        href="/figures"
+        class="inline-flex items-center gap-1.5 font-bold text-xs text-[#D6284F] hover:underline shrink-0"
+      >
+        <span>Xem tất cả series</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Anime Series Poster Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      {animeSeriesList.map((anime) => (
+        <AnimeSeriesCard anime={anime} />
+      ))}
+    </div>
+  </section>
+
+  <!-- 7. New Arrivals -->
+  <section class="bg-[#F7F5F0] border-t-2 border-[#17141F] pb-12 lg:pb-18">
+    <div class="max-w-[1440px] mx-auto px-8 py-4">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+        <div>
+          <div class="flex items-center gap-2 mb-1.5">
+            <StickerBadge text="JUST IN" variant="brand" angle="left" size="sm" />
+            <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+              HÀNG MỚI CẬP BẾN
+            </span>
+          </div>
+          <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
+            NEW ARRIVALS
+          </h2>
+          <p class="text-xs sm:text-sm text-[#534F5C] mt-1">
+            Mô hình vừa về sẵn tại kho, đóng gói kỹ lưỡng và sẵn sàng giao hàng ngay
+          </p>
+        </div>
+
+        <Button href="/figures" variant="outline" size="sm">
+          <span>Xem tất cả hàng mới</span>
+        </Button>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        {newArrivalProducts.map((p) => (
+          <ProductCard product={p} />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Collector's Corner / Editorial Guide (P2) -->
+  <section class="max-w-[1440px] mx-auto p-5">
+    <div class="p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-[#FFF4DC] relative overflow-hidden">
+      <!-- Halftone pattern -->
+      <div class="absolute -top-12 -right-12 w-48 h-48 pattern-halftone opacity-25 rounded-full pointer-events-none"></div>
+      <div class="absolute -bottom-10 -left-10 w-40 h-40 pattern-halftone opacity-20 rounded-full pointer-events-none"></div>
+
+      <div class="relative z-10 max-w-3xl">
+        <div class="flex items-center gap-2 mb-2">
+          <StickerBadge text="GUIDE & TIPS" variant="yellow" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            CẨM NANG NGƯỜI SƯU TẦM
+          </span>
+        </div>
+
+        <h2 class="font-display text-2xl sm:text-3xl md:text-4xl text-[#17141F] uppercase tracking-tight">
+          COLLECTOR'S CORNER
+        </h2>
+
+        <p class="text-xs sm:text-sm text-[#534F5C] mt-2 leading-relaxed">
+          Sưu tầm mô hình là một nghệ thuật. Cùng Wibu Store tìm hiểu cách phân biệt tỉ lệ scale, bảo quản mô hình khỏi ánh nắng trực tiếp, và bí quyết giữ box nguyên vẹn 100%.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#17141F] transition-all">
+            <span class="flex w-10 h-10 items-center justify-center text-3xl mb-2 mx-auto">📏</span>
+            <h4 class="font-bold text-xs text-[#17141F] mb-1">Cách chọn Scale Figure</h4>
+            <p class="text-[11px] text-[#534F5C] leading-normal">
+              So sánh kích thước 1/7 (25-30cm) so với 1/4 (45cm) và tỉ lệ đặt trên kệ tủ kính chuẩn.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#17141F] transition-all">
+            <span class="flex w-10 h-10 items-center justify-center text-3xl mb-2 mx-auto">🛡️</span>
+            <h4 class="font-bold text-xs text-[#17141F] mb-1">Bảo quản chất liệu PVC/ABS</h4>
+            <p class="text-[11px] text-[#534F5C] leading-normal">
+              Tránh tia UV mặt trời và nhiệt độ cao làm chảy lớp sơn phủ hoặc gãy khớp mỏng.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#17141F] transition-all">
+            <span class="flex w-10 h-10 items-center justify-center text-3xl mb-2 mx-auto">✅</span>
+            <h4 class="font-bold text-xs text-[#17141F] mb-1">Quy định đổi trả an tâm</h4>
+            <p class="text-[11px] text-[#534F5C] leading-normal">
+              Bảo hiểm gãy vỡ do vận chuyển 100%. Đổi mới hoặc hoàn tiền ngay khi có video mở hộp.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

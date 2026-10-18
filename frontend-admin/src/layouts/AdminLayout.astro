@@ -1,0 +1,78 @@
+---
+import '../styles/global.css';
+import Sidebar from '../components/shell/Sidebar.astro';
+import Topbar from '../components/shell/Topbar.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  breadcrumbs?: Array<{ label: string; href?: string }>;
+}
+
+const {
+  title,
+  description,
+  breadcrumbs = [{ label: title }],
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+const pageTitle = `${title} — Wibu Store Studio Admin`;
+---
+
+<!doctype html>
+<html lang="vi" class="h-full bg-[#F7F5F0]">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Google Fonts: Anton (Display) & Be Vietnam Pro (Vietnamese UI/Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>{pageTitle}</title>
+  </head>
+  <body class="h-full flex overflow-hidden font-['Be_Vietnam_Pro'] text-[#17141F]">
+    <!-- Left Navigation Sidebar -->
+    <Sidebar currentPath={currentPath} />
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+      <!-- Topbar Header -->
+      <Topbar breadcrumbs={breadcrumbs} />
+
+      <!-- Scrollable Main Viewport -->
+      <main class="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        <!-- Page Header Area -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
+          <div>
+            <h1 class="text-[24px] sm:text-[28px] font-extrabold text-[#17141F] tracking-tight">
+              {title}
+            </h1>
+            {description && (
+              <p class="text-[13px] sm:text-[14px] text-[#534F5C] mt-0.5 font-medium">
+                {description}
+              </p>
+            )}
+          </div>
+          <!-- Action slot for page header buttons -->
+          <div class="flex items-center gap-2.5 shrink-0">
+            <slot name="actions" />
+          </div>
+        </div>
+
+        <!-- Page Primary Content -->
+        <slot />
+      </main>
+    </div>
+    <script>
+      import { guardClient } from '../lib/api';
+      guardClient();
+    </script>
+  </body>
+</html>

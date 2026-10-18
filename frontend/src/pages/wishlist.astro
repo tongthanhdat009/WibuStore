@@ -1,0 +1,89 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import ProductGrid from '../components/catalog/ProductGrid.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+import { products } from '../data/products';
+---
+
+<BaseLayout
+  title="Danh sách mô hình yêu thích | Wibu Store"
+  description="Các mô hình anime và manga bạn đã lưu để theo dõi giá và tình trạng hàng."
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb items={[{ label: 'Danh sách yêu thích' }]} className="mb-6" />
+
+    <div class="flex items-center gap-2 mb-6">
+      <StickerBadge text="WISHLIST" variant="brand" angle="left" size="sm" />
+      <h1 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
+        MÔ HÌNH BẠN ĐANG QUAN TÂM
+      </h1>
+    </div>
+
+    <!-- Empty or Populated Container -->
+    <div id="wishlist-page-container">
+      <div id="wishlist-empty" class="py-16 text-center text-[#534F5C] bg-white rounded-3xl border-2 border-[#17141F] p-8 shadow-[4px_4px_0px_#17141F]">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[#FFE6ED] border-2 border-[#17141F] flex items-center justify-center text-3xl shadow-[3px_3px_0px_#17141F]">
+          ❤️
+        </div>
+        <h3 class="font-display text-xl text-[#17141F] uppercase">Danh sách yêu thích đang trống</h3>
+        <p class="text-xs text-[#6A6572] mt-1 max-w-sm mx-auto">
+          Hãy bấm vào biểu tượng trái tim ở bất kỳ mô hình nào để lưu lại danh sách này nhé!
+        </p>
+        <div class="mt-6">
+          <a
+            href="/figures"
+            class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#D6284F] text-white font-bold text-sm border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]"
+          >
+            <span>Khám phá mô hình</span>
+            &rarr;
+          </a>
+        </div>
+      </div>
+
+      <div id="wishlist-grid-wrapper" class="hidden">
+        <ProductGrid products={products} />
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { getStoredWishlist } from '../lib/wishlist';
+
+  function initWishlistPage() {
+    const emptyEl = document.getElementById('wishlist-empty');
+    const gridWrapper = document.getElementById('wishlist-grid-wrapper');
+    const cards = document.querySelectorAll<HTMLElement>('.product-card');
+
+    const wishlistIds = getStoredWishlist();
+
+    if (wishlistIds.length === 0) {
+      emptyEl?.classList.remove('hidden');
+      gridWrapper?.classList.add('hidden');
+      return;
+    }
+
+    emptyEl?.classList.add('hidden');
+    gridWrapper?.classList.remove('hidden');
+
+    let count = 0;
+    cards.forEach((card) => {
+      const id = card.dataset.productId || '';
+      if (wishlistIds.includes(id)) {
+        card.classList.remove('hidden');
+        count++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+
+    if (count === 0) {
+      emptyEl?.classList.remove('hidden');
+      gridWrapper?.classList.add('hidden');
+    }
+  }
+
+  initWishlistPage();
+  document.addEventListener('astro:page-load', initWishlistPage);
+</script>

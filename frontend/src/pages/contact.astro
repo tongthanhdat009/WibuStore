@@ -1,0 +1,128 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+import Button from '../components/ui/Button.astro';
+---
+
+<BaseLayout
+  title="Liên hệ & Hỗ trợ khách hàng | Wibu Store"
+  description="Kênh liên hệ trực tiếp với đội ngũ chăm sóc khách hàng Wibu Store: tư vấn sản phẩm, theo dõi đơn hàng, hợp tác phân phối."
+>
+  <div class="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb items={[{ label: 'Liên hệ' }]} className="mb-6" />
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Contact Info (5 cols) -->
+      <div class="lg:col-span-5 bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] space-y-6">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <StickerBadge text="GET IN TOUCH" variant="yellow" angle="left" size="sm" />
+          </div>
+          <h1 class="font-display text-2xl sm:text-3xl uppercase tracking-tight text-[#17141F]">
+            LIÊN HỆ VỚI CHÚNG TÔI
+          </h1>
+          <p class="text-xs text-[#534F5C] mt-1.5 leading-relaxed">
+            Bạn cần tư vấn về tỉ lệ mô hình, kiểm tra tiến độ đơn pre-order hoặc muốn tìm kiếm figure hiếm? Hãy nhắn tin cho Wibu Store ngay!
+          </p>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <div class="flex items-start gap-3">
+            <span class="text-xl">📍</span>
+            <div>
+              <strong class="block text-[#17141F]">Địa chỉ showroom:</strong>
+              <span class="text-[#534F5C]">Tầng 3, Trung tâm Thương Mại Manga Hub, Quận 1, TP. Hồ Chí Minh</span>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <span class="text-xl">📞</span>
+            <div>
+              <strong class="block text-[#17141F]">Hotline hỗ trợ:</strong>
+              <span class="text-[#D6284F] font-bold">1900 888 666 (09:00 - 21:00)</span>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <span class="text-xl">✉️</span>
+            <div>
+              <strong class="block text-[#17141F]">Email hỗ trợ khách hàng:</strong>
+              <span class="text-[#534F5C]">support@wibustore.vn</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Form (7 cols) -->
+      <div class="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F]">
+        <h2 class="font-display text-xl uppercase tracking-wider text-[#17141F] pb-2 border-b-2 border-[#17141F] mb-4">
+          GỬI TIN NHẮN
+        </h2>
+
+        <form
+          class="space-y-4 text-xs"
+          onsubmit="event.preventDefault(); alert('Cảm ơn bạn! Tin nhắn của bạn đã được gửi tới đội ngũ Wibu Store. Chúng tôi sẽ phản hồi trong 2 giờ.'); this.reset();"
+        >
+          <div>
+            <label class="block font-bold text-[#17141F] mb-1">Họ và tên của bạn *</label>
+            <input
+              type="text"
+              required
+              placeholder="Nguyễn Văn A"
+              class="w-full bg-[#F7F5F0] focus:bg-white text-xs px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-[#17141F] mb-1">Số điện thoại *</label>
+              <input
+                type="tel"
+                required
+                placeholder="0912 345 678"
+                class="w-full bg-[#F7F5F0] focus:bg-white text-xs px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-[#17141F] mb-1">Email liên hệ *</label>
+              <input
+                type="email"
+                required
+                placeholder="wibu@example.com"
+                class="w-full bg-[#F7F5F0] focus:bg-white text-xs px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[#17141F] mb-1">Chủ đề cần hỗ trợ</label>
+            <select class="w-full bg-[#F7F5F0] text-xs px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F]">
+              <option>Hỏi về tình trạng hàng / Pre-order</option>
+              <option>Hỗ trợ bảo hành / Đổi trả mô hình</option>
+              <option>Tư vấn chọn mô hình theo series</option>
+              <option>Hợp tác phân phối / Doanh nghiệp</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-[#17141F] mb-1">Nội dung tin nhắn *</label>
+            <textarea
+              rows="4"
+              required
+              placeholder="Nhập nội dung cần hỗ trợ..."
+              class="w-full bg-[#F7F5F0] focus:bg-white text-xs px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"
+            ></textarea>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full py-3 px-6 rounded-xl bg-[#D6284F] hover:bg-[#AF1E40] text-white font-bold text-xs uppercase tracking-wider border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:-translate-y-0.5 transition-all cursor-pointer"
+          >
+            Gửi yêu cầu hỗ trợ
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

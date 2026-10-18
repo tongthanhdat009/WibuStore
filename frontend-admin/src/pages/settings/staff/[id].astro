@@ -1,0 +1,116 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import Button from '../../../components/ui/Button.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../../lib/api';
+
+export const prerender = false;
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+const { id } = Astro.params;
+
+interface StaffRow {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  status: string;
+  roles: { id: number; name: string; slug: string }[];
+}
+interface RoleRow {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+const { data: staffData } = await apiGet<StaffRow[]>('/admin/staff?per_page=100', Astro);
+const staff = staffData?.find((u) => String(u.id) === String(id));
+if (!staff) return Astro.redirect('/settings/staff');
+
+const { data: roleData } = await apiGet<RoleRow[]>('/admin/rbac/roles', Astro);
+const allRoles = (roleData ?? []).filter((r) => r.slug !== 'customer');
+---
+
+<AdminLayout
+  title={`Phân quyền: ${staff.name}`}
+  description={staff.email}
+  breadcrumbs={[
+    { label: 'Hệ thống', href: '/settings/staff' },
+    { label: 'Nhân sự', href: '/settings/staff' },
+    { label: staff.name },
+  ]}
+>
+  <div slot="actions">
+    <Button variant="secondary" size="sm" href="/settings/staff">
+      ← Danh sách nhân sự
+    </Button>
+  </div>
+
+  <div class="max-w-2xl bg-white rounded-[14px] border border-[#D8D4D0] p-6 shadow-xs space-y-4">
+    <div class="flex items-center gap-3 pb-4 border-b border-[#F2EFE9]">
+      <div class="w-12 h-12 rounded-full bg-[#17141F] text-white flex items-center justify-center font-black text-lg">
+        {staff.name.charAt(0).toUpperCase()}
+      </div>
+      <div>
+        <div class="font-bold text-[16px] text-[#17141F]">{staff.name}</div>
+        <div class="text-[12px] text-[#6A6572]">{staff.email} • {staff.phone ?? '—'}</div>
+      </div>
+      <div class="ml-auto flex gap-1.5">
+        {staff.roles.map((r) => (
+          <Badge variant={r.slug === 'super_admin' ? 'brand' : 'neutral'} size="sm">{r.name}</Badge>
+        ))}
+      </div>
+    </div>
+
+    <div id="staff-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+
+    <div>
+      <div class="font-bold text-[13px] text-[#17141F] mb-2">Vai trò được gán (chọn nhiều)</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {allRoles.map((r) => (
+          <label class="flex items-center gap-2.5 p-3 rounded-[8px] border border-[#D8D4D0] hover:border-[#17141F] cursor-pointer text-[13px] font-semibold">
+            <input
+              type="checkbox"
+              class="role-check w-4 h-4 rounded text-[#D6284F]"
+              value={r.id}
+              checked={staff.roles.some((sr) => sr.id === r.id)}
+            />
+            <span>{r.name}</span>
+            <span class="text-[11px] font-mono text-[#6A6572] ml-auto">{r.slug}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+
+    <div class="flex gap-2 pt-2">
+      <button id="roles-save" type="button" data-user-id={staff.id} class="flex-1 h-10 rounded-[8px] bg-[#D6284F] text-white font-bold text-[13px] cursor-pointer">
+        Lưu vai trò
+      </button>
+    </div>
+    <p class="text-[11px] text-[#6A6572]">Không thể tự sửa vai trò của chính mình (an toàn).</p>
+  </div>
+
+  <script>
+    import { mutate } from '../../../lib/api';
+
+    document.getElementById('roles-save')?.addEventListener('click', async () => {
+      const btn = document.getElementById('roles-save') as HTMLElement | null;
+      const userId = btn?.dataset.userId;
+      const roleIds = Array.from(document.querySelectorAll('.role-check:checked')).map((b) =>
+        Number((b as HTMLInputElement).value),
+      );
+      const errEl = document.getElementById('staff-error');
+      const { error } = await mutate(`/admin/staff/${userId}`, 'PATCH', { role_ids: roleIds });
+      if (error) {
+        if (errEl) {
+          errEl.textContent = error.message || 'Lưu thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      window.location.reload();
+    });
+  </script>
+</AdminLayout>

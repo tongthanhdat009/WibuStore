@@ -1,0 +1,40 @@
+import type { Collection } from '../types';
+
+export const collections: Collection[] = [
+  {
+    id: 'shibuya-incident-drop',
+    slug: 'shibuya-incident-drop',
+    title: 'Shibuya Incident Drop',
+    tagline: 'BIẾN CỐ SHIBUYA — SỰ THỨC TỈNH CỦA ĐỆ NHẤT CHÚ THUẬT SƯ',
+    description: 'Tuyển tập các mô hình cao cấp tái hiện những khoảnh khắc bi tráng nhất trong arc Biến Cố Shibuya của Jujutsu Kaisen.',
+    coverImage: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80',
+    bannerImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80',
+    accentColor: '#3258D7',
+    badge: 'LIMITED CAMPAIGN',
+    productSlugs: ['gojo-satoru-shibuya-1-7', 'sukuna-king-of-curses-1-7', 'geto-suguru-figma-512'],
+  },
+  {
+    id: 'wano-kuni-climax',
+    slug: 'wano-kuni-climax',
+    title: 'Wano Kuni Climax — Gear 5',
+    tagline: 'THẦN MẶT TRỜI NIKA GIÁNG THẾ TRÊN BẦU TRỜI ONIGASHIMA',
+    description: 'Bộ sưu tập những tuyệt tác mô hình One Piece đỉnh điểm trận chiến Kaido vs Luffy Thần Mặt Trời.',
+    coverImage: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&auto=format&fit=crop&q=80',
+    bannerImage: 'https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=1200&auto=format&fit=crop&q=80',
+    accentColor: '#D6284F',
+    badge: 'HOT ARCHIVE',
+    productSlugs: ['luffy-gear-5-maximum', 'zoro-enma-king-of-hell-1-8', 'kaido-dragon-form-figuarts-zero'],
+  },
+  {
+    id: 'tokyo-pop-collectibles',
+    slug: 'tokyo-pop-collectibles',
+    title: 'Tokyo Pop Art Collab 2026',
+    tagline: 'GIAO THOA NGHỆ THUẬT MANGA VÀ ĐẲNG CẤP SƯU TẦM',
+    description: 'Các tác phẩm scale figure được phối màu độc bản theo phong cách Comic Pop Art hiện đại.',
+    coverImage: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&auto=format&fit=crop&q=80',
+    bannerImage: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=1200&auto=format&fit=crop&q=80',
+    accentColor: '#FFD44A',
+    badge: 'EXCLUSIVE EDITORIAL',
+    productSlugs: ['makima-control-devil-1-7', 'frieren-journey-scale-1-7', 'anya-forger-nendoroid-1900'],
+  },
+];

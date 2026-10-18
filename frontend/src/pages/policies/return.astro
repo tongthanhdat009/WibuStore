@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/ui/Breadcrumb.astro';
+import StickerBadge from '../../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout
+  title="Chính sách Đổi trả & Bảo hiểm gãy hỏng | Wibu Store"
+  description="Cam kết đổi trả 1-1 trong 7 ngày nếu sản phẩm bị gãy chi tiết, lỗi sơn hoặc móp hộp nghiêm trọng do vận chuyển."
+>
+  <div class="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb
+      items={[
+        { label: 'Chính sách', href: '/policies/return' },
+        { label: 'Đổi trả & Bảo hiểm' },
+      ]}
+      className="mb-6"
+    />
+
+    <div class="bg-white p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[5px_5px_0px_#17141F]">
+      <div class="flex items-center gap-2 mb-2">
+        <StickerBadge text="RETURN & WARRANTY" variant="mint" angle="left" size="sm" />
+      </div>
+
+      <h1 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight mb-4">
+        CHÍNH SÁCH ĐỔI TRẢ & BẢO HÀNH
+      </h1>
+
+      <div class="text-xs sm:text-sm text-[#534F5C] leading-relaxed space-y-6">
+        <div>
+          <h3 class="font-bold text-base text-[#17141F] mb-2">1. Điều kiện đổi trả trong 07 ngày</h3>
+          <p>
+            Wibu Store hỗ trợ đổi sản phẩm mới hoặc hoàn tiền 100% trong các trường hợp sau:<br />
+            - Mô hình bị gãy khớp, đứt chi tiết vũ khí hoặc thiếu phụ kiện từ nhà sản xuất.<br />
+            - Hộp sản phẩm bị rách, móp nát do lỗi vận chuyển của bên thứ ba.<br />
+            - Giao nhầm mã sản phẩm so với đơn đặt hàng đã xác nhận.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-base text-[#17141F] mb-2">2. Quy định quay video mở hộp (Unboxing Video)</h3>
+          <p>
+            Để bảo vệ quyền lợi tối đa, quý khách vui lòng <strong>quay video liền mạch</strong> từ lúc kiện hàng còn nguyên tem phong niêm của Wibu Store cho đến khi kiểm tra xong mô hình bên trong. Video này là căn cứ giải quyết đổi mới ngay lập tức không cần chờ thẩm định.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

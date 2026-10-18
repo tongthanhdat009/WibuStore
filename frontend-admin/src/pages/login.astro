@@ -1,0 +1,88 @@
+---
+import AuthLayout from '../layouts/AuthLayout.astro';
+import Button from '../components/ui/Button.astro';
+import Input from '../components/ui/Input.astro';
+---
+
+<AuthLayout title="Đăng nhập quản trị">
+  <form id="staff-login-form" class="space-y-4">
+    <div id="login-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+    <Input
+      label="Email nhân sự"
+      name="email"
+      type="email"
+      value="admin@wibustore.vn"
+      placeholder="ten.nv@wibustore.vn"
+      required
+    />
+
+    <Input
+      label="Mật khẩu"
+      name="password"
+      type="password"
+      placeholder="Nhập mật khẩu của bạn"
+      required
+    />
+
+    <div class="flex items-center justify-between text-[13px] pt-1">
+      <label class="flex items-center gap-2 cursor-pointer text-[#534F5C]">
+        <input type="checkbox" checked class="rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]" />
+        <span>Ghi nhớ phiên đăng nhập</span>
+      </label>
+      <a href="/forgot-password" class="font-semibold text-[#3258D7] hover:underline">
+        Quên mật khẩu?
+      </a>
+    </div>
+
+    <div class="pt-2">
+      <Button variant="primary" size="lg" type="submit" class="w-full" id="login-submit">
+        Đăng nhập vào Studio Admin
+      </Button>
+    </div>
+
+    <div class="mt-4 p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/20 text-[12px] text-[#A61B3F]">
+      <div class="font-bold flex items-center gap-1.5 mb-0.5">
+        <span>🔒 Phân quyền tài khoản</span>
+      </div>
+      <div>Tài khoản demo: admin@wibustore.vn / Admin@123 (Super Admin).</div>
+    </div>
+  </form>
+</AuthLayout>
+
+<script>
+  import { staffLogin } from '../lib/api';
+
+  const form = document.getElementById('staff-login-form') as HTMLFormElement | null;
+  const errEl = document.getElementById('login-error');
+  const submitBtn = document.getElementById('login-submit') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang đăng nhập...';
+    }
+    if (errEl) errEl.classList.add('hidden');
+    const { data, error } = await staffLogin(String(fd.get('email') || ''), String(fd.get('password') || ''));
+    if (!data) {
+      if (errEl) {
+        errEl.textContent = error?.message || 'Đăng nhập thất bại.';
+        errEl.classList.remove('hidden');
+      }
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Đăng nhập vào Studio Admin';
+      }
+      return;
+    }
+    if (data.roles?.includes('customer')) {
+      if (errEl) {
+        errEl.textContent = 'Tài khoản khách hàng không có quyền vào trang quản trị.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+    window.location.href = '/';
+  });
+</script>

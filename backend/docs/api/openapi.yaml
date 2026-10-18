@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: Wibu Store API
+  version: 1.0.0
+  description: Laravel 13 REST API for Anime Figure e-commerce (storefront :4321, admin :4322, api :8000).
+servers:
+  - url: http://localhost:8000/api/v1
+tags:
+  - name: catalog
+  - name: auth
+  - name: cart
+  - name: orders
+  - name: admin
+paths:
+  /health:
+    get:
+      tags: [catalog]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /products:
+    get:
+      tags: [catalog]
+      summary: Product listing (search/filter/sort/paginate)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: anime_series, in: query, schema: { type: string } }
+        - { name: manufacturer, in: query, schema: { type: string } }
+        - { name: min_price, in: query, schema: { type: integer } }
+        - { name: max_price, in: query, schema: { type: integer } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc, name_asc, featured] } }
+        - { name: page, in: query, schema: { type: integer } }
+        - { name: per_page, in: query, schema: { type: integer, maximum: 48 } }
+      responses:
+        '200': { description: Paginated products }
+  /products/{slug}:
+    get:
+      tags: [catalog]
+      summary: Product detail with variants and gallery
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Product detail }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /preorders:
+    get:
+      tags: [catalog]
+      summary: Active pre-order campaigns
+      responses:
+        '200': { description: Campaign list }
+  /pages/home:
+    get:
+      tags: [catalog]
+      summary: Published homepage CMS revision
+      responses:
+        '200': { description: Homepage sections }
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Customer registration (session login)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                password_confirmation: { type: string }
+      responses:
+        '201': { description: Created }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Session login (CSRF handshake via /sanctum/csrf-cookie first)
+      responses:
+        '200': { description: Profile with roles and permissions }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /checkout/preview:
+    post:
+      tags: [cart]
+      summary: Server-side totals preview (no stock hold)
+      responses:
+        '200': { description: Totals }
+  /orders:
+    post:
+      tags: [orders]
+      summary: Checkout (transaction + row locks + Idempotency-Key)
+      parameters:
+        - { name: Idempotency-Key, in: header, required: false, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, customer, payment_method]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [variant_id, quantity]
+                    properties:
+                      variant_id: { type: integer }
+                      quantity: { type: integer, minimum: 1 }
+                      preorder_campaign_id: { type: integer }
+                customer:
+                  type: object
+                  required: [name, email, phone]
+                  properties:
+                    name: { type: string }
+                    email: { type: string }
+                    phone: { type: string }
+                checkout_type: { type: string, enum: [regular, preorder] }
+                payment_method: { type: string, enum: [cod, bank_transfer, gateway] }
+                coupon_code: { type: string }
+      responses:
+        '201': { description: Order created }
+        '409': { $ref: '#/components/responses/InsufficientStock' }
+  /orders/{publicId}:
+    get:
+      tags: [orders]
+      summary: Order detail (owner or guest proof)
+      parameters:
+        - { name: publicId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Order }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /admin/dashboard/overview:
+    get:
+      tags: [admin]
+      summary: KPIs (requires reports.read)
+      responses:
+        '200': { description: KPIs }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /admin/orders/{id}/transition:
+    post:
+      tags: [admin]
+      summary: Order state transition (requires orders.transition)
+      responses:
+        '200': { description: Order }
+        '409': { description: Invalid state transition }
+  /admin/payments/{id}/confirm:
+    post:
+      tags: [admin]
+      summary: Manual payment confirmation (requires payments.confirm)
+      responses:
+        '200': { description: Payment }
+  /webhooks/payments/{provider}:
+    post:
+      tags: [admin]
+      summary: Gateway webhook (signature + replay protection)
+      parameters:
+        - { name: provider, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Processed or deduped }
+components:
+  schemas:
+    MoneyVND:
+      type: integer
+      minimum: 0
+      description: DO NOT use float for money. Integer VND.
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [BAD_REQUEST, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, INSUFFICIENT_STOCK, INVALID_STATE, VALIDATION_ERROR, RATE_LIMITED, INTERNAL_ERROR]
+            message: { type: string }
+            details: { type: object }
+            request_id: { type: string }
+  responses:
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthenticated:
+      description: Unauthenticated
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InsufficientStock:
+      description: Not enough stock or quota
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

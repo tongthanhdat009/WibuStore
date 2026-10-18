@@ -1,0 +1,44 @@
+---
+interface Props {
+  text: string;
+  variant?: 'yellow' | 'brand' | 'mint' | 'blue' | 'pink' | 'white';
+  angle?: 'left' | 'right' | 'none';
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+const {
+  text,
+  variant = 'yellow',
+  angle = 'left',
+  size = 'md',
+  className = '',
+} = Astro.props;
+
+const colorStyles = {
+  yellow: 'bg-[#FFD44A] text-[#17141F]',
+  brand: 'bg-[#D6284F] text-white',
+  mint: 'bg-[#DDF9EB] text-[#17141F]',
+  blue: 'bg-[#3258D7] text-white',
+  pink: 'bg-[#FFE6ED] text-[#17141F]',
+  white: 'bg-white text-[#17141F]',
+};
+
+const angleStyles = {
+  left: '-rotate-3',
+  right: 'rotate-3',
+  none: 'rotate-0',
+};
+
+const sizeStyles = {
+  sm: 'text-[11px] px-2 py-0.5',
+  md: 'text-xs px-2.5 py-1',
+  lg: 'text-sm px-3.5 py-1.5',
+};
+---
+
+<span
+  class={`inline-flex items-center justify-center font-display uppercase tracking-wider font-normal border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F] rounded-md transition-transform select-none ${colorStyles[variant]} ${angleStyles[angle]} ${sizeStyles[size]} ${className}`}
+>
+  {text}
+</span>

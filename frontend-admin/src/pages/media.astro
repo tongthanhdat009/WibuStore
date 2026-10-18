@@ -1,0 +1,252 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Button from '../components/ui/Button.astro';
+import Badge from '../components/ui/Badge.astro';
+import { apiGet, currentPage, requireStaff } from '../lib/api';
+import Pagination from '../components/ui/Pagination.astro';
+import { formatBytes, formatDateTime } from '../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface Asset { id: number; object_key: string; file_name: string; url: string; mime_type: string; file_size_bytes: number; width?: number | null; height?: number | null; status: string; created_at: string }
+
+const { data: assetData, meta: assetMeta } = await apiGet<Asset[]>(`/admin/media?per_page=24&page=${page}`, Astro);
+const assets = assetData ?? [];
+---
+
+<AdminLayout
+  title="Thư viện tệp & hình ảnh (Media Library)"
+  description="Quản lý tập trung toàn bộ hình ảnh sản phẩm figure, artwork banner và asset đồ họa của shop"
+  breadcrumbs={[{ label: 'Nội dung & Marketing' }, { label: 'Media Library' }]}
+>
+  <div slot="actions" class="flex gap-2">
+    <Button variant="secondary" size="sm">
+      + Tạo thư mục mới
+    </Button>
+    <button
+      id="open-upload-modal"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-[#D6284F] hover:bg-[#AF1E40] text-white text-[13px] font-bold shadow-xs cursor-pointer"
+    >
+      ↑ Tải ảnh lên
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Column: Folder Tree (3 cols) -->
+    <div class="lg:col-span-3 space-y-4">
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-4 shadow-xs">
+        <h2 class="text-[14px] font-bold text-[#17141F] mb-3 uppercase tracking-wider">
+          Thư mục lưu trữ
+        </h2>
+        <ul class="space-y-1 text-[13px]">
+          <li>
+            <a href="/media" class="flex items-center justify-between px-3 py-2 rounded-[8px] bg-[#FFF0F3] text-[#A61B3F] font-bold">
+              <span>📁 Tất cả tệp</span>
+              <span class="text-[11px]">{assets.length}</span>
+            </a>
+          </li>
+          <li>
+            <a href="/media?folder=products" class="flex items-center justify-between px-3 py-2 rounded-[8px] text-[#534F5C] hover:bg-[#F7F5F0]">
+              <span>📁 Ảnh sản phẩm (Products)</span>
+              <span class="text-[11px]">2</span>
+            </a>
+          </li>
+          <li>
+            <a href="/media?folder=hero" class="flex items-center justify-between px-3 py-2 rounded-[8px] text-[#534F5C] hover:bg-[#F7F5F0]">
+              <span>📁 Hero Campaigns</span>
+              <span class="text-[11px]">1</span>
+            </a>
+          </li>
+          <li>
+            <a href="/media?folder=branding" class="flex items-center justify-between px-3 py-2 rounded-[8px] text-[#534F5C] hover:bg-[#F7F5F0]">
+              <span>📁 Logo & Branding</span>
+              <span class="text-[11px]">1</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Storage Quote Notice -->
+      <div class="p-4 bg-white rounded-[14px] border border-[#D8D4D0] text-[12px] space-y-2">
+        <div class="flex justify-between font-bold text-[#17141F]">
+          <span>Dung lượng lưu trữ:</span>
+          <span>5.2 MB / 10 GB</span>
+        </div>
+        <div class="w-full bg-[#EAE7E4] rounded-full h-1.5 overflow-hidden">
+          <div class="bg-[#3258D7] h-1.5 rounded-full w-[2%]"></div>
+        </div>
+        <p class="text-[#6A6572]">Lưu trữ đám mây tương thích S3 chuẩn CDN tốc độ cao.</p>
+      </div>
+    </div>
+
+    <!-- Right Column: Media Grid & Inspector (9 cols) -->
+    <div class="lg:col-span-9 space-y-4">
+      <!-- Toolbar -->
+      <div class="bg-white rounded-[12px] border border-[#D8D4D0] p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 flex-1 max-w-sm">
+          <input
+            type="search"
+            placeholder="Tìm theo tên file, alt text..."
+            class="w-full h-9 px-3 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
+          />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <select class="h-9 px-3 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px]">
+            <option>Tất cả định dạng</option>
+            <option>Hình ảnh (JPG, PNG, WEBP)</option>
+            <option>Vector (SVG)</option>
+          </select>
+          <select class="h-9 px-3 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px]">
+            <option>Mới nhất trước</option>
+            <option>Cũ nhất</option>
+            <option>Dung lượng lớn nhất</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Media Assets Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {assets.length === 0 && (
+          <div class="col-span-full text-center text-[12px] text-[#6A6572] py-10">Chưa có ảnh nào. Bấm “Tải ảnh lên”.</div>
+        )}
+        {assets.map((asset) => (
+          <div class="bg-white rounded-[12px] border border-[#D8D4D0] overflow-hidden shadow-xs hover:border-[#17141F] transition-all flex flex-col justify-between group cursor-pointer">
+            <div class="aspect-square bg-[#FAF8F5] relative overflow-hidden flex items-center justify-center p-2">
+              <img
+                src={asset.url}
+                alt={asset.file_name}
+                class="w-full h-full object-cover rounded-[6px] group-hover:scale-105 transition-transform"
+                loading="lazy"
+              />
+              <span class="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#17141F]/80 text-white backdrop-blur-xs">
+                {asset.mime_type.split('/')[1]?.toUpperCase()}
+              </span>
+            </div>
+
+            <div class="p-3 border-t border-[#F2EFE9] space-y-1">
+              <div class="font-bold text-[12px] text-[#17141F] truncate" title={asset.file_name}>
+                {asset.file_name}
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-[#6A6572]">
+                <span>{asset.width ?? '?'}x{asset.height ?? '?'}</span>
+                <span>{formatBytes(asset.file_size_bytes)}</span>
+              </div>
+              <div class="pt-1 text-[10px] text-[#6A6572] truncate">
+                {asset.object_key}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div class="mt-4 bg-white rounded-[12px] border border-[#D8D4D0] overflow-hidden">
+        <Pagination meta={assetMeta} pathname="/media" params={{}} />
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal Dialog -->
+  <div id="upload-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-[16px] max-w-lg w-full p-6 border-2 border-[#17141F] comic-shadow space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[18px] font-black text-[#17141F]">
+          Tải tệp tin lên Media Library
+        </h3>
+        <button
+          type="button"
+          onclick="document.getElementById('upload-modal').classList.add('hidden')"
+          class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="font-bold text-[13px] text-[#17141F] block mb-1">Thư mục đích</label>
+          <select class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0] text-[13px]">
+            <option value="products">Ảnh sản phẩm (Products)</option>
+            <option value="hero">Hero Campaigns</option>
+            <option value="branding">Logo & Branding</option>
+          </select>
+        </div>
+
+        <div class="border-2 border-dashed border-[#D8D4D0] rounded-[10px] p-8 text-center bg-[#FAF8F5]">
+          <div class="w-12 h-12 rounded-full bg-[#EDF3FF] text-[#1D58D8] flex items-center justify-center mx-auto mb-2 font-bold text-[20px]">
+            ↑
+          </div>
+          <div class="text-[14px] font-bold text-[#17141F]">Kéo thả tệp tin vào đây</div>
+          <p class="text-[12px] text-[#6A6572] mt-1">Hỗ trợ PNG, JPG, WEBP, SVG dung lượng tối đa 10MB/tệp</p>
+        </div>
+
+        <div>
+          <label class="font-bold text-[13px] text-[#17141F] block mb-1">Alt text mô tả (Accessibility / SEO)</label>
+          <input
+            type="text"
+            placeholder="Mô tả nội dung hình ảnh figure..."
+            class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0] text-[13px]"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <Button variant="secondary" size="md" onclick="document.getElementById('upload-modal').classList.add('hidden')">
+          Hủy bỏ
+        </Button>
+        <Button variant="primary" size="md" onclick="document.getElementById('upload-modal').classList.add('hidden')">
+          Bắt đầu tải lên
+        </Button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const uploadBtn = document.getElementById('open-upload-modal');
+    const modal = document.getElementById('upload-modal');
+    uploadBtn?.addEventListener('click', () => {
+      modal?.classList.remove('hidden');
+    });
+
+    function xsrf(): string {
+      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    async function uploadFiles(files: FileList | File[]) {
+      const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+      if (!xsrf()) {
+        await fetch(`${base}/sanctum/csrf-cookie`, { credentials: 'include' });
+      }
+      for (const file of Array.from(files)) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`${base}/api/v1/admin/media`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { Accept: 'application/json', 'X-XSRF-TOKEN': xsrf() },
+          body: fd,
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          alert(`Upload ${file.name} thất bại: ${body?.error?.message || res.status}`);
+          return;
+        }
+      }
+      window.location.reload();
+    }
+
+    const dropZone = modal?.querySelector('.border-dashed');
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/jpeg,image/png,image/webp,image/avif';
+    fileInput.multiple = true;
+    fileInput.className = 'hidden';
+    modal?.appendChild(fileInput);
+    dropZone?.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files?.length) uploadFiles(fileInput.files);
+    });
+  </script>
+</AdminLayout>

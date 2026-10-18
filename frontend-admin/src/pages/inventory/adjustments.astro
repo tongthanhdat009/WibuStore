@@ -1,0 +1,80 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, currentPage, requireStaff } from '../../lib/api';
+import Pagination from '../../components/ui/Pagination.astro';
+import { formatDateTime } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface Movement { id: number; type: string; reason?: string | null; delta_on_hand: number; delta_reserved: number; reference_type?: string | null; reference_id?: string | null; sku?: string; product_name?: string; created_at: string }
+
+const { data: moveData, meta: moveMeta } = await apiGet<Movement[]>(`/admin/inventory/movements?per_page=20&page=${page}`, Astro);
+const adjustments = moveData ?? [];
+---
+
+<AdminLayout
+  title="Nhật ký điều chỉnh tồn kho (Stock Ledger)"
+  description="Lịch sử chi tiết các giao dịch biến động kho figure, nguyên nhân điều chỉnh và định danh người thực hiện"
+  breadcrumbs={[
+    { label: 'Sản phẩm', href: '/products' },
+    { label: 'Tồn kho', href: '/inventory' },
+    { label: 'Nhật ký điều chỉnh' },
+  ]}
+>
+  <div slot="actions">
+    <Button variant="secondary" size="sm" href="/inventory">
+      ← Quay lại bảng tồn kho
+    </Button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Thời gian</th>
+            <th class="py-3.5 px-4">Mã SKU</th>
+            <th class="py-3.5 px-4">Sản phẩm</th>
+            <th class="py-3.5 px-4">Loại giao dịch</th>
+            <th class="py-3.5 px-4 text-center">Biến động (Delta)</th>
+            <th class="py-3.5 px-4">Lý do & Mã tham chiếu</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {adjustments.map((a) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-4 px-4 text-[12px] text-[#6A6572]">
+                {formatDateTime(a.created_at)}
+              </td>
+              <td class="py-4 px-4 font-mono font-bold text-[#17141F]">
+                {a.sku ?? '—'}
+              </td>
+              <td class="py-4 px-4 font-bold text-[#17141F]">
+                {a.product_name ?? '—'}
+              </td>
+              <td class="py-4 px-4">
+                <Badge variant={a.delta_on_hand >= 0 && a.delta_reserved >= 0 ? 'success' : 'danger'} size="sm">
+                  {a.type}
+                </Badge>
+              </td>
+              <td class="py-4 px-4 text-center font-black tabular-nums text-[14px]">
+                <span class={a.delta_on_hand >= 0 ? 'text-[#147A4B]' : 'text-[#B42318]'}>
+                  {a.delta_on_hand !== 0 ? `${a.delta_on_hand > 0 ? '+' : ''}${a.delta_on_hand} kho` : `${a.delta_reserved > 0 ? '+' : ''}${a.delta_reserved} giữ`}
+                </span>
+              </td>
+              <td class="py-4 px-4">
+                <div class="text-[#17141F] font-medium">{a.reason ?? '—'}</div>
+                <div class="text-[11px] font-mono text-[#6A6572]">Mã: {a.reference_type}:{a.reference_id}</div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={moveMeta} pathname="/inventory/adjustments" params={{}} />
+  </div>
+</AdminLayout>

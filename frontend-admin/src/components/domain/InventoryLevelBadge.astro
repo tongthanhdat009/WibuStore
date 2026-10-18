@@ -1,0 +1,35 @@
+---
+import Badge from '../ui/Badge.astro';
+
+interface Props {
+  status: 'ok' | 'low_stock' | 'out_of_stock';
+  available: number;
+}
+
+const { status, available } = Astro.props;
+---
+
+{
+  status === 'ok' && (
+    <Badge variant="success" size="sm">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#147A4B]"></span>
+      Còn hàng ({available})
+    </Badge>
+  )
+}
+{
+  status === 'low_stock' && (
+    <Badge variant="warning" size="sm">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#9A5A00]"></span>
+      Sắp hết ({available})
+    </Badge>
+  )
+}
+{
+  status === 'out_of_stock' && (
+    <Badge variant="danger" size="sm">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#B42318]"></span>
+      Hết hàng (0)
+    </Badge>
+  )
+}

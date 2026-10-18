@@ -1,0 +1,27 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Button from '../components/ui/Button.astro';
+---
+
+<AdminLayout title="404 — Không tìm thấy trang" breadcrumbs={[{ label: 'Lỗi 404' }]}>
+  <div class="min-h-[60vh] flex flex-col items-center justify-center text-center max-w-md mx-auto py-12">
+    <div class="font-['Anton'] text-[72px] text-[#D6284F] leading-none mb-2 tracking-wider">
+      404
+    </div>
+    <h2 class="text-[22px] font-extrabold text-[#17141F]">
+      Trang quản trị không tồn tại
+    </h2>
+    <p class="text-[14px] text-[#534F5C] mt-2 leading-relaxed">
+      Đường dẫn bạn truy cập có thể đã được thay đổi hoặc bản ghi dữ liệu đã bị gỡ bỏ khỏi hệ thống.
+    </p>
+
+    <div class="mt-6 flex gap-3">
+      <Button variant="primary" href="/">
+        Về Dashboard
+      </Button>
+      <Button variant="secondary" href="/products">
+        Xem danh sách sản phẩm
+      </Button>
+    </div>
+  </div>
+</AdminLayout>

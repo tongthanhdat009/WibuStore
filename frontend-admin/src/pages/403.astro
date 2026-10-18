@@ -1,0 +1,27 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Button from '../components/ui/Button.astro';
+---
+
+<AdminLayout title="403 — Không đủ quyền truy cập" breadcrumbs={[{ label: 'Lỗi 403' }]}>
+  <div class="min-h-[60vh] flex flex-col items-center justify-center text-center max-w-md mx-auto py-12">
+    <div class="w-16 h-16 rounded-full bg-[#FDEDEC] text-[#B42318] flex items-center justify-center font-['Anton'] text-[28px] mb-4 border border-[#B42318]/30">
+      !
+    </div>
+    <h2 class="text-[24px] font-extrabold text-[#17141F]">
+      Từ chối quyền truy cập (403)
+    </h2>
+    <p class="text-[14px] text-[#534F5C] mt-2 leading-relaxed">
+      Tài khoản của bạn hiện không có quyền thực hiện thao tác hoặc xem tài nguyên này theo chính sách bảo mật RBAC của Wibu Store.
+    </p>
+
+    <div class="mt-6 flex gap-3">
+      <Button variant="primary" href="/">
+        Về trang Tổng quan
+      </Button>
+      <Button variant="secondary" href="/settings/team">
+        Xem ma trận quyền
+      </Button>
+    </div>
+  </div>
+</AdminLayout>

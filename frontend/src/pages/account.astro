@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout title="Tài khoản của tôi | Wibu Store" description="Hồ sơ, địa chỉ và lịch sử đơn hàng của bạn.">
+  <div class="max-w-[1000px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb items={[{ label: 'Tài khoản' }]} className="mb-6" />
+
+    <div id="account-guest" class="hidden text-center py-16">
+      <p class="text-sm text-[#534F5C] mb-4">Bạn chưa đăng nhập.</p>
+      <a href="/login" class="inline-block px-6 py-3 rounded-2xl bg-[#D6284F] text-white font-bold text-sm border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F]">Đăng nhập ngay</a>
+    </div>
+
+    <div id="account-main" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div id="acc-avatar" class="w-12 h-12 rounded-full bg-[#17141F] text-white flex items-center justify-center font-black text-lg">?</div>
+          <div>
+            <div class="flex items-center gap-2">
+              <StickerBadge text="MEMBER" variant="mint" angle="none" size="sm" />
+            </div>
+            <h1 id="acc-name" class="font-bold text-lg text-[#17141F]">...</h1>
+            <p id="acc-email" class="text-xs text-[#534F5C]">...</p>
+          </div>
+        </div>
+        <button id="logout-btn" type="button" class="px-4 py-2 rounded-xl border-2 border-[#17141F] bg-white text-xs font-bold hover:bg-[#FFF0F3] cursor-pointer">Đăng xuất</button>
+      </div>
+
+      <div class="bg-white p-6 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F]">
+        <h2 class="font-display text-xl text-[#17141F] uppercase tracking-tight mb-4">ĐƠN HÀNG CỦA TÔI</h2>
+        <div id="orders-list" class="space-y-3 text-xs">
+          <p class="text-[#534F5C]">Đang tải...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { customerLogout, customerMe, myOrders } from '../lib/auth';
+  import { formatVND } from '../lib/utils';
+
+  async function initAccount() {
+    const me = await customerMe();
+    if (!me) {
+      document.getElementById('account-guest')?.classList.remove('hidden');
+      return;
+    }
+    document.getElementById('account-main')?.classList.remove('hidden');
+    const avatar = document.getElementById('acc-avatar');
+    const nameEl = document.getElementById('acc-name');
+    const emailEl = document.getElementById('acc-email');
+    if (avatar) avatar.textContent = (me.name || '?').charAt(0).toUpperCase();
+    if (nameEl) nameEl.textContent = me.name;
+    if (emailEl) emailEl.textContent = me.email;
+
+    const listEl = document.getElementById('orders-list');
+    const orders = await myOrders();
+    if (listEl) {
+      if (!orders || orders.length === 0) {
+        listEl.innerHTML = '<p class="text-[#534F5C]">Bạn chưa có đơn hàng nào. <a href="/figures" class="font-bold text-[#D6284F]">Mua sắm ngay →</a></p>';
+      } else {
+        listEl.innerHTML = orders
+          .map(
+            (o) => `
+          <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-[#F7F5F0] border border-[#D8D4D0]">
+            <div>
+              <div class="font-mono font-bold text-[#17141F]">${o.order_number}</div>
+              <div class="text-[11px] text-[#534F5C]">${o.order_status} • ${o.payment_status}</div>
+            </div>
+            <span class="font-black text-[#D6284F]">${formatVND(o.total_amount)}</span>
+          </div>`,
+          )
+          .join('');
+      }
+    }
+
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+      await customerLogout();
+      window.location.href = '/';
+    });
+  }
+
+  initAccount();
+</script>

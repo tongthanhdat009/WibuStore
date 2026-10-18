@@ -1,0 +1,138 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Button from '../components/ui/Button.astro';
+import Badge from '../components/ui/Badge.astro';
+import { apiGet, currentPage, requireStaff } from '../lib/api';
+import Pagination from '../components/ui/Pagination.astro';
+import { formatCurrency, formatDate } from '../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface Coupon { id: number; code: string; discount_type: string; discount_value: number; max_discount_amount?: number | null; min_order_amount: number; usage_limit?: number | null; used_count: number; is_active: boolean; starts_at?: string | null; ends_at?: string | null }
+
+const { data: couponData, meta: couponMeta } = await apiGet<Coupon[]>(`/admin/coupons?per_page=20&page=${page}`, Astro);
+const promotions = couponData ?? [];
+---
+
+<AdminLayout
+  title="Khuyến mãi & Mã giảm giá (Vouchers)"
+  description="Thiết lập các mã coupon ưu đãi, chiết khấu pre-order và chính sách miễn phí giao hàng"
+  breadcrumbs={[{ label: 'Nội dung & Marketing' }, { label: 'Khuyến mãi' }]}
+>
+  <div slot="actions">
+    <button id="open-coupon-modal" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#17141F] text-white text-[13px] font-bold cursor-pointer">
+      + Tạo mã mới
+    </button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Mã Coupon</th>
+            <th class="py-3.5 px-4">Mức giảm ưu đãi</th>
+            <th class="py-3.5 px-4">Đơn tối thiểu</th>
+            <th class="py-3.5 px-4 text-center">Đã dùng / Giới hạn</th>
+            <th class="py-3.5 px-4">Hiệu lực</th>
+            <th class="py-3.5 px-4 text-center">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {promotions.map((p) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-4 px-4 font-mono font-bold text-[#D6284F] text-[14px]">
+                <span class="px-2 py-0.5 rounded bg-[#FFF0F3] border border-[#D6284F]/30">
+                  {p.code}
+                </span>
+              </td>
+              <td class="py-4 px-4 font-extrabold text-[#147A4B]">
+                {p.discount_type === 'percent' ? `Giảm ${p.discount_value}%` : formatCurrency(p.discount_value)}
+              </td>
+              <td class="py-4 px-4 text-[#534F5C] tabular-nums">
+                {p.min_order_amount > 0 ? formatCurrency(p.min_order_amount) : 'Không giới hạn'}
+              </td>
+              <td class="py-4 px-4 text-center font-bold text-[#17141F] tabular-nums">
+                {p.used_count} / {p.usage_limit ?? '∞'}
+              </td>
+              <td class="py-4 px-4 text-[12px] text-[#534F5C]">
+                {p.starts_at ? formatDate(p.starts_at) : '—'} – {p.ends_at ? formatDate(p.ends_at) : '—'}
+              </td>
+              <td class="py-4 px-4 text-center">
+                <Badge variant={p.is_active ? 'success' : 'neutral'} size="sm">
+                  {p.is_active ? 'Đang kích hoạt' : 'Tắt'}
+                </Badge>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={couponMeta} pathname="/promotions" params={{}} />
+  </div>
+
+  <div id="coupon-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[16px] max-w-md w-full p-6 border-2 border-[#17141F] space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[16px] font-black text-[#17141F]">Tạo mã giảm giá nhanh</h3>
+        <button type="button" data-close-modal class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg cursor-pointer">✕</button>
+      </div>
+      <div id="coupon-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+      <div class="space-y-3 text-[13px]">
+        <input id="cp-code" placeholder="Mã (VD: WIBU20)" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0] font-mono uppercase" />
+        <select id="cp-type" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]">
+          <option value="percent">Giảm %</option>
+          <option value="fixed">Giảm tiền</option>
+        </select>
+        <input id="cp-value" type="number" placeholder="Giá trị" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="cp-min" type="number" placeholder="Đơn tối thiểu" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <button type="button" data-close-modal class="px-4 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px] cursor-pointer">Hủy</button>
+        <button id="cp-submit" type="button" class="px-4 h-10 rounded-[8px] bg-[#17141F] text-white font-bold text-[13px] cursor-pointer">+ Tạo mã</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../lib/api';
+
+    const couponModal = document.getElementById('coupon-modal');
+    document.getElementById('open-coupon-modal')?.addEventListener('click', () => {
+      couponModal?.classList.remove('hidden');
+      couponModal?.classList.add('flex');
+    });
+    couponModal?.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        couponModal?.classList.add('hidden');
+        couponModal?.classList.remove('flex');
+      });
+    });
+
+    document.getElementById('cp-submit')?.addEventListener('click', async () => {
+      const code = ((document.getElementById('cp-code') as HTMLInputElement | null)?.value || '').trim().toUpperCase();
+      const discount_type = (document.getElementById('cp-type') as HTMLSelectElement | null)?.value || 'percent';
+      const discount_value = Number((document.getElementById('cp-value') as HTMLInputElement | null)?.value);
+      const min_order_amount = Number((document.getElementById('cp-min') as HTMLInputElement | null)?.value || 0);
+      const errEl = document.getElementById('coupon-error');
+      if (!code || !(discount_value > 0)) {
+        if (errEl) {
+          errEl.textContent = 'Nhập mã và giá trị giảm > 0.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      const { error } = await mutate('/admin/coupons', 'POST', { code, discount_type, discount_value, min_order_amount });
+      if (error) {
+        if (errEl) {
+          errEl.textContent = error.message || 'Tạo mã thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      window.location.reload();
+    });
+  </script>
+</AdminLayout>

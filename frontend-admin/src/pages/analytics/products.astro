@@ -1,0 +1,69 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+import { formatCurrency } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface ProdRow { id: number; name: string; series?: string | null; manufacturer?: string | null; min_price?: number | null; image_url?: string | null; stock: { on_hand: number; reserved: number; available: number } }
+
+const { data: prodData } = await apiGet<ProdRow[]>('/admin/products?per_page=50', Astro);
+const products = prodData ?? [];
+---
+
+<AdminLayout
+  title="Báo cáo hiệu suất sản phẩm"
+  description="Thống kê số lượng bán ra, doanh thu theo từng figure và tỷ lệ chuyển đổi từ traffic storefront"
+  breadcrumbs={[
+    { label: 'Báo cáo', href: '/analytics' },
+    { label: 'Báo cáo sản phẩm' },
+  ]}
+>
+  <div slot="actions">
+    <Button variant="secondary" size="sm">
+      Xuất danh sách
+    </Button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Sản phẩm Figure</th>
+            <th class="py-3.5 px-4">Series & Hãng</th>
+            <th class="py-3.5 px-4 text-right">Giá từ</th>
+            <th class="py-3.5 px-4 text-center">Tồn khả dụng</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {products.map((p) => (
+            <tr class="hover:bg-[#FDFBF7]">
+              <td class="py-4 px-4">
+                <div class="flex items-center gap-3">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt="" class="w-12 h-12 rounded-[6px] object-cover border border-[#D8D4D0] shrink-0" />
+                  ) : (
+                    <div class="w-12 h-12 rounded-[6px] bg-[#F2EFE9] border border-[#D8D4D0] shrink-0"></div>
+                  )}
+                  <span class="font-bold text-[#17141F]">{p.name}</span>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-[#534F5C]">
+                {p.series ?? '—'} ({p.manufacturer ?? '—'})
+              </td>
+              <td class="py-4 px-4 text-right font-black text-[#17141F] tabular-nums text-[14px]">
+                {p.min_price != null ? formatCurrency(p.min_price) : '—'}
+              </td>
+              <td class="py-4 px-4 text-center font-bold text-[#147A4B] tabular-nums">
+                {p.stock.available}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>

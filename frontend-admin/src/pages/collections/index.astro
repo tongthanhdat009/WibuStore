@@ -1,0 +1,117 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface CmsPageRow { id: number; slug: string; title: string; published_revision?: { version_number: number; status: string } | null }
+
+const { data: pageData } = await apiGet<CmsPageRow[]>('/admin/pages', Astro);
+const collections = (pageData ?? []).filter((p) => p.slug !== 'home');
+---
+
+<AdminLayout
+  title="Bộ sưu tập (Collections)"
+  description="Tạo và quản lý các landing page chủ đề: Arc Biến Cố Shibuya, Các dạng biến hình Luffy, Mùa Nendoroid..."
+  breadcrumbs={[{ label: 'Nội dung & Marketing' }, { label: 'Bộ sưu tập' }]}
+>
+  <div slot="actions" class="flex items-center gap-2">
+    <span class="text-[12px] text-[#6A6572] hidden sm:inline">Trang “home” quản lý tại CMS Trang chủ.</span>
+    <button id="open-page-modal" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-[#17141F] text-white text-[13px] font-bold cursor-pointer">
+      + Tạo trang
+    </button>
+  </div>
+
+  {collections.length === 0 && (
+    <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-10 text-center text-[13px] text-[#6A6572]">
+      Chưa có trang nội dung nào. Tạo trang mới bên dưới (slug dạng <code>collection-ten-bo-suu-tap</code> để storefront đọc được).
+    </div>
+  )}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {collections.map((col) => (
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs flex flex-col justify-between hover:shadow transition-all">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-[11px] font-mono font-bold text-[#6A6572] uppercase bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#D8D4D0]">
+              /{col.slug}
+            </span>
+            <Badge variant={col.published_revision ? 'success' : 'neutral'} size="sm">
+              {col.published_revision ? `Đã xuất bản v${col.published_revision.version_number}` : 'Chưa xuất bản'}
+            </Badge>
+          </div>
+          <h3 class="text-[17px] font-extrabold text-[#17141F] mt-1">
+            {col.title}
+          </h3>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-[#F2EFE9] flex items-center justify-between">
+          <a href={`http://localhost:4321/collections/${col.slug.replace(/^collection-/, '')}`} target="_blank" class="text-[12px] text-[#3258D7] hover:underline font-semibold">
+            Xem storefront ↗
+          </a>
+          <Button variant="secondary" size="sm" href={`/collections/${col.id}/edit`}>
+            Revisions
+          </Button>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div id="page-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-[16px] max-w-md w-full p-6 border-2 border-[#17141F] space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[16px] font-black text-[#17141F]">Tạo trang/collection mới</h3>
+        <button type="button" data-close-modal class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg cursor-pointer">✕</button>
+      </div>
+      <div id="page-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+      <div class="space-y-3 text-[13px]">
+        <input id="page-slug" placeholder="slug (vd: collection-shibuya)" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        <input id="page-title" placeholder="Tiêu đề trang" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <button type="button" data-close-modal class="px-4 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px] cursor-pointer">Hủy</button>
+        <button id="page-submit" type="button" class="px-4 h-10 rounded-[8px] bg-[#17141F] text-white font-bold text-[13px] cursor-pointer">+ Tạo trang</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    const pageModal = document.getElementById('page-modal');
+    document.getElementById('open-page-modal')?.addEventListener('click', () => {
+      pageModal?.classList.remove('hidden');
+      pageModal?.classList.add('flex');
+    });
+    pageModal?.querySelectorAll('[data-close-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        pageModal?.classList.add('hidden');
+        pageModal?.classList.remove('flex');
+      });
+    });
+
+    document.getElementById('page-submit')?.addEventListener('click', async () => {
+      const slug = ((document.getElementById('page-slug') as HTMLInputElement | null)?.value || '').trim();
+      const title = ((document.getElementById('page-title') as HTMLInputElement | null)?.value || '').trim() || slug;
+      const errEl = document.getElementById('page-error');
+      if (!slug) {
+        if (errEl) {
+          errEl.textContent = 'Nhập slug.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      const { error } = await mutate('/admin/pages', 'POST', { slug, title });
+      if (error) {
+        if (errEl) {
+          errEl.textContent = error.message || 'Tạo trang thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      window.location.reload();
+    });
+  </script>
+</AdminLayout>

@@ -1,0 +1,66 @@
+---
+interface Props {
+  title: string;
+  value: string;
+  subtext?: string;
+  trend?: {
+    value: string;
+    positive: boolean;
+  };
+  link?: string;
+  badge?: string;
+  badgeVariant?: 'brand' | 'warning' | 'danger' | 'success';
+}
+
+const {
+  title,
+  value,
+  subtext,
+  trend,
+  link,
+  badge,
+  badgeVariant = 'brand',
+} = Astro.props;
+
+const badgeColors = {
+  brand: 'bg-[#FFF0F3] text-[#D6284F]',
+  warning: 'bg-[#FFF3DA] text-[#9A5A00]',
+  danger: 'bg-[#FDEDEC] text-[#B42318]',
+  success: 'bg-[#E7F5ED] text-[#147A4B]',
+};
+---
+
+<div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-sm hover:shadow transition-all relative flex flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between gap-2 mb-2">
+      <span class="text-[13px] font-semibold text-[#534F5C] uppercase tracking-wider">{title}</span>
+      {badge && (
+        <span class={`text-[11px] font-bold px-2 py-0.5 rounded-full ${badgeColors[badgeVariant]}`}>
+          {badge}
+        </span>
+      )}
+    </div>
+    <div class="text-[28px] font-extrabold text-[#17141F] tracking-tight tabular-nums">
+      {value}
+    </div>
+  </div>
+
+  <div class="mt-4 pt-3 border-t border-[#F2EFE9] flex items-center justify-between text-[12px]">
+    {trend ? (
+      <div class="flex items-center gap-1.5 font-medium">
+        <span class={trend.positive ? 'text-[#147A4B]' : 'text-[#B42318]'}>
+          {trend.positive ? '↑' : '↓'} {trend.value}
+        </span>
+        <span class="text-[#6A6572]">{subtext}</span>
+      </div>
+    ) : (
+      <span class="text-[#6A6572] font-medium">{subtext}</span>
+    )}
+
+    {link && (
+      <a href={link} class="text-[#3258D7] hover:underline font-semibold flex items-center gap-0.5 ml-auto">
+        Chi tiết →
+      </a>
+    )}
+  </div>
+</div>

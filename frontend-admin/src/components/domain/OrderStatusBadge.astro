@@ -1,0 +1,31 @@
+---
+import Badge from '../ui/Badge.astro';
+import type { OrderStatus } from '../../types';
+
+interface Props {
+  status: OrderStatus;
+  size?: 'sm' | 'md';
+}
+
+const { status, size = 'md' } = Astro.props;
+
+const config: Record<string, { label: string; variant: 'info' | 'warning' | 'success' | 'danger' | 'neutral' }> = {
+  new: { label: 'Đơn mới', variant: 'info' },
+  pending: { label: 'Chờ xác nhận', variant: 'info' },
+  confirmed: { label: 'Đã xác nhận', variant: 'info' },
+  processing: { label: 'Đang xử lý', variant: 'warning' },
+  shipped: { label: 'Đang giao', variant: 'warning' },
+  delivered: { label: 'Đã giao', variant: 'success' },
+  completed: { label: 'Hoàn tất', variant: 'success' },
+  cancelled: { label: 'Đã hủy', variant: 'danger' },
+  expired: { label: 'Hết hạn', variant: 'neutral' },
+  on_hold: { label: 'Tạm dừng', variant: 'neutral' },
+};
+
+const current = config[status] || { label: status, variant: 'neutral' };
+---
+
+<Badge variant={current.variant} size={size}>
+  <span class="w-1.5 h-1.5 rounded-full bg-current opacity-80 inline-block"></span>
+  {current.label}
+</Badge>

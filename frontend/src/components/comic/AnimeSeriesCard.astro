@@ -1,0 +1,47 @@
+---
+import type { AnimeSeries } from '../../types';
+
+interface Props {
+  anime: AnimeSeries;
+}
+
+const { anime } = Astro.props;
+---
+
+<a
+  href={`/anime/${anime.slug}`}
+  class="group relative block rounded-2xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:shadow-[6px_6px_0px_#17141F] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden bg-white"
+>
+  <!-- Anime poster image container with comic border -->
+  <div class="aspect-[4/3] w-full overflow-hidden relative bg-[#F7F5F0]">
+    <img
+      src={anime.coverImage}
+      alt={anime.title}
+      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      loading="lazy"
+    />
+    <div class="absolute inset-0 bg-gradient-to-t from-[#17141F]/80 via-[#17141F]/20 to-transparent"></div>
+
+    <!-- Japanese Title Badge -->
+    {anime.japaneseTitle && (
+      <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-xs text-[#17141F] text-[10px] font-bold px-2 py-0.5 rounded border border-[#17141F]">
+        {anime.japaneseTitle}
+      </div>
+    )}
+
+    <!-- Figure Count Badge -->
+    <div class="absolute top-3 right-3 font-display text-[11px] bg-[#FFD44A] text-[#17141F] px-2 py-0.5 rounded border-2 border-[#17141F] shadow-[1px_1px_0px_#17141F]">
+      {anime.figureCount} FIGURES
+    </div>
+
+    <!-- Title on Bottom -->
+    <div class="absolute bottom-3 left-3 right-3">
+      <h3 class="text-white text-lg md:text-xl font-black drop-shadow-sm leading-tight group-hover:text-[#FFD44A] transition-colors">
+        {anime.title}
+      </h3>
+      <p class="text-white/80 text-xs mt-0.5 line-clamp-1">
+        {anime.description}
+      </p>
+    </div>
+  </div>
+</a>

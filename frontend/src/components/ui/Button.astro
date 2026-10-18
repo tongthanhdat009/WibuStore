@@ -1,0 +1,53 @@
+---
+interface Props {
+  variant?: 'primary' | 'secondary' | 'outline' | 'yellow' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+  className?: string;
+  id?: string;
+  disabled?: boolean;
+  [key: string]: any;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  href,
+  type = 'button',
+  className = '',
+  id,
+  disabled = false,
+  ...rest
+} = Astro.props;
+
+const baseStyles = 'inline-flex items-center justify-center font-bold transition-all duration-150 cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#17141F]';
+
+const sizeStyles = {
+  sm: 'px-3.5 py-1.5 text-xs rounded-lg gap-1.5',
+  md: 'px-5 py-2.5 text-sm rounded-xl gap-2',
+  lg: 'px-7 py-3.5 text-base rounded-xl gap-2.5',
+};
+
+const variantStyles = {
+  primary: 'bg-[#D6284F] hover:bg-[#AF1E40] text-white border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:shadow-[5px_5px_0px_#17141F] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_#17141F]',
+  secondary: 'bg-[#17141F] hover:bg-[#26212B] text-white border-2 border-[#17141F] shadow-[3px_3px_0px_#FFD44A] hover:shadow-[5px_5px_0px_#FFD44A] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_#FFD44A]',
+  yellow: 'bg-[#FFD44A] hover:bg-[#FACC15] text-[#17141F] border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:shadow-[5px_5px_0px_#17141F] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_#17141F]',
+  outline: 'bg-white hover:bg-[#FFFDF7] text-[#17141F] border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:shadow-[5px_5px_0px_#17141F] hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_#17141F]',
+  ghost: 'bg-transparent hover:bg-neutral-100 text-[#17141F] border border-transparent',
+};
+
+const classes = `${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`;
+---
+
+{
+  href ? (
+    <a href={href} class={classes} id={id} {...rest}>
+      <slot />
+    </a>
+  ) : (
+    <button type={type} class={classes} id={id} disabled={disabled} {...rest}>
+      <slot />
+    </button>
+  )
+}

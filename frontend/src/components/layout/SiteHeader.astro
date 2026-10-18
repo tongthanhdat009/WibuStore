@@ -1,0 +1,351 @@
+---
+import { categories } from '../../data/categories';
+import { animeSeriesList } from '../../data/anime';
+---
+
+<header
+  id="site-header"
+  class="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b-2 border-[#17141F] transition-all duration-200"
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-4">
+    <!-- Left: Brand Logo -->
+    <div class="flex items-center gap-6">
+      <a href="/" class="group flex items-center gap-2 select-none" aria-label="Wibu Store Trang chủ">
+        <div class="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-[#D6284F] border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] group-hover:shadow-[4px_4px_0px_#FFD44A] flex items-center justify-center text-white font-display text-xl tracking-wider transition-all">
+          W
+        </div>
+        <div class="flex flex-col">
+          <span class="font-display text-xl md:text-2xl tracking-wider text-[#17141F] leading-none flex items-center gap-1">
+            WIBU<span class="text-[#D6284F]">STORE</span>
+          </span>
+          <span class="font-display text-[9px] uppercase tracking-widest text-[#534F5C] -mt-0.5">
+            ANIME POP COLLECTIBLES
+          </span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-bold ml-4" aria-label="Menu chính">
+        <a
+          href="/figures"
+          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors"
+        >
+          Mô hình Figures
+        </a>
+
+        <!-- Anime Dropdown Trigger -->
+        <div class="relative group">
+          <a
+            href="/figures"
+            class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors flex items-center gap-1"
+          >
+            <span>Anime Series</span>
+            <svg class="w-3.5 h-3.5 text-[#534F5C] group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </a>
+          <!-- Megamenu dropdown -->
+          <div class="absolute top-full left-0 w-72 p-3 bg-white border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] rounded-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-150 z-50">
+            <span class="block font-display text-[10px] text-[#534F5C] uppercase tracking-wider mb-2 px-2">
+              FRANCHISE NỔI BẬT
+            </span>
+            <div class="space-y-1">
+              {
+                animeSeriesList.map((a) => (
+                  <a
+                    href={`/anime/${a.slug}`}
+                    class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#17141F] hover:bg-[#FFF4DC] transition-colors"
+                  >
+                    <span>{a.title}</span>
+                    <span class="text-[10px] text-[#534F5C] font-normal">{a.figureCount} items</span>
+                  </a>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="/collections"
+          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors"
+        >
+          Bộ sưu tập
+        </a>
+
+        <a
+          href="/pre-orders"
+          class="px-3 py-1.5 rounded-lg text-[#9A5A00] hover:text-[#17141F] bg-[#FFF4DC] hover:bg-[#FFD44A] border border-amber-300 transition-colors flex items-center gap-1.5"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+          <span>Đặt trước (Pre-order)</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Right Controls: Search bar + Wishlist + Cart + Mobile Toggle -->
+    <div class="flex items-center gap-2.5 sm:gap-3">
+      <!-- Search Input Desktop -->
+      <form
+        action="/search"
+        method="GET"
+        class="hidden md:flex items-center relative w-56 lg:w-72"
+        role="search"
+      >
+        <input
+          type="search"
+          name="q"
+          placeholder="Tìm nhân vật, anime, scale..."
+          class="w-full bg-[#F7F5F0] focus:bg-white text-xs font-medium text-[#17141F] placeholder-[#6A6572] pl-9 pr-3.5 py-2 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none focus:shadow-[2px_2px_0px_#17141F] transition-all"
+        />
+        <svg class="w-4 h-4 text-[#534F5C] absolute left-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </form>
+
+      <!-- Mobile Search Icon Trigger -->
+      <a
+        href="/search"
+        class="md:hidden w-9 h-9 rounded-xl border border-[#D8D4D0] bg-[#F7F5F0] flex items-center justify-center text-[#17141F] hover:border-[#17141F] transition-colors"
+        aria-label="Tìm kiếm sản phẩm"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </a>
+
+      <!-- Wishlist Link with dynamic count -->
+      <a
+        href="/wishlist"
+        class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 border-[#17141F] bg-white hover:bg-[#FFE6ED] text-[#17141F] flex items-center justify-center shadow-[2px_2px_0px_#17141F] hover:-translate-y-0.5 transition-all"
+        aria-label="Danh sách yêu thích"
+      >
+        <svg class="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+        </svg>
+        <span
+          id="header-wishlist-count"
+          class="absolute -top-1.5 -right-1.5 font-display text-[10px] bg-[#D6284F] text-white w-4 h-4 rounded-full border border-[#17141F] flex items-center justify-center shadow-xs hidden"
+        >
+          0
+        </span>
+      </a>
+
+      <!-- Account Link -->
+      <a
+        href="/account"
+        class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 border-[#17141F] bg-white hover:bg-[#F7F5F0] text-[#17141F] hidden sm:flex items-center justify-center shadow-[2px_2px_0px_#17141F] hover:-translate-y-0.5 transition-all"
+        aria-label="Tài khoản của tôi"
+      >
+        <svg class="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+        </svg>
+      </a>
+
+      <!-- Cart Button with dynamic count (Triggers Cart Drawer) -->
+      <button
+        id="header-cart-btn"
+        type="button"
+        class="relative px-3 sm:px-3.5 h-9 sm:h-10 rounded-xl border-2 border-[#17141F] bg-[#FFD44A] hover:bg-[#FACC15] text-[#17141F] font-bold text-xs flex items-center gap-1.5 shadow-[2px_2px_0px_#17141F] hover:-translate-y-0.5 transition-all cursor-pointer"
+        aria-label="Mở giỏ hàng"
+      >
+        <svg class="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+        </svg>
+        <span class="hidden sm:inline">Giỏ</span>
+        <span
+          id="header-cart-count"
+          class="font-display text-xs bg-[#D6284F] text-white px-1.5 py-0.2 rounded border border-[#17141F] leading-tight"
+        >
+          0
+        </span>
+      </button>
+
+      <!-- Mobile Menu Hamburger Button -->
+      <button
+        id="mobile-menu-toggle"
+        type="button"
+        class="lg:hidden w-9 h-9 rounded-xl border-2 border-[#17141F] bg-white text-[#17141F] flex items-center justify-center shadow-[2px_2px_0px_#17141F] cursor-pointer"
+        aria-label="Mở menu danh mục"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Drawer Menu -->
+  <div
+    id="mobile-menu-drawer"
+    class="fixed inset-0 bg-[#17141F]/60 backdrop-blur-xs z-50 opacity-0 pointer-events-none transition-opacity duration-300"
+  >
+    <div
+      id="mobile-menu-panel"
+      class="absolute top-0 left-0 w-4/5 max-w-sm h-full bg-white border-r-3 border-[#17141F] shadow-[6px_0px_0px_#17141F] p-5 flex flex-col justify-between overflow-y-auto transform -translate-x-full transition-transform duration-300"
+    >
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b-2 border-[#17141F]">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-[#D6284F] text-white font-display text-lg flex items-center justify-center border-2 border-[#17141F]">
+              W
+            </div>
+            <span class="font-display text-lg text-[#17141F]">WIBU STORE</span>
+          </div>
+          <button
+            id="mobile-menu-close"
+            type="button"
+            class="w-8 h-8 rounded-lg border-2 border-[#17141F] bg-white flex items-center justify-center font-bold text-[#17141F]"
+          >
+            ✕
+          </button>
+        </div>
+
+        <nav class="mt-5 space-y-1.5 font-bold text-sm">
+          <a href="/account" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
+            👤 Tài khoản & Đơn hàng
+          </a>
+          <a href="/lookup" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
+            🔎 Tra cứu đơn hàng
+          </a>
+          <a href="/figures" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
+            📦 Tất cả mô hình Figures
+          </a>
+          <a href="/pre-orders" class="block px-3 py-2 rounded-xl text-[#9A5A00] bg-[#FFF4DC] border border-amber-300">
+            ⏳ Đặt trước (Pre-order)
+          </a>
+          <a href="/collections" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
+            ✨ Bộ sưu tập giới hạn
+          </a>
+
+          <div class="pt-3 pb-1 border-t border-[#D8D4D0] mt-3">
+            <span class="font-display text-[10px] text-[#534F5C] uppercase tracking-wider px-3">
+              DANH MỤC SẢN PHẨM
+            </span>
+          </div>
+          {
+            categories.map((c) => (
+              <a href={`/categories/${c.slug}`} class="block px-3 py-1.5 text-xs text-[#534F5C] hover:text-[#D6284F]">
+                {c.name}
+              </a>
+            ))
+          }
+
+          <div class="pt-3 pb-1 border-t border-[#D8D4D0] mt-3">
+            <span class="font-display text-[10px] text-[#534F5C] uppercase tracking-wider px-3">
+              ANIME SERIES
+            </span>
+          </div>
+          {
+            animeSeriesList.map((a) => (
+              <a href={`/anime/${a.slug}`} class="block px-3 py-1.5 text-xs text-[#534F5C] hover:text-[#D6284F]">
+                {a.title}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+
+      <div class="pt-4 border-t-2 border-[#17141F] text-xs text-[#534F5C] space-y-2">
+        <a href="/policies/pre-order" class="block hover:underline">Chính sách đặt cọc Pre-order</a>
+        <a href="/policies/shipping" class="block hover:underline">Vận chuyển & Đổi trả</a>
+        <a href="/contact" class="block hover:underline">Liên hệ & Hỗ trợ</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  import { getStoredCart, addToCartItem } from '../../lib/cart';
+  import { getStoredWishlist, toggleWishlist } from '../../lib/wishlist';
+
+  function initHeaderControls() {
+    const cartCountEl = document.getElementById('header-cart-count');
+    const wishlistCountEl = document.getElementById('header-wishlist-count');
+    const cartBtn = document.getElementById('header-cart-btn');
+
+    const mobileToggle = document.getElementById('mobile-menu-toggle');
+    const mobileDrawer = document.getElementById('mobile-menu-drawer');
+    const mobilePanel = document.getElementById('mobile-menu-panel');
+    const mobileClose = document.getElementById('mobile-menu-close');
+
+    function updateCounters() {
+      const cart = getStoredCart();
+      const totalCartQty = cart.reduce((acc, item) => acc + item.quantity, 0);
+      if (cartCountEl) cartCountEl.textContent = String(totalCartQty);
+
+      const wishlist = getStoredWishlist();
+      if (wishlistCountEl) {
+        if (wishlist.length > 0) {
+          wishlistCountEl.textContent = String(wishlist.length);
+          wishlistCountEl.classList.remove('hidden');
+        } else {
+          wishlistCountEl.classList.add('hidden');
+        }
+      }
+    }
+
+    updateCounters();
+    window.addEventListener('wibu-cart-change', updateCounters);
+    window.addEventListener('wibu-wishlist-change', updateCounters);
+
+    cartBtn?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('wibu-open-cart'));
+    });
+
+    // Mobile drawer
+    function openMobileMenu() {
+      if (!mobileDrawer || !mobilePanel) return;
+      mobileDrawer.classList.remove('opacity-0', 'pointer-events-none');
+      mobileDrawer.classList.add('opacity-100', 'pointer-events-auto');
+      mobilePanel.classList.remove('-translate-x-full');
+    }
+    function closeMobileMenu() {
+      if (!mobileDrawer || !mobilePanel) return;
+      mobilePanel.classList.add('-translate-x-full');
+      mobileDrawer.classList.remove('opacity-100', 'pointer-events-auto');
+      mobileDrawer.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    mobileToggle?.addEventListener('click', openMobileMenu);
+    mobileClose?.addEventListener('click', closeMobileMenu);
+    mobileDrawer?.addEventListener('click', (e) => {
+      if (e.target === mobileDrawer) closeMobileMenu();
+    });
+
+    // Delegate quick-add buttons across all pages
+    document.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement).closest('.quick-add-btn');
+      if (target) {
+        const rawJson = target.getAttribute('data-product-json');
+        if (rawJson) {
+          try {
+            const product = JSON.parse(rawJson);
+            addToCartItem(product, 1);
+            window.dispatchEvent(new CustomEvent('wibu-open-cart'));
+          } catch (err) {
+            console.error('Error adding product', err);
+          }
+        }
+      }
+
+      const wishTarget = (e.target as HTMLElement).closest('.wishlist-btn');
+      if (wishTarget) {
+        const id = wishTarget.getAttribute('data-id');
+        if (id) {
+          const added = toggleWishlist(id);
+          const icon = wishTarget.querySelector('.heart-icon');
+          if (added) {
+            wishTarget.classList.add('text-[#D6284F]', 'bg-[#FFE6ED]');
+            icon?.setAttribute('fill', 'currentColor');
+          } else {
+            wishTarget.classList.remove('text-[#D6284F]', 'bg-[#FFE6ED]');
+            icon?.setAttribute('fill', 'none');
+          }
+        }
+      }
+    });
+  }
+
+  initHeaderControls();
+  document.addEventListener('astro:page-load', initHeaderControls);
+</script>

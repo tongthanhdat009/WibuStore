@@ -1,0 +1,165 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface Revision {
+  id: number;
+  page_id: number;
+  version_number: number;
+  status: string;
+  content: unknown;
+  published_at?: string | null;
+  created_at: string;
+}
+
+const { data: revisions } = await apiGet<Revision[]>('/admin/pages/home/revisions', Astro);
+const revs = revisions ?? [];
+const published = revs.find((r) => r.status === 'published');
+const publishedJson = published ? JSON.stringify(published.content, null, 2) : '';
+const draftDefault = published ? JSON.stringify(published.content, null, 2) : '{"schema_version": 1, "sections": []}';
+---
+
+<AdminLayout
+  title="CMS Trang chủ (Anime Pop / Comic Builder)"
+  description="Quản lý các bản revision nội dung trang chủ: tạo nháp JSON, xuất bản, rollback"
+  breadcrumbs={[{ label: 'Nội dung & Marketing' }, { label: 'CMS Trang chủ' }]}
+>
+  <div slot="actions" class="flex items-center gap-2">
+    <a
+      href="http://localhost:4321"
+      target="_blank"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-bold text-[#17141F] shadow-xs"
+    >
+      <span>Mở Storefront Live (:4321)</span>
+      <span>↗</span>
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+    <div class="xl:col-span-7 space-y-6">
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-[#D8D4D0]">
+          <h2 class="text-[16px] font-bold text-[#17141F]">Lịch sử revisions trang home</h2>
+          <p class="text-[12px] text-[#534F5C]">Storefront chỉ đọc bản <strong>published</strong>. Publish là nguyên tử + xóa cache.</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-[13px] border-collapse">
+            <thead>
+              <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+                <th class="py-3 px-4">Bản</th>
+                <th class="py-3 px-4">Trạng thái</th>
+                <th class="py-3 px-4">Xuất bản lúc</th>
+                <th class="py-3 px-4 text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#F2EFE9]">
+              {revs.length === 0 && (
+                <tr><td colspan="4" class="py-8 text-center text-[12px] text-[#6A6572]">Chưa có revision nào. Tạo nháp đầu tiên bên phải.</td></tr>
+              )}
+              {revs.map((r) => (
+                <tr class="hover:bg-[#FDFBF7]">
+                  <td class="py-3.5 px-4 font-mono font-bold">v{r.version_number}</td>
+                  <td class="py-3.5 px-4">
+                    <Badge variant={r.status === 'published' ? 'success' : 'neutral'} size="sm">{r.status}</Badge>
+                  </td>
+                  <td class="py-3.5 px-4 text-[12px] text-[#6A6572]">{r.published_at ?? '—'}</td>
+                  <td class="py-3.5 px-4 text-center">
+                    {r.status !== 'published' && (
+                      <button type="button" data-publish-rev={r.id} class="px-2.5 py-1 rounded-[6px] text-[12px] font-bold bg-[#17141F] text-white">Xuất bản</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {published && (
+        <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+          <h2 class="text-[15px] font-bold text-[#17141F] mb-2">Nội dung đang published (JSON)</h2>
+          <pre class="text-[11px] font-mono bg-[#17141F] text-[#D6F5D6] p-4 rounded-[8px] overflow-x-auto max-h-96 overflow-y-auto">{publishedJson}</pre>
+        </div>
+      )}
+    </div>
+
+    <div class="xl:col-span-5">
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+        <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+          Tạo revision nháp mới
+        </h2>
+        <p class="text-[12px] text-[#534F5C]">
+          Dán JSON content theo schema sections (<code>hero_comic</code>, <code>trending</code>, <code>preorder_spotlight</code>...).
+          Dùng bản published hiện tại làm mẫu rồi sửa.
+        </p>
+        <div id="cms-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+        <textarea
+          id="cms-content"
+          rows="14"
+          class="w-full p-3 font-mono text-[11px] rounded-[8px] bg-white border border-[#D8D4D0] text-[#17141F]"
+        >{draftDefault}</textarea>
+        <div class="flex gap-2">
+          <button id="cms-draft" type="button" class="flex-1 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px]">Lưu bản nháp</button>
+          <button id="cms-publish" type="button" class="flex-1 h-10 rounded-[8px] bg-[#D6284F] text-white font-bold text-[13px]">Tạo & Xuất bản luôn</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    function fail(msg: string) {
+      const el = document.getElementById('cms-error');
+      if (el) {
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      } else {
+        alert(msg);
+      }
+    }
+
+    function parseContent(): Record<string, unknown> | null {
+      const raw = (document.getElementById('cms-content') as HTMLTextAreaElement | null)?.value || '';
+      try {
+        return JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        fail('JSON không hợp lệ. Kiểm tra lại cú pháp.');
+        return null;
+      }
+    }
+
+    document.getElementById('cms-draft')?.addEventListener('click', async () => {
+      const content = parseContent();
+      if (!content) return;
+      const { error } = await mutate('/admin/pages/home/revisions', 'POST', { content });
+      if (error) return fail(error.message || 'Tạo nháp thất bại.');
+      window.location.reload();
+    });
+
+    document.getElementById('cms-publish')?.addEventListener('click', async () => {
+      const content = parseContent();
+      if (!content) return;
+      const created = await mutate<{ id: number }>('/admin/pages/home/revisions', 'POST', { content });
+      if (created.error || !created.data) return fail(created.error?.message || 'Tạo nháp thất bại.');
+      const pub = await mutate(`/admin/pages/home/revisions/${created.data.id}/publish`, 'POST', {});
+      if (pub.error) return fail(pub.error.message || 'Xuất bản thất bại.');
+      window.location.reload();
+    });
+
+    document.querySelectorAll('button[data-publish-rev]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const revId = (btn as HTMLElement).dataset.publishRev;
+        if (!confirm(`Xuất bản revision #${revId}? Storefront sẽ cập nhật ngay.`)) return;
+        const { error } = await mutate(`/admin/pages/home/revisions/${revId}/publish`, 'POST', {});
+        if (error) return fail(error.message || 'Xuất bản thất bại.');
+        window.location.reload();
+      });
+    });
+  </script>
+</AdminLayout>

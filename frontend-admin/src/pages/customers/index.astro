@@ -1,0 +1,89 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, currentPage, requireStaff } from '../../lib/api';
+import Pagination from '../../components/ui/Pagination.astro';
+import { formatCurrency, formatDate } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface Customer { id: number; public_id: string; name: string; email: string; phone?: string | null; status: string }
+
+const q = Astro.url.searchParams.get('q') ?? '';
+const { data: custData, meta: custMeta } = await apiGet<Customer[]>(`/admin/customers?per_page=20&page=${page}${q ? `&q=${encodeURIComponent(q)}` : ''}`, Astro);
+const customers = custData ?? [];
+---
+
+<AdminLayout
+  title="Khách hàng & Hội viên (Collectors)"
+  description="Quản lý hồ sơ người mua, lịch sử chi tiêu, phân hạng thành viên VIP Wibu và hỗ trợ chăm sóc khách hàng"
+  breadcrumbs={[{ label: 'Bán hàng' }, { label: 'Khách hàng' }]}
+>
+  <div slot="actions">
+    <Button variant="secondary" size="sm">
+      Xuất danh sách khách hàng
+    </Button>
+  </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="p-4 border-b border-[#D8D4D0] bg-[#FAF8F5] flex flex-wrap items-center justify-between gap-3">
+      <div class="relative w-full sm:w-64">
+        <input
+          type="text"
+          placeholder="Tìm tên, email, số điện thoại..."
+          class="w-full h-9 pl-8 pr-3 text-[13px] bg-white border border-[#D8D4D0] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
+        />
+        <svg class="w-4 h-4 text-[#6A6572] absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+
+      <div class="text-[12px] text-[#6A6572]">
+        Tổng số: <strong>{customers.length}</strong> khách hàng đã đăng ký
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Khách hàng</th>
+            <th class="py-3.5 px-4 text-center">Trạng thái</th>
+            <th class="py-3.5 px-4 text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {customers.map((c) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-4 px-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-[#17141F] text-white flex items-center justify-center font-bold shrink-0">
+                    {c.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div class="font-bold text-[#17141F] block">
+                      {c.name}
+                    </div>
+                    <div class="text-[11px] text-[#6A6572]">{c.email} • {c.phone ?? '—'}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <Badge variant={c.status === 'active' ? 'success' : 'neutral'} size="sm">{c.status === 'active' ? 'Hoạt động' : c.status}</Badge>
+              </td>
+              <td class="py-4 px-4 text-center">
+                <Button variant="secondary" size="sm" href={`/customers/${c.id}`}>
+                  Hồ sơ
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={custMeta} pathname="/customers" params={q ? { q } : {}} />
+  </div>
+</AdminLayout>

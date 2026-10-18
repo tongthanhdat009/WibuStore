@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/ui/Breadcrumb.astro';
+import ProductGrid from '../../components/catalog/ProductGrid.astro';
+import StickerBadge from '../../components/comic/StickerBadge.astro';
+import { collections } from '../../data/collections';
+import { products } from '../../data/products';
+
+export function getStaticPaths() {
+  return collections.map((col) => ({
+    params: { slug: col.slug },
+    props: { collection: col },
+  }));
+}
+
+const { collection } = Astro.props;
+const collectionProducts = products.filter((p) => collection.productSlugs.includes(p.slug));
+---
+
+<BaseLayout
+  title={`${collection.title} | Wibu Store`}
+  description={collection.description}
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb
+      items={[
+        { label: 'Bộ sưu tập', href: '/collections' },
+        { label: collection.title },
+      ]}
+      className="mb-6"
+    />
+
+    <!-- Collection Header -->
+    <div class="p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[5px_5px_0px_#17141F] bg-[#FFFDF7] mb-8 relative overflow-hidden">
+      <div class="absolute inset-0 pattern-halftone opacity-20 pointer-events-none"></div>
+
+      <div class="relative z-10 max-w-3xl">
+        <div class="flex items-center gap-2 mb-2">
+          <StickerBadge text={collection.badge} variant="yellow" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            CURATED SERIE
+          </span>
+        </div>
+
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl text-[#17141F] uppercase leading-none">
+          {collection.title}
+        </h1>
+
+        <p class="text-sm font-bold text-[#D6284F] mt-2">
+          {collection.tagline}
+        </p>
+
+        <p class="text-xs sm:text-sm text-[#534F5C] mt-2 leading-relaxed">
+          {collection.description}
+        </p>
+      </div>
+    </div>
+
+    <!-- Products in collection -->
+    <ProductGrid products={collectionProducts} />
+  </div>
+</BaseLayout>

@@ -1,0 +1,215 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import InventoryLevelBadge from '../../components/domain/InventoryLevelBadge.astro';
+import Button from '../../components/ui/Button.astro';
+import { apiGet, currentPage, requireStaff } from '../../lib/api';
+import Pagination from '../../components/ui/Pagination.astro';
+import { formatDateTime } from '../../lib/formatters';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface LevelRow { id: number; warehouse_id: number; variant_id: number; sku?: string; label?: string; product_name?: string; on_hand: number; reserved: number; available: number }
+
+const { data: invData, meta: invMeta } = await apiGet<LevelRow[]>(`/admin/inventory?per_page=20&page=${page}`, Astro);
+const inventory = invData ?? [];
+const lowCount = inventory.filter((i) => i.available > 0 && i.available <= 3).length;
+const outCount = inventory.filter((i) => i.available <= 0).length;
+---
+
+<AdminLayout
+  title="Quản lý tồn kho figure"
+  description="Theo dõi số lượng hàng thực tế trong kho (on-hand), hàng đã giữ cho đơn/pre-order (reserved) và khả dụng (available)"
+  breadcrumbs={[{ label: 'Sản phẩm' }, { label: 'Tồn kho' }]}
+>
+  <div slot="actions" class="flex gap-2">
+    <Button variant="secondary" size="sm" href="/inventory/adjustments">
+      <span>Xem sổ cái điều chỉnh kho ↗</span>
+    </Button>
+    <button
+      id="open-adjust-modal"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-[#D6284F] hover:bg-[#AF1E40] text-white text-[13px] font-bold shadow-xs cursor-pointer"
+    >
+      + Điều chỉnh tồn kho
+    </button>
+  </div>
+
+  <!-- Filter & Alert Summary -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+    <div class="p-4 bg-white rounded-[12px] border border-[#D8D4D0] flex items-center justify-between">
+      <div>
+        <div class="text-[12px] font-bold text-[#6A6572] uppercase">Tổng SKU theo dõi</div>
+        <div class="text-[22px] font-black text-[#17141F] mt-0.5">{inventory.length} SKU</div>
+      </div>
+      <span class="text-2xl">📦</span>
+    </div>
+    <div class="p-4 bg-white rounded-[12px] border border-[#D8D4D0] flex items-center justify-between">
+      <div>
+        <div class="text-[12px] font-bold text-[#9A5A00] uppercase">Cảnh báo tồn thấp</div>
+        <div class="text-[22px] font-black text-[#9A5A00] mt-0.5">{lowCount} SKU</div>
+      </div>
+      <span class="text-2xl">⚠️</span>
+    </div>
+    <div class="p-4 bg-white rounded-[12px] border border-[#D8D4D0] flex items-center justify-between">
+      <div>
+        <div class="text-[12px] font-bold text-[#B42318] uppercase">Tạm hết hàng</div>
+        <div class="text-[22px] font-black text-[#B42318] mt-0.5">{outCount} SKU</div>
+      </div>
+      <span class="text-2xl">🚫</span>
+    </div>
+  </div>
+
+  <!-- Inventory Table -->
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Mã SKU</th>
+            <th class="py-3.5 px-4">Sản phẩm & Phiên bản</th>
+            <th class="py-3.5 px-4">Kho lưu trữ</th>
+            <th class="py-3.5 px-4 text-center">Thực có (On-hand)</th>
+            <th class="py-3.5 px-4 text-center">Đang giữ (Reserved)</th>
+            <th class="py-3.5 px-4 text-center">Khả dụng (Available)</th>
+            <th class="py-3.5 px-4 text-center">Trạng thái kho</th>
+            <th class="py-3.5 px-4 text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {inventory.map((item) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-4 px-4 font-mono font-bold text-[#17141F]">
+                {item.sku}
+              </td>
+              <td class="py-4 px-4">
+                <div>
+                  <div class="font-bold text-[#17141F]">{item.product_name ?? '—'}</div>
+                  <div class="text-[11px] text-[#6A6572]">{item.label ?? ''}</div>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-[#534F5C]">
+                Kho #{item.warehouse_id}
+              </td>
+              <td class="py-4 px-4 text-center font-bold text-[#17141F] tabular-nums text-[14px]">
+                {item.on_hand}
+              </td>
+              <td class="py-4 px-4 text-center font-bold text-[#9A5A00] tabular-nums text-[14px]">
+                {item.reserved}
+              </td>
+              <td class="py-4 px-4 text-center font-black text-[#147A4B] tabular-nums text-[15px]">
+                {item.available}
+              </td>
+              <td class="py-4 px-4 text-center">
+                <InventoryLevelBadge status={item.available <= 0 ? 'out_of_stock' : item.available <= 3 ? 'low_stock' : 'ok'} available={item.available} />
+              </td>
+              <td class="py-4 px-4 text-center">
+                <button
+                  type="button"
+                  data-adjust-variant={item.variant_id}
+                  data-adjust-sku={item.sku}
+                  data-adjust-stock={item.on_hand}
+                  class="adjust-open-btn px-2.5 py-1 rounded-[6px] text-[12px] font-semibold border border-[#D8D4D0] bg-white hover:bg-[#F7F5F0] text-[#17141F]"
+                >
+                  Điều chỉnh
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={invMeta} pathname="/inventory" params={{}} />
+  </div>
+
+  <!-- Stock Adjustment Modal Dialog -->
+  <div id="adjust-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-[16px] max-w-lg w-full p-6 border-2 border-[#17141F] comic-shadow space-y-4">
+      <div class="flex items-center justify-between border-b border-[#F2EFE9] pb-3">
+        <h3 class="text-[18px] font-black text-[#17141F]">
+          Điều chỉnh số lượng tồn kho
+        </h3>
+        <button
+          type="button"
+          onclick="document.getElementById('adjust-modal').classList.add('hidden')"
+          class="text-[#6A6572] hover:text-[#17141F] font-bold text-lg"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div id="adjust-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
+      <div class="space-y-3 text-[13px]">
+        <div>
+          <label class="font-bold text-[#17141F] block mb-1">Mã SKU & Phiên bản</label>
+          <select id="adjust-variant" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0] bg-[#FAF8F5]">
+            {inventory.map((i) => (
+              <option value={i.variant_id}>{i.sku} — {i.product_name} (Hiện có: {i.on_hand})</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label class="font-bold text-[#17141F] block mb-1">Số lượng thay đổi (Delta, âm để xuất/giảm)</label>
+          <input id="adjust-delta" type="number" placeholder="Ví dụ: 5 hoặc -1" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        </div>
+
+        <div>
+          <label class="font-bold text-[#17141F] block mb-1">Lý do điều chỉnh (Audit Reason) *</label>
+          <input id="adjust-reason" type="text" placeholder="Ví dụ: Nhập bổ sung đợt 2 theo phiếu nhập PO-2026-..." class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+        </div>
+
+        <div class="p-3 rounded-[8px] bg-[#FFF3DA] text-[#9A5A00] text-[12px] border border-[#9A5A00]/20">
+          ⚠️ Thao tác này sẽ ghi nhận trực tiếp vào Sổ cái tồn kho và lưu vết kiểm toán (Audit Trail) của tài khoản đang đăng nhập.
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-[#F2EFE9]">
+        <Button variant="secondary" size="md" onclick="document.getElementById('adjust-modal').classList.add('hidden')">
+          Hủy bỏ
+        </Button>
+        <button id="adjust-submit" type="button" class="inline-flex items-center justify-center px-4 py-2 rounded-[8px] bg-[#D6284F] text-white text-[13px] font-bold">
+          Xác nhận ghi nhận tồn
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { mutate } from '../../lib/api';
+
+    const modal = document.getElementById('adjust-modal');
+    const errEl = document.getElementById('adjust-error');
+    document.getElementById('open-adjust-modal')?.addEventListener('click', () => {
+      modal?.classList.remove('hidden');
+    });
+    document.querySelectorAll('.adjust-open-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sel = document.getElementById('adjust-variant') as HTMLSelectElement | null;
+        if (sel) sel.value = (btn as HTMLElement).dataset.adjustVariant || '';
+        modal?.classList.remove('hidden');
+      });
+    });
+    document.getElementById('adjust-submit')?.addEventListener('click', async () => {
+      const variantId = Number((document.getElementById('adjust-variant') as HTMLSelectElement | null)?.value);
+      const delta = Number((document.getElementById('adjust-delta') as HTMLInputElement | null)?.value);
+      const reason = (document.getElementById('adjust-reason') as HTMLInputElement | null)?.value.trim() || '';
+      if (!variantId || !delta || !reason) {
+        if (errEl) {
+          errEl.textContent = 'Chọn SKU, nhập delta khác 0 và lý do.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      const { error } = await mutate('/admin/inventory/adjustments', 'POST', { variant_id: variantId, delta_on_hand: delta, reason });
+      if (error) {
+        if (errEl) {
+          errEl.textContent = error.message || 'Điều chỉnh thất bại.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      window.location.reload();
+    });
+  </script>
+</AdminLayout>

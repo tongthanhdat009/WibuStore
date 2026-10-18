@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout title="Đăng ký | Wibu Store" description="Tạo tài khoản Wibu Store để đặt hàng nhanh và theo dõi đơn.">
+  <div class="max-w-[480px] mx-auto px-4 sm:px-6 py-10">
+    <Breadcrumb items={[{ label: 'Đăng ký' }]} className="mb-6" />
+    <div class="bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[5px_5px_0px_#17141F]">
+      <div class="flex items-center gap-2 mb-2">
+        <StickerBadge text="NEW MEMBER" variant="yellow" angle="left" size="sm" />
+      </div>
+      <h1 class="font-display text-2xl sm:text-3xl text-[#17141F] uppercase tracking-tight mb-6">ĐĂNG KÝ</h1>
+      <div id="auth-error" class="hidden mb-4 p-3 rounded-xl bg-[#FFF0F3] border border-[#D6284F]/30 text-xs text-[#A61B3F]"></div>
+      <form id="register-form" class="space-y-4 text-xs">
+        <div>
+          <label for="reg-name" class="block font-bold text-[#17141F] mb-1">Họ tên *</label>
+          <input id="reg-name" type="text" required placeholder="Nguyễn Văn A" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+        </div>
+        <div>
+          <label for="reg-email" class="block font-bold text-[#17141F] mb-1">Email *</label>
+          <input id="reg-email" type="email" required placeholder="wibu@example.com" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+        </div>
+        <div>
+          <label for="reg-phone" class="block font-bold text-[#17141F] mb-1">Số điện thoại</label>
+          <input id="reg-phone" type="tel" placeholder="0912 345 678" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="reg-pass" class="block font-bold text-[#17141F] mb-1">Mật khẩu (≥8 ký tự) *</label>
+            <input id="reg-pass" type="password" required minlength="8" placeholder="••••••••" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+          </div>
+          <div>
+            <label for="reg-pass2" class="block font-bold text-[#17141F] mb-1">Nhập lại *</label>
+            <input id="reg-pass2" type="password" required minlength="8" placeholder="••••••••" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+          </div>
+        </div>
+        <button type="submit" id="reg-submit" class="w-full py-3.5 rounded-2xl bg-[#D6284F] hover:bg-[#AF1E40] text-white font-display text-base uppercase tracking-wider border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] cursor-pointer">
+          Tạo tài khoản
+        </button>
+      </form>
+      <div class="mt-4 text-xs text-center">
+        <a href="/login" class="font-bold text-[#D6284F] hover:underline">Đã có tài khoản? Đăng nhập →</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { customerRegister } from '../lib/auth';
+  import { syncLocalCartToServer } from '../lib/cart';
+
+  document.getElementById('register-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = (id: string) => (document.getElementById(id) as HTMLInputElement).value.trim();
+    const errEl = document.getElementById('auth-error');
+    const btn = document.getElementById('reg-submit') as HTMLButtonElement | null;
+    if (v('reg-pass') !== v('reg-pass2')) {
+      if (errEl) {
+        errEl.textContent = 'Mật khẩu nhập lại không khớp.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'ĐANG TẠO...';
+    }
+    const { error } = await customerRegister(v('reg-name'), v('reg-email'), v('reg-pass'), v('reg-pass2'), v('reg-phone') || undefined);
+    if (!error) {
+      await syncLocalCartToServer().catch(() => {});
+    }
+    if (error) {
+      if (errEl) {
+        errEl.textContent = error;
+        errEl.classList.remove('hidden');
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Tạo tài khoản';
+      }
+      return;
+    }
+    window.location.href = '/account';
+  });
+</script>

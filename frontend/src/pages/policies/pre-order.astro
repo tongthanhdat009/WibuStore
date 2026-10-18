@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/ui/Breadcrumb.astro';
+import StickerBadge from '../../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout
+  title="Chính sách & Quy định Đặt cọc Pre-order | Wibu Store"
+  description="Thông tin chi tiết về quy trình đặt trước mô hình anime, mức tiền cọc, quyền lợi khách hàng và cam kết hoàn tiền 100%."
+>
+  <div class="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb
+      items={[
+        { label: 'Chính sách', href: '/policies/pre-order' },
+        { label: 'Quy định đặt cọc Pre-order' },
+      ]}
+      className="mb-6"
+    />
+
+    <div class="bg-white p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[5px_5px_0px_#17141F]">
+      <div class="flex items-center gap-2 mb-2">
+        <StickerBadge text="TERMS & GUARANTEE" variant="yellow" angle="left" size="sm" />
+      </div>
+
+      <h1 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight mb-4">
+        QUY ĐỊNH ĐẶT CỌC MÔ HÌNH PRE-ORDER
+      </h1>
+
+      <div class="text-xs sm:text-sm text-[#534F5C] leading-relaxed space-y-6">
+        <section class="p-4 rounded-2xl bg-[#FFF4DC] border-2 border-[#17141F]">
+          <h2 class="font-bold text-[#17141F] text-sm mb-1 flex items-center gap-2">
+            <span>🛡️</span>
+            <span>Cam kết vàng từ Wibu Store</span>
+          </h2>
+          <p class="text-xs text-[#534F5C]">
+            Wibu Store là đại lý liên kết với các nhà phát hành Nhật Bản (Good Smile Company, Alter, eStream, Kotobukiya...). Chúng tôi bảo đảm 100% các đơn đặt cọc đều được giữ suất chính hãng với mức giá niêm yết không bị đội giá do thị trường.
+          </p>
+        </section>
+
+        <div>
+          <h3 class="font-bold text-base text-[#17141F] mb-2">1. Định mức tiền cọc</h3>
+          <p>
+            - Đối với Scale Figures: Tiền cọc từ <strong>20% đến 30%</strong> giá trị mô hình.<br />
+            - Đối với Nendoroid & Action Figures: Tiền cọc cố định từ <strong>300.000 ₫ - 500.000 ₫</strong>.<br />
+            - Khách hàng có thể chọn thanh toán 100% một lần để nhận thêm ưu đãi chiết khấu 5% khi mở bán.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-base text-[#17141F] mb-2">2. Lịch trình phát hành & Nhận hàng</h3>
+          <p>
+            - Ngày phát hành ghi trên sản phẩm là <strong>thời gian dự kiến từ nhà sản xuất</strong> tại Nhật Bản.<br />
+            - Khi hàng cập cảng Việt Nam và về kho Wibu Store (thường sau ngày phát hành 1-3 tuần), đội ngũ chăm sóc khách hàng sẽ liên hệ qua điện thoại/email để gửi video/ảnh thật của lô hàng.<br />
+            - Khách hàng thanh toán số tiền còn lại và phí ship (nếu có) trước khi giao hàng tận nhà.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-base text-[#17141F] mb-2">3. Chính sách hoàn cọc 100%</h3>
+          <p>
+            - Khách hàng được <strong>hoàn tiền cọc 100%</strong> ngay lập tức trong trường hợp nhà sản xuất hủy dự án hoặc Wibu Store không thể cung cấp sản phẩm.<br />
+            - Nếu lịch phát hành bị nhà sản xuất lùi quá 06 tháng so với dự kiến ban đầu, khách hàng có quyền yêu cầu hủy đơn và nhận lại toàn bộ tiền cọc.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

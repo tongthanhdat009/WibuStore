@@ -1,0 +1,66 @@
+---
+import '../styles/global.css';
+import AnnouncementBar from '../components/layout/AnnouncementBar.astro';
+import SiteHeader from '../components/layout/SiteHeader.astro';
+import Footer from '../components/layout/Footer.astro';
+import CartDrawer from '../components/cart/CartDrawer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const {
+  title = 'Wibu Store — Anime Pop & Comic Collectibles',
+  description = 'Cửa hàng mô hình anime, manga, scale figure, Nendoroid và action figure chính hãng phong cách Comic Pop Art.',
+  image = '/images/og-image.jpg',
+} = Astro.props;
+
+const fullTitle = title.includes('Wibu Store') ? title : `${title} | Wibu Store`;
+---
+
+<!doctype html>
+<html lang="vi" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Google Fonts: Anton (Display English) & Be Vietnam Pro (UI, Vietnamese, Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- SEO Meta Tags -->
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body class="bg-[#FFFDF7] text-[#17141F] min-h-screen flex flex-col font-sans selection:bg-[#FFD44A] selection:text-[#17141F]">
+    <!-- Top Announcement Bar -->
+    <AnnouncementBar />
+
+    <!-- Sticky Main Header -->
+    <SiteHeader />
+
+    <!-- Page Body Slot -->
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <!-- Global Cart Drawer (Slide-over) -->
+    <CartDrawer />
+
+    <!-- Global Footer -->
+    <Footer />
+  </body>
+</html>

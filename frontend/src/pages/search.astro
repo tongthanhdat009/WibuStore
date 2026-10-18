@@ -1,0 +1,115 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import ProductGrid from '../components/catalog/ProductGrid.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+import { products as staticProducts } from '../data/products';
+import { getCatalogProducts } from '../lib/catalog';
+
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+const { products } = await getCatalogProducts(q ? { q } : {});
+---
+
+<BaseLayout
+  title="Tìm kiếm mô hình anime | Wibu Store"
+  description="Tìm kiếm mô hình anime theo tên nhân vật, tên series, scale hoặc hãng sản xuất."
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Breadcrumb items={[{ label: 'Tìm kiếm' }]} className="mb-6" />
+
+    <!-- Search Input Big Header -->
+    <div class="p-6 md:p-8 rounded-3xl border-3 border-[#17141F] shadow-[5px_5px_0px_#17141F] bg-[#FFFDF7] mb-8">
+      <div class="max-w-2xl">
+        <div class="flex items-center gap-2 mb-2">
+          <StickerBadge text="SEARCH" variant="yellow" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            TÌM KIẾM TOÀN HỆ THỐNG
+          </span>
+        </div>
+        <h1 class="font-display text-2xl sm:text-3xl uppercase tracking-tight text-[#17141F] mb-4">
+          TÌM MÔ HÌNH BẠN YÊU THÍCH
+        </h1>
+
+        <form action="/search" method="GET" class="relative flex items-center">
+          <input
+            id="search-page-input"
+            type="search"
+            name="q"
+            placeholder="Nhập tên nhân vật (Gojo, Luffy...), anime, scale..."
+            class="w-full bg-[#F7F5F0] focus:bg-white text-sm font-semibold text-[#17141F] pl-10 pr-24 py-3 rounded-2xl border-2 border-[#17141F] focus:outline-none focus:shadow-[3px_3px_0px_#17141F] transition-all"
+          />
+          <svg class="w-5 h-5 text-[#534F5C] absolute left-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <button
+            type="submit"
+            class="absolute right-2 px-4 py-1.5 rounded-xl bg-[#D6284F] text-white font-bold text-xs border border-[#17141F] shadow-[1px_1px_0px_#17141F] hover:bg-[#AF1E40] transition-all cursor-pointer"
+          >
+            Tìm kiếm
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Results Status -->
+    <div class="mb-6 flex items-center justify-between">
+      <h2 id="search-results-heading" class="text-sm font-bold text-[#17141F]">
+        Đang hiển thị kết quả tìm kiếm:
+      </h2>
+      <span class="text-xs font-bold text-[#534F5C]">
+        Tìm thấy: <strong id="search-count" class="text-[#D6284F]">0</strong> sản phẩm
+      </span>
+    </div>
+
+    <!-- Product Grid Container -->
+    <div id="search-grid-wrapper">
+      <ProductGrid products={products} />
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  function initSearchPage() {
+    const input = document.getElementById('search-page-input') as HTMLInputElement;
+    const countEl = document.getElementById('search-count');
+    const headingEl = document.getElementById('search-results-heading');
+    const cards = document.querySelectorAll<HTMLElement>('.product-card');
+
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('q')?.trim() || '';
+
+    if (input && query) {
+      input.value = query;
+    }
+
+    if (headingEl) {
+      headingEl.textContent = query
+        ? `Kết quả tìm kiếm cho từ khóa: "${query}"`
+        : 'Tất cả mô hình có sẵn:';
+    }
+
+    let matchCount = 0;
+    const lowerQuery = query.toLowerCase();
+
+    cards.forEach((card) => {
+      if (!lowerQuery) {
+        card.classList.remove('hidden');
+        matchCount++;
+        return;
+      }
+
+      const text = card.textContent?.toLowerCase() || '';
+      if (text.includes(lowerQuery)) {
+        card.classList.remove('hidden');
+        matchCount++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+
+    if (countEl) countEl.textContent = String(matchCount);
+  }
+
+  initSearchPage();
+  document.addEventListener('astro:page-load', initSearchPage);
+</script>

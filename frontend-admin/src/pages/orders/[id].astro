@@ -1,0 +1,313 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import OrderStatusBadge from '../../components/domain/OrderStatusBadge.astro';
+import PaymentStatusBadge from '../../components/domain/PaymentStatusBadge.astro';
+import FulfillmentStatusBadge from '../../components/domain/FulfillmentStatusBadge.astro';
+import Button from '../../components/ui/Button.astro';
+import Badge from '../../components/ui/Badge.astro';
+import { apiGet, requireStaff } from '../../lib/api';
+import { formatCurrency, formatDateTime } from '../../lib/formatters';
+
+export const prerender = false;
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+const { id } = Astro.params;
+
+interface OrderDetail {
+  id: number;
+  order_number: string;
+  customer_name: string;
+  email: string;
+  phone: string;
+  checkout_type: string;
+  order_status: string;
+  payment_status: string;
+  fulfillment_status: string;
+  subtotal_amount: number;
+  discount_amount: number;
+  shipping_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  customer_note?: string | null;
+  internal_note?: string | null;
+  placed_at?: string | null;
+  created_at: string;
+  items: { id: number; sku_snapshot: string; product_name_snapshot: string; variant_label_snapshot?: string | null; unit_price_amount: number; quantity: number; line_total_amount: number }[];
+  payments: { id: number; kind: string; method: string; amount: number; status: string }[];
+  addresses: { type: string; recipient_name: string; phone: string; line1: string; district?: string | null; province?: string | null }[];
+  history: { from_status?: string | null; to_status: string; reason?: string | null; created_at: string }[];
+}
+
+const { data: order, error } = await apiGet<OrderDetail>(`/admin/orders/${id}`, Astro);
+if (!order) return Astro.redirect('/orders');
+---
+
+<AdminLayout
+  title={`Chi tiết đơn hàng ${order.order_number}`}
+  description={`Tạo lúc ${formatDateTime(order.placed_at ?? order.created_at)} • Kênh: Website Storefront`}
+  breadcrumbs={[
+    { label: 'Bán hàng', href: '/orders' },
+    { label: 'Đơn hàng', href: '/orders' },
+    { label: order.order_number },
+  ]}
+>
+  <!-- Header Action Buttons -->
+  <div slot="actions" class="flex flex-wrap items-center gap-2">
+    <Button variant="secondary" size="sm" href="/orders">
+      ← Quay lại danh sách
+    </Button>
+    <div id="order-actions" data-order-id={order.id} data-status={order.order_status} class="flex flex-wrap items-center gap-2"></div>
+  </div>
+
+  <!-- Status Summary Banner -->
+  <div class="bg-white rounded-[12px] border border-[#D8D4D0] p-4 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <span class="text-[12px] font-bold text-[#6A6572] uppercase">Tiến độ đơn:</span>
+        <OrderStatusBadge status={order.order_status} />
+      </div>
+      <span class="text-[#D8D4D0]">•</span>
+      <div class="flex items-center gap-2">
+        <span class="text-[12px] font-bold text-[#6A6572] uppercase">Thanh toán:</span>
+        <PaymentStatusBadge status={order.payment_status} />
+      </div>
+      <span class="text-[#D8D4D0]">•</span>
+      <div class="flex items-center gap-2">
+        <span class="text-[12px] font-bold text-[#6A6572] uppercase">Fulfillment:</span>
+        <FulfillmentStatusBadge status={order.fulfillment_status} />
+      </div>
+    </div>
+
+    <div class="text-[13px] text-[#534F5C]">
+      Hình thức: <strong class="text-[#17141F]">{order.payments[0]?.method ?? '—'}</strong>
+      • Đã nhận: <strong class="text-[#17141F]">{formatCurrency(order.paid_amount)}</strong>
+    </div>
+  </div>
+
+  <!-- Main 2-column detail grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column: Products & Timeline (2/3) -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Line Items Card -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <h2 class="text-[16px] font-bold text-[#17141F] mb-4 pb-3 border-b border-[#F2EFE9] flex items-center justify-between">
+          <span>Danh sách figure trong đơn ({order.items.length})</span>
+          <Badge variant="neutral" size="sm">Loại: {order.checkout_type === 'preorder' ? 'Pre-order cọc' : 'Giao ngay'}</Badge>
+        </h2>
+
+        <div class="space-y-4">
+          {order.items.map((item) => (
+            <div class="flex items-center gap-4 py-2 border-b border-[#F2EFE9] last:border-0">
+              <div class="w-16 h-16 rounded-[8px] bg-[#F2EFE9] border border-[#D8D4D0] shrink-0 flex items-center justify-center text-[10px] text-[#6A6572]">IMG</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-[14px] font-bold text-[#17141F] leading-snug block">
+                  {item.product_name_snapshot}
+                </div>
+                <div class="text-[12px] font-mono text-[#6A6572] mt-0.5">
+                  SKU: {item.sku_snapshot} {item.variant_label_snapshot && `• ${item.variant_label_snapshot}`}
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-[14px] font-bold text-[#17141F] tabular-nums">
+                  {formatCurrency(item.unit_price_amount)}
+                </div>
+                <div class="text-[12px] text-[#6A6572]">
+                  SL: <strong>x{item.quantity}</strong>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Shipping & Customer Request -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <h2 class="text-[16px] font-bold text-[#17141F] mb-3 pb-2 border-b border-[#F2EFE9]">
+          Thông tin giao hàng & Ghi chú từ khách
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
+          <div>
+            <div class="font-bold text-[#534F5C] text-[11px] uppercase tracking-wider mb-1">Địa chỉ nhận hàng</div>
+            <div class="text-[#17141F] font-semibold">{order.customer_name} ({order.phone})</div>
+            <div class="text-[#534F5C] mt-0.5">
+              {(order.addresses.find((a) => a.type === 'shipping') && `${order.addresses.find((a) => a.type === 'shipping')?.line1}, ${order.addresses.find((a) => a.type === 'shipping')?.district ?? ''} ${order.addresses.find((a) => a.type === 'shipping')?.province ?? ''}`) || '—'}
+            </div>
+          </div>
+          <div>
+            <div class="font-bold text-[#534F5C] text-[11px] uppercase tracking-wider mb-1">Ghi chú đóng gói từ khách</div>
+            <div class="p-3 bg-[#FAF8F5] border border-[#E8E5E1] rounded-[8px] text-[#17141F] italic">
+              "{order.customer_note || 'Không có ghi chú thêm từ khách hàng'}"
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline & Event History -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <h2 class="text-[16px] font-bold text-[#17141F] mb-4 pb-2 border-b border-[#F2EFE9]">
+          Nhật ký hoạt động đơn hàng (Audit Timeline)
+        </h2>
+
+        <div class="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#D8D4D0]">
+          {order.history.length === 0 && (
+            <div class="text-[12px] text-[#6A6572]">Đơn vừa tạo, chưa có chuyển trạng thái.</div>
+          )}
+          {order.history.map((event) => (
+            <div class="relative">
+              <span class="absolute -left-[27px] top-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#D6284F]"></span>
+              <div class="flex items-center justify-between text-[12px]">
+                <strong class="text-[13px] text-[#17141F]">{event.from_status ?? '—'} → {event.to_status}</strong>
+                <span class="text-[#6A6572]">{formatDateTime(event.created_at)}</span>
+              </div>
+              {event.reason && (
+                <p class="text-[13px] text-[#534F5C] mt-1">{event.reason}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Financial Summary & Notes (1/3) -->
+    <div class="space-y-6">
+      <!-- Order Financial Summary -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <h2 class="text-[16px] font-bold text-[#17141F] mb-3 pb-2 border-b border-[#F2EFE9]">
+          Thanh toán
+        </h2>
+
+        <div class="space-y-2 text-[13px] text-[#534F5C]">
+          <div class="flex justify-between">
+            <span>Tạm tính hàng hóa:</span>
+            <span class="font-bold text-[#17141F] tabular-nums">{formatCurrency(order.subtotal_amount)}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Phí vận chuyển:</span>
+            <span class="font-bold text-[#17141F] tabular-nums">{formatCurrency(order.shipping_amount)}</span>
+          </div>
+          {order.discount_amount > 0 && (
+            <div class="flex justify-between text-[#147A4B]">
+              <span>Mã giảm giá áp dụng:</span>
+              <span class="font-bold tabular-nums">-{formatCurrency(order.discount_amount)}</span>
+            </div>
+          )}
+          <div class="flex justify-between">
+            <span>Đã nhận:</span>
+            <span class="font-bold text-[#147A4B] tabular-nums">{formatCurrency(order.paid_amount)}</span>
+          </div>
+          <div class="pt-3 border-t border-[#F2EFE9] flex justify-between items-center text-[15px]">
+            <span class="font-extrabold text-[#17141F]">Tổng thanh toán:</span>
+            <span class="font-black text-[18px] text-[#D6284F] tabular-nums">
+              {formatCurrency(order.total_amount)}
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-[#F2EFE9] space-y-2" id="payment-list">
+          {order.payments.map((p) => (
+            <div class="flex items-center justify-between text-[12px]" data-payment-id={p.id} data-payment-status={p.status}>
+              <span class="font-semibold text-[#17141F]">{p.kind} • {p.method} • {formatCurrency(p.amount)}</span>
+              <span class="flex items-center gap-1.5">
+                <PaymentStatusBadge status={p.status === 'confirmed' ? 'paid' : p.status === 'failed' ? 'failed' : 'pending'} size="sm" />
+                {p.status === 'pending' && (
+                  <button type="button" data-confirm-payment={p.id} class="px-2 py-0.5 rounded border border-[#147A4B] text-[#147A4B] font-bold hover:bg-[#EDF7F0]">Duyệt</button>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Customer Profile Mini -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <h2 class="text-[16px] font-bold text-[#17141F] mb-3 pb-2 border-b border-[#F2EFE9]">
+          Khách hàng
+        </h2>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-full bg-[#17141F] text-white flex items-center justify-center font-bold text-[14px]">
+            {order.customer_name.charAt(0)}
+          </div>
+          <div>
+            <div class="font-bold text-[#17141F] text-[14px]">{order.customer_name}</div>
+            <div class="text-[12px] text-[#6A6572]">{order.email} • {order.phone}</div>
+          </div>
+        </div>
+        <div class="text-[12px] text-[#534F5C] pt-2 border-t border-[#F2EFE9]">
+          <a href="/customers" class="text-[#3258D7] hover:underline font-semibold">
+            Xem toàn bộ lịch sử mua sắm →
+          </a>
+        </div>
+      </div>
+
+      <!-- Internal Notes -->
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs">
+        <h2 class="text-[16px] font-bold text-[#17141F] mb-2 pb-2 border-b border-[#F2EFE9]">
+          Ghi chú nội bộ
+        </h2>
+        <div class="text-[13px] text-[#534F5C] bg-[#FFFDF7] border border-[#D8D4D0] p-3 rounded-[8px] mb-3">
+          {order.internal_note || 'Chưa có ghi chú nội bộ.'}
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { mutate } from '../../lib/api';
+
+  const NEXT: Record<string, string[]> = {
+    pending: ['confirmed', 'cancelled', 'expired'],
+    confirmed: ['processing', 'cancelled'],
+    processing: ['shipped', 'cancelled'],
+    shipped: ['delivered'],
+    delivered: ['completed'],
+  };
+
+  async function run() {
+    const holder = document.getElementById('order-actions');
+    if (!holder) return;
+    const orderId = holder.dataset.orderId;
+    const current = holder.dataset.status || 'pending';
+    const options = NEXT[current] ?? [];
+
+    holder.innerHTML = options
+      .map(
+        (to) =>
+          `<button type="button" data-to="${to}" class="px-3 py-1.5 rounded-[8px] text-[12px] font-bold border-2 ${
+            to === 'cancelled' || to === 'expired'
+              ? 'border-[#D6284F] text-[#D6284F] hover:bg-[#FFF0F3]'
+              : 'border-[#17141F] bg-[#17141F] text-white hover:opacity-90'
+          }">→ ${to}</button>`,
+      )
+      .join('');
+
+    holder.querySelectorAll('button[data-to]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(`Chuyển đơn sang "${(btn as HTMLElement).dataset.to}"?`)) return;
+        const { error } = await mutate(`/admin/orders/${orderId}/transition`, 'POST', { to: (btn as HTMLElement).dataset.to });
+        if (error) {
+          alert(error.message || 'Chuyển trạng thái thất bại.');
+          return;
+        }
+        window.location.reload();
+      });
+    });
+
+    document.querySelectorAll('button[data-confirm-payment]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const pid = (btn as HTMLElement).dataset.confirmPayment;
+        if (!confirm(`Xác nhận đã nhận tiền payment #${pid}?`)) return;
+        const { error } = await mutate(`/admin/payments/${pid}/confirm`, 'POST', {});
+        if (error) {
+          alert(error.message || 'Xác nhận thất bại.');
+          return;
+        }
+        window.location.reload();
+      });
+    });
+  }
+
+  run();
+</script>

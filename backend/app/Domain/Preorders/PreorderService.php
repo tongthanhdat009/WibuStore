@@ -40,6 +40,57 @@ class PreorderService
         ]);
     }
 
+    public function markDepositPaid(int $orderId): void
+    {
+        $reservations = PreorderReservation::whereIn(
+            'order_item_id',
+            OrderItem::where('order_id', $orderId)->pluck('id')
+        )->lockForUpdate()->get();
+        foreach ($reservations as $r) {
+            if ($r->status === 'awaiting_deposit') {
+                $r->update(['status' => 'deposit_paid', 'deposit_paid_at' => now()]);
+            }
+        }
+    }
+
+    public function markBalanceDue(int $reservationId, ?int $actorId, int $dueDays = 14): PreorderReservation
+    {
+        $r = PreorderReservation::where('id', $reservationId)->lockForUpdate()->firstOrFail();
+        if (! in_array($r->status, ['deposit_paid', 'balance_due'], true)) {
+            abort(response()->json(['error' => ['code' => 'INVALID_STATE', 'message' => 'Reservation chua coc xong']], 409));
+        }
+        $orderItem = OrderItem::find($r->order_item_id);
+        $order = \App\Models\Order::find($orderItem->order_id);
+        $rest = max(0, (int) $order->total_amount - (int) $order->paid_amount);
+        \App\Models\Payment::firstOrCreate(
+            ['order_id' => $orderItem->order_id, 'kind' => 'balance'],
+            [
+                'method' => 'bank_transfer', 'amount' => $rest,
+                'status' => 'pending', 'idempotency_key' => 'pay:o'.$orderItem->order_id.':balance',
+            ]
+        );
+        $r->update([
+            'status' => 'balance_due',
+            'balance_deadline_at' => now()->addDays($dueDays),
+        ]);
+        \App\Models\ActivityLog::record('preorder.balance_due', 'preorder_reservation', (string) $r->id, [], ['balance' => $r->balance_due_amount], $actorId);
+
+        return $r->fresh();
+    }
+
+    public function markBalancePaid(int $orderId): void
+    {
+        $reservations = PreorderReservation::whereIn(
+            'order_item_id',
+            OrderItem::where('order_id', $orderId)->pluck('id')
+        )->lockForUpdate()->get();
+        foreach ($reservations as $r) {
+            if (in_array($r->status, ['balance_due', 'deposit_paid'], true)) {
+                $r->update(['status' => 'completed']);
+            }
+        }
+    }
+
     public function releaseQuota(PreorderReservation $r): void
     {
         if (in_array($r->status, ['expired', 'cancelled', 'completed'], true)) {

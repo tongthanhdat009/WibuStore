@@ -146,14 +146,6 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
             </label>
 
             <label class="flex items-center gap-3 p-3 rounded-xl border border-[#D8D4D0] hover:border-[#17141F] bg-white cursor-pointer">
-              <input type="radio" name="payment_method" value="vnpay" class="text-[#D6284F]" />
-              <div>
-                <span class="font-bold text-[#17141F]">Cổng VNPay QR (Miễn phí giao dịch)</span>
-                <span class="block text-[11px] text-[#534F5C]">Quét mã QR qua app ngân hàng hoặc ví điện tử VNPAY</span>
-              </div>
-            </label>
-
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-[#D8D4D0] hover:border-[#17141F] bg-white cursor-pointer">
               <input type="radio" name="payment_method" value="momo" class="text-[#D6284F]" />
               <div>
                 <span class="font-bold text-[#17141F]">Ví MoMo</span>
@@ -232,6 +224,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
               0 ₫
             </span>
           </div>
+          <div id="checkout-deposit-note" class="hidden text-[11px] font-bold text-[#9A5A00] bg-[#FFF4DC] border border-[#9A5A00]/30 rounded-xl p-2.5"></div>
         </div>
       </div>
     </div>
@@ -282,9 +275,20 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
 
     const cart = getStoredCart();
     const subtotal = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
+    const isPreorderCart = cart.some((i) => i.preorderCampaignId != null);
 
     if (subtotalEl) subtotalEl.textContent = formatVND(subtotal);
     if (finalTotalEl) finalTotalEl.textContent = formatVND(subtotal);
+
+    function cartPayloadItems() {
+      return getStoredCart()
+        .filter((i) => i.variantId)
+        .map((i) => ({
+          variant_id: i.variantId as number,
+          quantity: i.quantity,
+          ...(i.preorderCampaignId != null ? { preorder_campaign_id: i.preorderCampaignId } : {}),
+        }));
+    }
 
     const couponInput = document.getElementById('checkout-coupon') as HTMLInputElement | null;
     const couponMsg = document.getElementById('coupon-msg');
@@ -292,15 +296,29 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
     const discountEl = document.getElementById('checkout-discount');
 
     async function refreshTotals() {
-      const items = getStoredCart().filter((i) => i.variantId);
+      const items = cartPayloadItems();
       if (items.length === 0) return;
       const calc = await previewTotals({
-        items: items.map((i) => ({ variant_id: i.variantId as number, quantity: i.quantity })),
+        items,
+        checkout_type: isPreorderCart ? 'preorder' : 'regular',
         ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
       });
       if (!calc || !subtotalEl || !finalTotalEl) return;
       subtotalEl.textContent = formatVND(calc.subtotal);
-      finalTotalEl.textContent = formatVND(calc.total);
+      if (isPreorderCart && calc.deposit_due > 0) {
+        finalTotalEl.textContent = formatVND(calc.deposit_due);
+      } else {
+        finalTotalEl.textContent = formatVND(calc.total);
+      }
+      const depositNote = document.getElementById('checkout-deposit-note');
+      if (depositNote) {
+        if (isPreorderCart && calc.deposit_due > 0) {
+          depositNote.textContent = `Thanh toán hôm nay (tiền cọc): ${formatVND(calc.deposit_due)}. Phần còn lại thanh toán khi hàng về.`;
+          depositNote.classList.remove('hidden');
+        } else {
+          depositNote.classList.add('hidden');
+        }
+      }
       if (discountRow && discountEl) {
         if (calc.discount > 0) {
           discountEl.textContent = `-${formatVND(calc.discount)}`;
@@ -316,9 +334,8 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
       if (!appliedCoupon) return;
       await refreshTotals();
       const calc = await previewTotals({
-        items: getStoredCart()
-          .filter((i) => i.variantId)
-          .map((i) => ({ variant_id: i.variantId as number, quantity: i.quantity })),
+        items: cartPayloadItems(),
+        checkout_type: isPreorderCart ? 'preorder' : 'regular',
         coupon_code: appliedCoupon,
       });
       if (couponMsg) {
@@ -353,6 +370,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
             <div class="flex-1 min-w-0">
               <h4 class="font-bold text-[#17141F] truncate leading-tight">${item.name}</h4>
               <span class="text-[10px] text-[#534F5C]">SL: ${item.quantity}</span>
+              ${item.preorderCampaignId != null ? '<span class="ml-1 text-[10px] font-bold text-[#9A5A00] bg-[#FFF4DC] border border-[#FFD44A] rounded px-1">ĐẶT CỌC</span>' : ''}
             </div>
             <span class="font-bold text-[#D6284F] shrink-0">${formatVND(item.price * item.quantity)}</span>
           </div>
@@ -378,7 +396,12 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
         submitBtn.textContent = 'ĐANG GỬI ĐƠN...';
       }
       const result = await createOrder({
-        items: items.map((i) => ({ variant_id: i.variantId as number, quantity: i.quantity })),
+        items: items.map((i) => ({
+          variant_id: i.variantId as number,
+          quantity: i.quantity,
+          ...(i.preorderCampaignId != null ? { preorder_campaign_id: i.preorderCampaignId } : {}),
+        })),
+        checkout_type: isPreorderCart ? 'preorder' : 'regular',
         customer: { name: val('cust-name'), email: val('cust-email'), phone: val('cust-phone') },
         payment_method: method === 'cod' ? 'cod' : 'bank_transfer',
         ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),

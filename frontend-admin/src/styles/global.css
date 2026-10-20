@@ -99,6 +99,7 @@
 .admin-sidebar-collapsed #admin-sidebar {
   width: 4.75rem;
 }
+.admin-sidebar-collapsed #admin-sidebar .brand-link,
 .admin-sidebar-collapsed #admin-sidebar .brand-text,
 .admin-sidebar-collapsed #admin-sidebar .nav-group-title,
 .admin-sidebar-collapsed #admin-sidebar .nav-item-text,

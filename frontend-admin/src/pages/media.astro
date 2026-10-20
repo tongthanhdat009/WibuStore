@@ -12,8 +12,12 @@ const page = currentPage(Astro);
 
 interface Asset { id: number; object_key: string; file_name: string; url: string; mime_type: string; file_size_bytes: number; width?: number | null; height?: number | null; status: string; created_at: string }
 
-const { data: assetData, meta: assetMeta } = await apiGet<Asset[]>(`/admin/media?per_page=24&page=${page}`, Astro);
+const folder = Astro.url.searchParams.get('folder') ?? '';
+const prefixMap: Record<string, string> = { products: 'products', hero: 'hero', branding: 'branding' };
+const prefix = prefixMap[folder] ?? '';
+const { data: assetData, meta: assetMeta } = await apiGet<Asset[]>(`/admin/media?per_page=24&page=${page}${prefix ? `&prefix=${prefix}` : ''}`, Astro);
 const assets = assetData ?? [];
+const pageParams: Record<string, string> = prefix ? { folder } : {};
 ---
 
 <AdminLayout
@@ -22,9 +26,6 @@ const assets = assetData ?? [];
   breadcrumbs={[{ label: 'Nội dung & Marketing' }, { label: 'Media Library' }]}
 >
   <div slot="actions" class="flex gap-2">
-    <Button variant="secondary" size="sm">
-      + Tạo thư mục mới
-    </Button>
     <button
       id="open-upload-modal"
       class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-[#D6284F] hover:bg-[#AF1E40] text-white text-[13px] font-bold shadow-xs cursor-pointer"
@@ -42,29 +43,21 @@ const assets = assetData ?? [];
         </h2>
         <ul class="space-y-1 text-[13px]">
           <li>
-            <a href="/media" class="flex items-center justify-between px-3 py-2 rounded-[8px] bg-[#FFF0F3] text-[#A61B3F] font-bold">
+            <a href="/media" class={`flex items-center justify-between px-3 py-2 rounded-[8px] ${!folder ? 'bg-[#FFF0F3] text-[#A61B3F] font-bold' : 'text-[#534F5C] hover:bg-[#F7F5F0]'}`}>
               <span>📁 Tất cả tệp</span>
-              <span class="text-[11px]">{assets.length}</span>
             </a>
           </li>
-          <li>
-            <a href="/media?folder=products" class="flex items-center justify-between px-3 py-2 rounded-[8px] text-[#534F5C] hover:bg-[#F7F5F0]">
-              <span>📁 Ảnh sản phẩm (Products)</span>
-              <span class="text-[11px]">2</span>
-            </a>
-          </li>
-          <li>
-            <a href="/media?folder=hero" class="flex items-center justify-between px-3 py-2 rounded-[8px] text-[#534F5C] hover:bg-[#F7F5F0]">
-              <span>📁 Hero Campaigns</span>
-              <span class="text-[11px]">1</span>
-            </a>
-          </li>
-          <li>
-            <a href="/media?folder=branding" class="flex items-center justify-between px-3 py-2 rounded-[8px] text-[#534F5C] hover:bg-[#F7F5F0]">
-              <span>📁 Logo & Branding</span>
-              <span class="text-[11px]">1</span>
-            </a>
-          </li>
+          {[
+            ['products', '📁 Ảnh sản phẩm (Products)'],
+            ['hero', '📁 Hero Campaigns'],
+            ['branding', '📁 Logo & Branding'],
+          ].map(([v, label]) => (
+            <li>
+              <a href={`/media?folder=${v}`} class={`flex items-center justify-between px-3 py-2 rounded-[8px] ${folder === v ? 'bg-[#FFF0F3] text-[#A61B3F] font-bold' : 'text-[#534F5C] hover:bg-[#F7F5F0]'}`}>
+                <span>{label}</span>
+              </a>
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -137,6 +130,15 @@ const assets = assetData ?? [];
               <div class="pt-1 text-[10px] text-[#6A6572] truncate">
                 {asset.object_key}
               </div>
+              <div class="pt-1 flex items-center justify-end">
+                <button
+                  type="button"
+                  data-delete-asset={asset.id}
+                  class="px-2 py-1 rounded-[6px] text-[11px] font-bold text-[#A61B3F] hover:bg-[#FFF0F3] border border-transparent hover:border-[#D6284F]/30 cursor-pointer"
+                >
+                  Xóa
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -203,10 +205,27 @@ const assets = assetData ?? [];
   </div>
 
   <script>
+    import { mutate } from '../lib/api';
+
     const uploadBtn = document.getElementById('open-upload-modal');
     const modal = document.getElementById('upload-modal');
     uploadBtn?.addEventListener('click', () => {
       modal?.classList.remove('hidden');
+    });
+
+    document.querySelectorAll('button[data-delete-asset]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const assetId = (btn as HTMLElement).dataset.deleteAsset;
+        if (!confirm(`Xóa vĩnh viễn asset #${assetId} khỏi Media Library (cả file S3)?`)) return;
+        btn.setAttribute('disabled', 'true');
+        const { error } = await mutate(`/admin/media/${assetId}`, 'DELETE');
+        if (error) {
+          btn.removeAttribute('disabled');
+          alert(error.message || 'Xóa asset thất bại.');
+          return;
+        }
+        window.location.reload();
+      });
     });
 
     function xsrf(): string {

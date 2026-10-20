@@ -8,9 +8,9 @@ import Button from '../components/ui/Button.astro';
 import { products as staticProducts } from '../data/products';
 import { categories } from '../data/categories';
 import { animeSeriesList } from '../data/anime';
-import { getCatalogProducts } from '../lib/catalog';
+import { getAllCatalogProducts } from '../lib/catalog';
 
-const { products } = await getCatalogProducts();
+const { products } = await getAllCatalogProducts();
 
 // Initial render with all products (client script filters them based on URL params)
 ---

@@ -25,6 +25,7 @@ class PaymentService
             }
             $payment->update(['status' => 'confirmed', 'confirmed_at' => now(), 'confirmed_by' => $actorId, 'provider_reference' => $providerRef ?? $payment->provider_reference]);
             $this->reconcile($payment->order_id);
+            $this->syncPreorder($payment);
             ActivityLog::record('payment.confirmed', 'payment', (string) $payment->id, [], ['order_id' => $payment->order_id, 'amount' => $payment->amount], $actorId);
 
             return $payment->fresh();
@@ -63,11 +64,21 @@ class PaymentService
                 if ($payment && $payment->status === 'pending') {
                     $payment->update(['status' => 'confirmed', 'confirmed_at' => now(), 'provider_reference' => $eventId]);
                     $this->reconcile($payment->order_id);
+                    $this->syncPreorder($payment);
                 }
             }
 
             return ['deduped' => false, 'event_id' => $event->event_id];
         });
+    }
+
+    public function syncPreorder(Payment $payment): void
+    {
+        if ($payment->kind === 'deposit') {
+            app(\App\Domain\Preorders\PreorderService::class)->markDepositPaid($payment->order_id);
+        } elseif ($payment->kind === 'balance') {
+            app(\App\Domain\Preorders\PreorderService::class)->markBalancePaid($payment->order_id);
+        }
     }
 
     public function reconcile(int $orderId): void

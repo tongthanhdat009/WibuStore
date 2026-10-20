@@ -79,8 +79,12 @@ class CatalogController extends Controller
     public function preorders()
     {
         $c = PreorderCampaign::open()->with('variant.product')->paginate(12);
+        $items = collect($c->items())->map(fn ($camp) => array_merge(
+            $camp instanceof \Illuminate\Database\Eloquent\Model ? $camp->toArray() : (array) $camp,
+            ['available' => max(0, (int) ($camp->quota ?? 0) - (int) ($camp->reserved_quantity ?? 0))]
+        ));
 
-        return response()->json(['data' => $c->items(), 'meta' => ['total' => $c->total(), 'page' => $c->currentPage()]]);
+        return response()->json(['data' => $items, 'meta' => ['total' => $c->total(), 'page' => $c->currentPage()]]);
     }
 
     public function preorderShow(int $id)
@@ -95,6 +99,15 @@ class CatalogController extends Controller
         $page = CmsPage::where('slug', 'home')->with('publishedRevision')->first();
 
         return response()->json(['data' => $page?->publishedRevision?->content ?? ['sections' => []]]);
+    }
+
+    public function collections()
+    {
+        $pages = \App\Models\CmsPage::where('slug', 'like', 'collection-%')
+            ->whereNotNull('current_published_revision_id')
+            ->orderBy('slug')->get(['slug', 'title']);
+
+        return response()->json(['data' => $pages]);
     }
 
     public function collection(string $slug)

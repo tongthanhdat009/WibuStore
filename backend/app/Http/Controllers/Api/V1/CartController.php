@@ -114,6 +114,25 @@ class CartController extends Controller
         return OrderResource::collection($orders);
     }
 
+    public function invoice(Request $request, string $publicId)
+    {
+        $order = Order::with(['items', 'addresses'])->where('public_id', $publicId)->firstOrFail();
+        $owned = $request->user() && $order->user_id && (int) $order->user_id === (int) $request->user()->id;
+        $guestProof = $order->lookup_token_hash && hash_equals(
+            (string) $order->lookup_token_hash,
+            hash('sha256', (string) $request->header('X-Order-Token', ''))
+        );
+        if (! $owned && ! $guestProof) {
+            abort(response()->json(['error' => ['code' => 'FORBIDDEN', 'message' => 'Khong co quyen xem hoa don']], 403));
+        }
+        $addr = $order->addresses->firstWhere('type', 'shipping');
+        $address = $addr ? trim("{$addr->line1}, {$addr->district}, {$addr->province}", ', ') : '—';
+
+        return \Barryvdh\DomPDF\Facade\Pdf::setOption(['defaultFont' => 'DejaVu Sans'])
+            ->loadView('pdf.invoice', ['order' => $order, 'address' => $address])
+            ->download("hoa-don-{$order->order_number}.pdf");
+    }
+
     public function cancel(Request $request, string $publicId, CheckoutService $checkout)
     {
         $order = Order::where('public_id', $publicId)->firstOrFail();

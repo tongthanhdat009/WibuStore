@@ -37,6 +37,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
 <script>
   import { customerLogin } from '../lib/auth';
   import { syncLocalCartToServer } from '../lib/cart';
+  import { syncLocalWishlistToServer } from '../lib/wishlist';
 
   document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -51,6 +52,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
     const { error } = await customerLogin(email, password);
     if (!error) {
       await syncLocalCartToServer().catch(() => {});
+      await syncLocalWishlistToServer().catch(() => {});
     }
     if (error) {
       if (errEl) {

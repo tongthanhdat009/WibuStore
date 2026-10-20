@@ -159,6 +159,20 @@ export async function fetchPreorders(): Promise<ApiCampaign[]> {
 }
 
 // ---- Checkout ----
+function readXsrf(): string {
+  if (typeof document === 'undefined') return '';
+  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
+async function csrfHeaders(): Promise<Record<string, string>> {
+  if (typeof document !== 'undefined' && !readXsrf()) {
+    await fetch(`${API_URL}/sanctum/csrf-cookie`, { credentials: 'include' }).catch(() => {});
+  }
+  const token = readXsrf();
+  return token ? { 'X-XSRF-TOKEN': token } : {};
+}
+
 export function getGuestToken(): string {
   if (typeof window === 'undefined') return '';
   let t = localStorage.getItem('wibu_guest_token');
@@ -172,36 +186,53 @@ export function getGuestToken(): string {
 }
 
 export interface CheckoutPayload {
-  items: { variant_id: number; quantity: number }[];
+  items: { variant_id: number; quantity: number; preorder_campaign_id?: number }[];
   customer: { name: string; email: string; phone: string };
   customer_note?: string;
+  checkout_type?: 'regular' | 'preorder';
   payment_method: 'cod' | 'bank_transfer';
   coupon_code?: string;
   addresses: { type: 'shipping'; recipient_name: string; phone: string; line1: string }[];
 }
 
-export async function createOrder(payload: CheckoutPayload): Promise<{ ok: boolean; order?: { order_number: string }; error?: string }> {
+export async function createOrder(payload: CheckoutPayload): Promise<{ ok: boolean; order?: { order_number: string; public_id: string }; error?: string }> {
   try {
     const key =
       (crypto as Crypto).randomUUID?.() ?? `order-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
     const res = await fetch(api('/orders'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'Idempotency-Key': key },
-      body: JSON.stringify({ ...payload, checkout_type: 'regular' }),
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'Idempotency-Key': key, ...(await csrfHeaders()) },
+      body: JSON.stringify({ checkout_type: 'regular', ...payload }),
     });
     const json = await res.json();
     if (!res.ok) return { ok: false, error: json?.error?.message || `Lỗi ${res.status}` };
-    return { ok: true, order: { order_number: json.data.order_number } };
+    return { ok: true, order: { order_number: json.data.order_number, public_id: json.data.id } };
   } catch {
     return { ok: false, error: 'Không kết nối được máy chủ. Kiểm tra backend :8000.' };
   }
 }
 
-export async function previewTotals(payload: Omit<CheckoutPayload, 'customer' | 'addresses'>): Promise<{ subtotal: number; discount: number; shipping: number; total: number } | null> {
-  const json = await getJSON<{ data: { subtotal: number; shipping: number; total: number } }>('/checkout/preview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...payload, checkout_type: 'regular' }),
-  });
-  return json?.data ?? null;
+export interface PreviewTotals {
+  subtotal: number;
+  discount: number;
+  shipping: number;
+  total: number;
+  deposit_due: number;
+}
+
+export async function previewTotals(payload: Omit<CheckoutPayload, 'customer' | 'addresses'>): Promise<PreviewTotals | null> {
+  try {
+    const res = await fetch(api('/checkout/preview'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(await csrfHeaders()) },
+      body: JSON.stringify({ checkout_type: 'regular', ...payload }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data ?? null;
+  } catch {
+    return null;
+  }
 }

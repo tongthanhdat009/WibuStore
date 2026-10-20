@@ -21,7 +21,36 @@ const { data: revisions } = await apiGet<Revision[]>('/admin/pages/home/revision
 const revs = revisions ?? [];
 const published = revs.find((r) => r.status === 'published');
 const publishedJson = published ? JSON.stringify(published.content, null, 2) : '';
-const draftDefault = published ? JSON.stringify(published.content, null, 2) : '{"schema_version": 1, "sections": []}';
+
+interface HomeSection { type: string; enabled?: boolean; sort_order?: number; eyebrow?: string; headline?: string; cta_label?: string; cta_target?: string; }
+
+const defaultSections: HomeSection[] = [
+  { type: 'hero_comic', enabled: true, eyebrow: '', headline: '', cta_label: '', cta_target: '', sort_order: 1 },
+  { type: 'trending', enabled: true, sort_order: 2 },
+  { type: 'preorder_spotlight', enabled: true, sort_order: 3 },
+  { type: 'new_arrivals', enabled: true, sort_order: 4 },
+];
+
+function asSections(value: unknown): HomeSection[] {
+  if (value && typeof value === 'object' && Array.isArray((value as { sections?: unknown }).sections)) {
+    return (value as { sections: HomeSection[] }).sections.filter((s) => s && typeof s.type === 'string');
+  }
+  return [];
+}
+
+const formSections = asSections(published?.content);
+for (const d of defaultSections) {
+  if (!formSections.some((s) => s.type === d.type)) formSections.push({ ...d });
+}
+const heroForm = formSections.find((s) => s.type === 'hero_comic') ?? defaultSections[0];
+const otherSections = formSections.filter((s) => s.type !== 'hero_comic');
+
+const sectionLabels: Record<string, string> = {
+  hero_comic: 'Hero đầu trang',
+  trending: 'Sản phẩm nổi bật',
+  preorder_spotlight: 'Pre-order Spotlight',
+  new_arrivals: 'Hàng mới về',
+};
 ---
 
 <AdminLayout
@@ -88,24 +117,62 @@ const draftDefault = published ? JSON.stringify(published.content, null, 2) : '{
       )}
     </div>
 
-    <div class="xl:col-span-5">
+    <div class="xl:col-span-5 space-y-6">
       <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
         <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
-          Tạo revision nháp mới
+          Hero đầu trang (slide đầu)
         </h2>
-        <p class="text-[12px] text-[#534F5C]">
-          Dán JSON content theo schema sections (<code>hero_comic</code>, <code>trending</code>, <code>preorder_spotlight</code>...).
-          Dùng bản published hiện tại làm mẫu rồi sửa.
-        </p>
+        <label class="flex items-center gap-2 text-[13px] font-bold text-[#17141F] cursor-pointer">
+          <input id="hero-enabled" type="checkbox" checked={heroForm.enabled !== false} class="w-4 h-4 rounded text-[#D6284F]" />
+          Hiển thị hero
+        </label>
+        <div class="space-y-3 text-[13px]">
+          <div>
+            <label for="hero-eyebrow" class="block font-bold text-[#17141F] mb-1">Nhãn badge (eyebrow)</label>
+            <input id="hero-eyebrow" type="text" maxlength="120" value={heroForm.eyebrow ?? ''} placeholder="vd: LIMITED EDITION" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+          </div>
+          <div>
+            <label for="hero-headline" class="block font-bold text-[#17141F] mb-1">Tiêu đề lớn (headline)</label>
+            <input id="hero-headline" type="text" maxlength="120" value={heroForm.headline ?? ''} placeholder="vd: NEW DROP: Gojo Satoru" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="hero-cta-label" class="block font-bold text-[#17141F] mb-1">Chữ nút CTA</label>
+              <input id="hero-cta-label" type="text" maxlength="60" value={heroForm.cta_label ?? ''} placeholder="vd: Mua ngay" class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+            </div>
+            <div>
+              <label for="hero-cta-target" class="block font-bold text-[#17141F] mb-1">Link nút CTA</label>
+              <input id="hero-cta-target" type="text" maxlength="255" value={heroForm.cta_target ?? ''} placeholder="vd: /products/gojo-..." class="w-full h-10 px-3 rounded-[8px] border border-[#D8D4D0]" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-3">
+        <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+          Bật / tắt & thứ tự sections
+        </h2>
+        {otherSections.map((s) => (
+          <div data-section-row={s.type} class="flex items-center gap-3 text-[13px] border border-[#F2EFE9] rounded-[8px] px-3 py-2">
+            <input data-field="enabled" type="checkbox" checked={s.enabled !== false} class="w-4 h-4 rounded text-[#D6284F] shrink-0" aria-label={`Hiển thị ${s.type}`} />
+            <span class="font-bold text-[#17141F] flex-1">{sectionLabels[s.type] ?? s.type}</span>
+            <label class="flex items-center gap-1.5 text-[12px] text-[#534F5C]">
+              Thứ tự
+              <input data-field="sort_order" type="number" min="1" max="99" value={s.sort_order ?? 99} class="w-16 h-8 px-2 rounded-[6px] border border-[#D8D4D0]" />
+            </label>
+          </div>
+        ))}
+        <p class="text-[11px] text-[#6A6572]">Tắt section nào thì khối đó ẩn khỏi trang chủ ngay sau khi xuất bản.</p>
+      </div>
+
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs space-y-4">
+        <h2 class="text-[16px] font-bold text-[#17141F] border-b border-[#F2EFE9] pb-2">
+          Lưu thay đổi
+        </h2>
         <div id="cms-error" class="hidden p-3 rounded-[8px] bg-[#FFF0F3] border border-[#D6284F]/30 text-[12px] text-[#A61B3F]"></div>
-        <textarea
-          id="cms-content"
-          rows="14"
-          class="w-full p-3 font-mono text-[11px] rounded-[8px] bg-white border border-[#D8D4D0] text-[#17141F]"
-        >{draftDefault}</textarea>
         <div class="flex gap-2">
-          <button id="cms-draft" type="button" class="flex-1 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px]">Lưu bản nháp</button>
-          <button id="cms-publish" type="button" class="flex-1 h-10 rounded-[8px] bg-[#D6284F] text-white font-bold text-[13px]">Tạo & Xuất bản luôn</button>
+          <button id="cms-draft" type="button" class="flex-1 h-10 rounded-[8px] border border-[#D8D4D0] font-bold text-[13px] cursor-pointer">Lưu bản nháp</button>
+          <button id="cms-publish" type="button" class="flex-1 h-10 rounded-[8px] bg-[#D6284F] text-white font-bold text-[13px] cursor-pointer">Lưu & Xuất bản luôn</button>
         </div>
       </div>
     </div>
@@ -124,33 +191,78 @@ const draftDefault = published ? JSON.stringify(published.content, null, 2) : '{
       }
     }
 
-    function parseContent(): Record<string, unknown> | null {
-      const raw = (document.getElementById('cms-content') as HTMLTextAreaElement | null)?.value || '';
-      try {
-        return JSON.parse(raw) as Record<string, unknown>;
-      } catch {
-        fail('JSON không hợp lệ. Kiểm tra lại cú pháp.');
-        return null;
-      }
+    function val(id: string): string {
+      return ((document.getElementById(id) as HTMLInputElement | null)?.value || '').trim();
     }
 
-    document.getElementById('cms-draft')?.addEventListener('click', async () => {
-      const content = parseContent();
-      if (!content) return;
-      const { error } = await mutate('/admin/pages/home/revisions', 'POST', { content });
-      if (error) return fail(error.message || 'Tạo nháp thất bại.');
-      window.location.reload();
-    });
+    async function loadBaseContent(): Promise<{ schema_version: number; sections: Record<string, unknown>[] } | null> {
+      const { data, error } = await mutate<Record<string, unknown>[] | { sections?: unknown }>(
+        '/admin/pages/home/revisions',
+        'GET',
+      );
+      if (error || !data) {
+        fail(error?.message || 'Không tải được revisions hiện tại.');
+        return null;
+      }
+      const list = Array.isArray(data) ? data : [];
+      const pub = list.find(
+        (r): r is Record<string, unknown> & { content: { schema_version?: number; sections?: Record<string, unknown>[] } } =>
+          typeof r === 'object' && r !== null && (r as { status?: unknown }).status === 'published',
+      );
+      const content = pub?.content;
+      if (content && Array.isArray(content.sections)) {
+        return { schema_version: typeof content.schema_version === 'number' ? content.schema_version : 1, sections: content.sections };
+      }
+      return { schema_version: 1, sections: [] };
+    }
 
-    document.getElementById('cms-publish')?.addEventListener('click', async () => {
-      const content = parseContent();
-      if (!content) return;
+    function collectSections(base: Record<string, unknown>[]): Record<string, unknown>[] {
+      const byType = new Map(base.filter((s) => typeof s.type === 'string').map((s) => [s.type as string, { ...s }]));
+      const heroEnabled = (document.getElementById('hero-enabled') as HTMLInputElement | null)?.checked !== false;
+      const hero = byType.get('hero_comic') ?? { type: 'hero_comic', sort_order: 1 };
+      hero.enabled = heroEnabled;
+      const eyebrow = val('hero-eyebrow');
+      const headline = val('hero-headline');
+      const ctaLabel = val('hero-cta-label');
+      const ctaTarget = val('hero-cta-target');
+      if (eyebrow) hero.eyebrow = eyebrow;
+      if (headline) hero.headline = headline;
+      if (ctaLabel) hero.cta_label = ctaLabel;
+      if (ctaTarget) hero.cta_target = ctaTarget;
+      byType.set('hero_comic', hero);
+
+      document.querySelectorAll<HTMLElement>('[data-section-row]').forEach((row) => {
+        const type = row.dataset.sectionRow || '';
+        if (!type || type === 'hero_comic') return;
+        const section = byType.get(type) ?? { type, sort_order: 99 };
+        const enabledBox = row.querySelector<HTMLInputElement>('input[data-field="enabled"]');
+        const sortBox = row.querySelector<HTMLInputElement>('input[data-field="sort_order"]');
+        section.enabled = enabledBox ? enabledBox.checked : true;
+        const sort = sortBox ? parseInt(sortBox.value, 10) : NaN;
+        section.sort_order = Number.isFinite(sort) ? sort : 99;
+        byType.set(type, section);
+      });
+
+      return [...byType.values()].sort(
+        (a, b) => ((a.sort_order as number) ?? 99) - ((b.sort_order as number) ?? 99),
+      );
+    }
+
+    async function save(publish: boolean) {
+      const base = await loadBaseContent();
+      if (!base) return;
+      const content = { schema_version: base.schema_version, sections: collectSections(base.sections) };
       const created = await mutate<{ id: number }>('/admin/pages/home/revisions', 'POST', { content });
       if (created.error || !created.data) return fail(created.error?.message || 'Tạo nháp thất bại.');
-      const pub = await mutate(`/admin/pages/home/revisions/${created.data.id}/publish`, 'POST', {});
-      if (pub.error) return fail(pub.error.message || 'Xuất bản thất bại.');
+      if (publish) {
+        const pub = await mutate(`/admin/pages/home/revisions/${created.data.id}/publish`, 'POST', {});
+        if (pub.error) return fail(pub.error.message || 'Xuất bản thất bại.');
+      }
       window.location.reload();
-    });
+    }
+
+    document.getElementById('cms-draft')?.addEventListener('click', () => save(false));
+    document.getElementById('cms-publish')?.addEventListener('click', () => save(true));
 
     document.querySelectorAll('button[data-publish-rev]').forEach((btn) => {
       btn.addEventListener('click', async () => {

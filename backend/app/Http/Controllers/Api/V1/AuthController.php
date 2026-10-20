@@ -96,6 +96,64 @@ class AuthController extends Controller
             : response()->json(['error' => ['code' => 'VALIDATION_ERROR', 'message' => __($status)]], 422);
     }
 
+    public function wishlist(Request $request)
+    {
+        $items = \Illuminate\Support\Facades\DB::table('wishlists')
+            ->join('products', 'products.id', '=', 'wishlists.product_id')
+            ->leftJoin('product_variants', function ($j) {
+                $j->on('product_variants.product_id', '=', 'products.id')->where('product_variants.status', 'active');
+            })
+            ->leftJoin('product_media', function ($j) {
+                $j->on('product_media.product_id', '=', 'products.id')->where('product_media.is_primary', true);
+            })
+            ->leftJoin('media_assets', 'media_assets.id', '=', 'product_media.media_asset_id')
+            ->where('wishlists.user_id', $request->user()->id)
+            ->groupBy('wishlists.id', 'products.public_id', 'products.name', 'products.slug', 'media_assets.object_key')
+            ->orderByDesc('wishlists.created_at')
+            ->selectRaw('products.public_id as id, products.name, products.slug, MIN(product_variants.price_amount) as price_amount, media_assets.object_key as image_key')
+            ->limit(100)
+            ->get();
+
+        $base = rtrim((string) config('filesystems.disks.s3.url'), '/');
+        $root = trim((string) config('filesystems.disks.s3.root'), '/');
+        $items->transform(function ($i) use ($base, $root) {
+            $i->image = $i->image_key && $base !== ''
+                ? $base.'/'.($root !== '' ? $root.'/' : '').implode('/', array_map('rawurlencode', explode('/', $i->image_key)))
+                : null;
+            unset($i->image_key);
+
+            return $i;
+        });
+
+        return response()->json(['data' => $items]);
+    }
+
+    public function storeWishlist(Request $request)
+    {
+        $data = $request->validate(['product_id' => ['required', 'string']]);
+        $product = \App\Models\Product::where('public_id', $data['product_id'])->orWhere('slug', $data['product_id'])->first();
+        if (! $product) {
+            return response()->json(['error' => ['code' => 'NOT_FOUND', 'message' => 'Khong tim thay san pham']], 404);
+        }
+        \Illuminate\Support\Facades\DB::table('wishlists')->updateOrInsert(
+            ['user_id' => $request->user()->id, 'product_id' => $product->id],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+
+        return response()->json(['data' => ['ok' => true]], 201);
+    }
+
+    public function destroyWishlist(Request $request, string $product)
+    {
+        $productId = \App\Models\Product::where('public_id', $product)->orWhere('slug', $product)->value('id');
+        if ($productId) {
+            \Illuminate\Support\Facades\DB::table('wishlists')
+                ->where('user_id', $request->user()->id)->where('product_id', $productId)->delete();
+        }
+
+        return response()->json(['data' => ['ok' => true]]);
+    }
+
     public function addresses(Request $request)
     {
         return response()->json(['data' => $request->user()->addresses()->orderByDesc('is_default')->get()]);

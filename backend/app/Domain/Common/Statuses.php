@@ -18,7 +18,7 @@ final class Statuses
 
     public const PAYMENT_KINDS = ['full', 'deposit', 'balance', 'refund'];
 
-    public const PAYMENT_METHODS = ['cod', 'bank_transfer', 'gateway'];
+    public const PAYMENT_METHODS = ['cod', 'bank_transfer'];
 
     public const CAMPAIGN_STATUSES = ['draft', 'open', 'closed', 'arrived', 'cancelled'];
 

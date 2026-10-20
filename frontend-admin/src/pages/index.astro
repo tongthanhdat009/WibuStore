@@ -16,14 +16,15 @@ interface OrderRow { id: number; order_number: string; customer_name: string; ph
 interface SaleRow { day: string; orders: number; gmv: number; collected: number }
 interface ProdRow { id: number; name: string; min_price: number | null; image_url: string | null }
 
+const days = Astro.url.searchParams.get('days') ?? '30';
 const { data: overview } = await apiGet<Overview>('/admin/dashboard/overview', Astro);
 const { data: orderData } = await apiGet<OrderRow[]>('/admin/orders?per_page=5', Astro);
-const { data: sales } = await apiGet<SaleRow[]>('/admin/reports/sales', Astro);
+const { data: sales } = await apiGet<SaleRow[]>(`/admin/reports/sales?days=${encodeURIComponent(days)}`, Astro);
 const { data: prodData } = await apiGet<ProdRow[]>('/admin/products?per_page=5', Astro);
 
 const recentOrders = orderData ?? [];
 const topProducts = prodData ?? [];
-const bars = (sales ?? []).slice(0, 7).reverse();
+const bars = (sales ?? []).slice(0, 31).reverse();
 const maxCollected = Math.max(1, ...bars.map((b) => Number(b.collected)));
 const weekTotal = bars.reduce((a, b) => a + Number(b.collected), 0);
 const weekOrders = bars.reduce((a, b) => a + Number(b.orders), 0);
@@ -40,20 +41,19 @@ const tasks = [
 >
   <!-- Page Header Actions Slot -->
   <div slot="actions" class="flex items-center gap-2">
-    <div class="relative">
-      <select class="h-9 px-3 text-[13px] font-semibold bg-white border border-[#D8D4D0] rounded-[8px] text-[#17141F] focus:outline-none focus:ring-2 focus:ring-[#3258D7]">
-        <option>Hôm nay (17/10)</option>
-        <option>7 ngày gần nhất</option>
-        <option>30 ngày gần nhất</option>
-        <option>Tháng này (10/2026)</option>
+    <form action="/" method="GET">
+      <select name="days" onchange="this.form.submit()" class="h-9 px-3 text-[13px] font-semibold bg-white border border-[#D8D4D0] rounded-[8px] text-[#17141F] focus:outline-none focus:ring-2 focus:ring-[#3258D7] cursor-pointer">
+        <option value="7" selected={days === '7'}>7 ngày gần nhất</option>
+        <option value="30" selected={days === '30'}>30 ngày gần nhất</option>
+        <option value="90" selected={days === '90'}>90 ngày gần nhất</option>
       </select>
-    </div>
-    <Button variant="secondary" size="sm">
+    </form>
+    <button id="export-sales-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:border-[#17141F] text-[13px] font-bold text-[#17141F] shadow-xs cursor-pointer">
       <svg class="w-4 h-4 text-[#534F5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
       </svg>
       <span>Xuất báo cáo</span>
-    </Button>
+    </button>
   </div>
 
   <!-- 1. KPI Cards Grid -->
@@ -102,7 +102,7 @@ const tasks = [
               Biểu đồ Doanh thu & Tăng trưởng đơn hàng
             </h2>
             <p class="text-[12px] text-[#534F5C] mt-0.5">
-              Thống kê theo 7 ngày qua (đơn vị: Triệu VNĐ)
+              Thống kê {days} ngày gần nhất (đơn vị: Triệu VNĐ)
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -288,4 +288,23 @@ const tasks = [
       </div>
     </div>
   </div>
+
+  <script>
+    import { downloadCSV } from '../lib/export';
+
+    document.getElementById('export-sales-btn')?.addEventListener('click', async () => {
+      try {
+        const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+        const days = new URLSearchParams(window.location.search).get('days') || '30';
+        const res = await fetch(`${base}/api/v1/admin/reports/sales?days=${encodeURIComponent(days)}`, { credentials: 'include', headers: { Accept: 'application/json' } });
+        const json = await res.json();
+        const rows = (json?.data ?? []).map((r: { day: string; orders: number; gmv: number; collected: number }) => [
+          new Date(r.day).toLocaleDateString('vi-VN'), r.orders, r.gmv, r.collected,
+        ]);
+        downloadCSV('dashboard-sales.csv', ['Ngày', 'Số đơn', 'GMV (VND)', 'Thực thu (VND)'], rows);
+      } catch {
+        alert('Xuất thất bại. Kiểm tra đăng nhập.');
+      }
+    });
+  </script>
 </AdminLayout>

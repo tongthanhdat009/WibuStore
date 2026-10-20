@@ -37,7 +37,14 @@ class AdminCmsController extends Controller
             return response()->json(['data' => $asset], 201);
         }
 
-        $paginator = MediaAsset::orderByDesc('created_at')->paginate(min(100, max(1, (int) request()->query('per_page', 24))));
+        $mq = MediaAsset::orderByDesc('created_at');
+        if ($s = $request->query('q')) {
+            $mq->where('object_key', 'ilike', "%{$s}%");
+        }
+        if ($prefix = $request->query('prefix')) {
+            $mq->where('object_key', 'ilike', '%'.ltrim($prefix, '/').'%');
+        }
+        $paginator = $mq->paginate(min(100, max(1, (int) request()->query('per_page', 24))));
         $paginator->getCollection()->transform(fn ($a) => array_merge($a->toArray(), [
             'file_name' => basename($a->object_key),
             'url' => $a->url(),
@@ -126,7 +133,16 @@ class AdminCmsController extends Controller
 
     public function logs()
     {
-        return response()->json(ActivityLog::orderByDesc('created_at')->paginate(min(100, max(1, (int) request()->query('per_page', 20)))));
+        $paginator = ActivityLog::with(['actor:id,name'])->orderByDesc('created_at')
+            ->paginate(min(100, max(1, (int) request()->query('per_page', 20))));
+        $paginator->getCollection()->transform(fn ($l) => [
+            'id' => $l->id, 'action' => $l->action,
+            'subject_type' => $l->subject_type, 'subject_id' => $l->subject_id,
+            'actor_name' => $l->actor?->name,
+            'request_id' => $l->request_id, 'created_at' => $l->created_at,
+        ]);
+
+        return response()->json($paginator);
     }
 
     public function users()

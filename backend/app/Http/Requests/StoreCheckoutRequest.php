@@ -18,7 +18,7 @@ class StoreCheckoutRequest extends FormRequest
             'customer.phone' => ['required', 'string', 'max:32'],
             'customer_note' => ['nullable', 'string'],
             'checkout_type' => ['nullable', 'in:regular,preorder'],
-            'payment_method' => ['required', 'in:cod,bank_transfer,gateway'],
+            'payment_method' => ['required', 'in:cod,bank_transfer'],
             'coupon_code' => ['nullable', 'string', 'max:64'],
             'addresses' => ['nullable', 'array'],
             'addresses.*.type' => ['required_with:addresses', 'in:shipping,billing'],

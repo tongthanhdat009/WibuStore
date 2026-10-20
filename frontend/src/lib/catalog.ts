@@ -21,6 +21,31 @@ export async function getCatalogProducts(params: Record<string, string | number>
   return { products: staticProducts, live: false };
 }
 
+/** Tat ca san pham qua nhieu trang (API cap 48/trang). Dung cho trang figures. */
+export async function getAllCatalogProducts(): Promise<{ products: Product[]; live: boolean }> {
+  try {
+    const items: Awaited<ReturnType<typeof fetchProducts>> = [];
+    for (let page = 1; page <= 10; page++) {
+      const batch = await fetchProducts({ per_page: 48, page });
+      if (batch.length === 0) break;
+      items.push(...batch);
+      if (batch.length < 48) break;
+    }
+    if (items.length > 0) {
+      const detailed = await Promise.all(
+        items.map(async (it) => {
+          const d = await fetchProductDetail(it.slug);
+          return toStoreProduct(it, d ?? undefined);
+        }),
+      );
+      return { products: detailed, live: true };
+    }
+  } catch {
+    /* fallback below */
+  }
+  return { products: staticProducts, live: false };
+}
+
 export async function getProductBySlug(slug: string): Promise<{ product: Product; live: boolean }> {
   try {
     const d = await fetchProductDetail(slug);
@@ -39,6 +64,26 @@ export async function getProductBySlug(slug: string): Promise<{ product: Product
   const found = staticProducts.find((p) => p.slug === slug);
   if (!found) throw new Error(`Product not found: ${slug}`);
   return { product: found, live: false };
+}
+
+export interface TaxonomyMeta {
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+export async function fetchTaxonomy(
+  path: '/categories' | '/anime-series',
+): Promise<TaxonomyMeta[]> {
+  try {
+    const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+    const res = await fetch(`${base}/api/v1${path}`, { headers: { Accept: 'application/json' } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return (json?.data ?? []).map((c: { name: string; slug: string }) => ({ name: c.name, slug: c.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function getAllSlugs(): Promise<string[]> {

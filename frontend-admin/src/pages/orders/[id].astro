@@ -5,7 +5,7 @@ import PaymentStatusBadge from '../../components/domain/PaymentStatusBadge.astro
 import FulfillmentStatusBadge from '../../components/domain/FulfillmentStatusBadge.astro';
 import Button from '../../components/ui/Button.astro';
 import Badge from '../../components/ui/Badge.astro';
-import { apiGet, requireStaff } from '../../lib/api';
+import { API_URL, apiGet, requireStaff } from '../../lib/api';
 import { formatCurrency, formatDateTime } from '../../lib/formatters';
 
 export const prerender = false;
@@ -58,7 +58,13 @@ if (!order) return Astro.redirect('/orders');
     <Button variant="secondary" size="sm" href="/orders">
       ← Quay lại danh sách
     </Button>
-    <div id="order-actions" data-order-id={order.id} data-status={order.order_status} class="flex flex-wrap items-center gap-2"></div>
+    <a
+      href={`${API_URL}/api/v1/admin/orders/${order.id}/invoice`}
+      class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:border-[#17141F] text-[13px] font-bold text-[#17141F] shadow-xs"
+    >
+      🧾 Xuất hóa đơn PDF
+    </a>
+    <div id="order-actions" data-order-id={order.id} data-status={order.order_status} data-pay-status={order.payment_status} data-pay-method={order.payments[0]?.method ?? ''} class="flex flex-wrap items-center gap-2"></div>
   </div>
 
   <!-- Status Summary Banner -->
@@ -83,6 +89,11 @@ if (!order) return Astro.redirect('/orders');
     <div class="text-[13px] text-[#534F5C]">
       Hình thức: <strong class="text-[#17141F]">{order.payments[0]?.method ?? '—'}</strong>
       • Đã nhận: <strong class="text-[#17141F]">{formatCurrency(order.paid_amount)}</strong>
+      {order.payment_status !== 'paid' && (
+        <span class="block text-[11px] text-[#9A5A00] mt-1">
+          Trạng thái đơn và thanh toán độc lập: duyệt tiền ở mục “Thanh toán” bên dưới, chuyển đơn ở nút phía trên.
+        </span>
+      )}
     </div>
   </div>
 
@@ -283,10 +294,17 @@ if (!order) return Astro.redirect('/orders');
       )
       .join('');
 
+    const payStatus = holder.dataset.payStatus || '';
+    const payMethod = holder.dataset.payMethod || '';
     holder.querySelectorAll('button[data-to]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm(`Chuyển đơn sang "${(btn as HTMLElement).dataset.to}"?`)) return;
-        const { error } = await mutate(`/admin/orders/${orderId}/transition`, 'POST', { to: (btn as HTMLElement).dataset.to });
+        const to = (btn as HTMLElement).dataset.to || '';
+        if (['shipped', 'delivered', 'completed'].includes(to) && payStatus !== 'paid' && payMethod !== 'cod') {
+          if (!confirm(`Đơn này CHƯA THANH TOÁN (${payStatus || 'unpaid'}). Vẫn chuyển sang "${to}"?`)) return;
+        } else if (!confirm(`Chuyển đơn sang "${to}"?`)) {
+          return;
+        }
+        const { error } = await mutate(`/admin/orders/${orderId}/transition`, 'POST', { to });
         if (error) {
           alert(error.message || 'Chuyển trạng thái thất bại.');
           return;

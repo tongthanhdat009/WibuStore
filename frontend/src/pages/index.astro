@@ -5,6 +5,7 @@ import CategoryComicCard from '../components/comic/CategoryComicCard.astro';
 import FeaturedCollectionBanner from '../components/comic/FeaturedCollectionBanner.astro';
 import AnimeSeriesCard from '../components/comic/AnimeSeriesCard.astro';
 import ProductCard from '../components/catalog/ProductCard.astro';
+import VideoStory from '../components/comic/VideoStory.astro';
 import Button from '../components/ui/Button.astro';
 import StickerBadge from '../components/comic/StickerBadge.astro';
 
@@ -15,12 +16,34 @@ import { animeSeriesList } from '../data/anime';
 import { collections } from '../data/collections';
 import { formatVND } from '../lib/utils';
 import { getCatalogProducts } from '../lib/catalog';
+import { getHomeContent, findSection, isSectionEnabled } from '../lib/cms';
 
 const { products } = await getCatalogProducts();
-
-// Filter products for various sections
-const trendingProducts = products.filter((p) => p.isTrending || p.isFeatured).slice(0, 8);
-const liveTrending = trendingProducts.length > 0 ? trendingProducts : products.slice(0, 8);
+const homeContent = await getHomeContent();
+const heroSection = findSection(homeContent, 'hero_comic');
+const heroOn = isSectionEnabled(homeContent, 'hero_comic');
+const preorderOn = isSectionEnabled(homeContent, 'preorder_spotlight');
+const newArrivalsOn = isSectionEnabled(homeContent, 'new_arrivals');
+const heroOverride =
+  heroSection && heroSection.enabled !== false
+    ? {
+        badge: typeof heroSection.eyebrow === 'string' && heroSection.eyebrow ? heroSection.eyebrow : undefined,
+        headline: typeof heroSection.headline === 'string' && heroSection.headline ? heroSection.headline : undefined,
+        ctaText: typeof heroSection.cta_label === 'string' && heroSection.cta_label ? heroSection.cta_label : undefined,
+        ctaLink: typeof heroSection.cta_target === 'string' && heroSection.cta_target ? heroSection.cta_target : undefined,
+      }
+    : null;
+const heroCampaignsLive = heroCampaigns.map((c, i) =>
+  i === 0 && heroOverride
+    ? {
+        ...c,
+        badge: heroOverride.badge ?? c.badge,
+        displayEnglishHeadline: heroOverride.headline ?? c.displayEnglishHeadline,
+        primaryCtaText: heroOverride.ctaText ?? c.primaryCtaText,
+        primaryCtaLink: heroOverride.ctaLink ?? c.primaryCtaLink,
+      }
+    : c,
+);
 const preOrderProducts = products.filter((p) => p.status === 'pre_order').slice(0, 4);
 const newArrivalProducts = products.filter((p) => p.isNewArrival || p.status === 'in_stock').slice(0, 4);
 const featuredCollection = collections[0];
@@ -33,8 +56,8 @@ const featuredCollectionProducts = products.filter((p) =>
   title="Wibu Store — Anime Pop Comic Figures & Collectibles"
   description="Thế giới mô hình Anime Pop & Comic Editorial: Scale figure 1/7, Nendoroid, Action Figure, Gunpla chính hãng 100%."
 >
-  <!-- 1. Comic Cover Hero -->
-  <ComicCoverHero campaigns={heroCampaigns} />
+  <!-- 1. Comic Cover Hero (CMS hero_comic override slide 0) -->
+  {heroOn && <ComicCoverHero campaigns={heroCampaignsLive} />}
 
   <!-- 2. Quick Explore / Shop by Category -->
   <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 lg:pt-8 lg:pb-16">
@@ -66,72 +89,15 @@ const featuredCollectionProducts = products.filter((p) =>
     </div>
 
     <!-- Category Comic Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
       {categories.map((cat) => (
         <CategoryComicCard category={cat} />
       ))}
     </div>
   </section>
 
-  <!-- 3. Trending Figures (Commercial Clarity) -->
-  <section class="bg-[#F7F5F0] border-y-2 border-[#17141F] py-12 lg:py-18">
-    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div>
-          <div class="flex items-center gap-2 mb-1.5">
-            <StickerBadge text="HOT DROP" variant="yellow" angle="left" size="sm" />
-            <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
-              TOP SẢN PHẨM TUẦN NÀY
-            </span>
-          </div>
-          <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
-            TRENDING FIGURES
-          </h2>
-          <p class="text-xs sm:text-sm text-[#534F5C] mt-1">
-            Những mô hình đang được cộng đồng wibu và các nhà sưu tầm săn đón nhiều nhất
-          </p>
-        </div>
-
-        <!-- Filter tabs mock -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-          <button
-            type="button"
-            class="px-3.5 py-1.5 rounded-xl border-2 border-[#17141F] bg-[#17141F] text-white text-xs font-bold shadow-[2px_2px_0px_#FFD44A] cursor-pointer"
-          >
-            Tất cả nổi bật
-          </button>
-          <a
-            href="/figures?status=in_stock"
-            class="px-3.5 py-1.5 rounded-xl border border-[#D8D4D0] bg-white hover:border-[#17141F] text-[#534F5C] text-xs font-bold transition-all shrink-0"
-          >
-            Có sẵn giao ngay
-          </a>
-          <a
-            href="/pre-orders"
-            class="px-3.5 py-1.5 rounded-xl border border-[#D8D4D0] bg-white hover:border-[#17141F] text-[#534F5C] text-xs font-bold transition-all shrink-0"
-          >
-            Pre-order hot
-          </a>
-        </div>
-      </div>
-
-      <!-- 4 cols desktop / 2 cols mobile -->
-      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-        {liveTrending.map((p) => (
-          <ProductCard product={p} />
-        ))}
-      </div>
-
-      <div class="mt-10 text-center">
-        <Button href="/figures" variant="outline" size="lg">
-          <span>Xem thêm 150+ mô hình khác</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-          </svg>
-        </Button>
-      </div>
-    </div>
-  </section>
+  <!-- 3. Video Story (Scrollytelling) -->
+  <VideoStory />
 
   <!-- 4. Featured Manga Collection (Asymmetric Comic Collage) -->
   <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
@@ -141,7 +107,8 @@ const featuredCollectionProducts = products.filter((p) =>
     />
   </section>
 
-  <!-- 5. Pre-order Spotlight (Pre-order Zone) -->
+  <!-- 5. Pre-order Spotlight (CMS preorder_spotlight toggle) -->
+  {preorderOn && (
   <section class="bg-[#FFF4DC] border-y-2 border-[#17141F] py-12 lg:py-18 relative overflow-hidden">
     <!-- Subtle comic halftone pattern -->
     <div class="absolute inset-0 pattern-halftone opacity-15 pointer-events-none"></div>
@@ -175,7 +142,7 @@ const featuredCollectionProducts = products.filter((p) =>
       </div>
 
       <!-- Pre-order items with timeline and deposit tags -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {preOrderProducts.map((p) => (
           <div class="bg-white rounded-2xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] p-4 flex flex-col justify-between">
             <div>
@@ -219,6 +186,7 @@ const featuredCollectionProducts = products.filter((p) =>
       </div>
     </div>
   </section>
+  )}
 
   <!-- 6. Shop by Anime (Franchises) -->
   <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-18">
@@ -257,7 +225,8 @@ const featuredCollectionProducts = products.filter((p) =>
     </div>
   </section>
 
-  <!-- 7. New Arrivals -->
+  <!-- 7. New Arrivals (CMS new_arrivals toggle) -->
+  {newArrivalsOn && (
   <section class="bg-[#F7F5F0] border-t-2 border-[#17141F] pb-12 lg:pb-18">
     <div class="max-w-[1440px] mx-auto px-8 py-4">
       <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
@@ -288,6 +257,7 @@ const featuredCollectionProducts = products.filter((p) =>
       </div>
     </div>
   </section>
+  )}
 
   <!-- 8. Collector's Corner / Editorial Guide (P2) -->
   <section class="max-w-[1440px] mx-auto p-5">

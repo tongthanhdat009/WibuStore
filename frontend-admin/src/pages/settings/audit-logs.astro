@@ -9,10 +9,32 @@ const { redirect } = await requireStaff(Astro);
 if (redirect) return redirect;
 const page = currentPage(Astro);
 
-interface LogRow { id: number; actor_user_id?: number | null; action: string; subject_type?: string | null; subject_id?: string | null; request_id?: string | null; created_at: string }
+interface LogRow { id: number; actor_name?: string | null; action: string; subject_type?: string | null; subject_id?: string | null; request_id?: string | null; created_at: string }
 
 const { data: logData, meta: logMeta } = await apiGet<LogRow[]>(`/admin/activity-logs?per_page=20&page=${page}`, Astro);
 const logs = logData ?? [];
+
+const ACTION_LABELS: Record<string, string> = {
+  'order.created': 'Tạo đơn hàng',
+  'order.transition': 'Chuyển trạng thái đơn',
+  'payment.confirmed': 'Xác nhận thanh toán',
+  'payment.rejected': 'Từ chối thanh toán',
+  'product.created': 'Tạo sản phẩm',
+  'product.updated': 'Sửa sản phẩm',
+  'product.published': 'Xuất bản sản phẩm',
+  'product.archived': 'Lưu trữ sản phẩm',
+  'inventory.adjusted': 'Điều chỉnh tồn kho',
+  'cms.published': 'Xuất bản nội dung',
+  'review.moderated': 'Kiểm duyệt đánh giá',
+  'user.created': 'Tạo tài khoản',
+  'user.updated': 'Sửa tài khoản',
+  'user.deleted': 'Xóa tài khoản',
+  'user.roles_updated': 'Đổi vai trò',
+  'role.created': 'Tạo vai trò',
+  'role.updated': 'Sửa vai trò',
+  'role.deleted': 'Xóa vai trò',
+};
+const actionLabel = (code: string) => ACTION_LABELS[code] ?? code;
 ---
 
 <AdminLayout
@@ -45,10 +67,11 @@ const logs = logData ?? [];
                 {l.created_at}
               </td>
               <td class="py-3.5 px-4 font-bold text-[#17141F]">
-                {l.actor_user_id ? `#${l.actor_user_id}` : 'hệ thống'}
+                {l.actor_name ?? 'hệ thống'}
               </td>
-              <td class="py-3.5 px-4 font-mono text-[12px] text-[#D6284F] font-bold">
-                {l.action}
+              <td class="py-3.5 px-4">
+                <span class="text-[12px] font-bold text-[#17141F]">{actionLabel(l.action)}</span>
+                <span class="block font-mono text-[11px] text-[#6A6572]">{l.action}</span>
               </td>
               <td class="py-3.5 px-4 text-[#534F5C]">
                 {l.subject_type ?? '—'} <span class="font-mono text-[11px] text-[#6A6572]">({l.subject_id ?? '—'})</span>

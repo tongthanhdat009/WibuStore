@@ -3,18 +3,28 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import ProductGrid from '../../components/catalog/ProductGrid.astro';
 import StickerBadge from '../../components/comic/StickerBadge.astro';
-import { categories } from '../../data/categories';
-import { products } from '../../data/products';
+import { categories as staticCategories } from '../../data/categories';
+import { fetchTaxonomy, getCatalogProducts } from '../../lib/catalog';
 
-export function getStaticPaths() {
-  return categories.map((cat) => ({
-    params: { slug: cat.slug },
-    props: { category: cat },
-  }));
+export async function getStaticPaths() {
+  const apiCats = await fetchTaxonomy('/categories');
+  const slugs = new Set([...apiCats.map((c) => c.slug), ...staticCategories.map((c) => c.slug)]);
+  return [...slugs].map((slug) => ({ params: { slug }, props: {} }));
 }
 
-const { category } = Astro.props;
-const categoryProducts = products.filter((p) => p.category === category.id);
+const { slug } = Astro.params;
+const apiCats = await fetchTaxonomy('/categories');
+const found = apiCats.find((c) => c.slug === slug);
+const fallback = staticCategories.find((c) => c.slug === slug);
+const category = {
+  name: found?.name ?? fallback?.name ?? slug,
+  slug,
+  description: fallback?.description ?? `Các mô hình thuộc danh mục ${found?.name ?? slug}.`,
+  accentColor: fallback?.accentColor ?? '#FFD44A',
+  badge: fallback?.badge ?? 'CATALOG',
+  englishTitle: fallback?.englishTitle ?? 'CATEGORY',
+};
+const { products: categoryProducts } = await getCatalogProducts({ category: slug, per_page: 48 });
 ---
 
 <BaseLayout

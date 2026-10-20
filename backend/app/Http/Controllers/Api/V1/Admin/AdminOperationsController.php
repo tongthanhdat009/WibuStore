@@ -14,7 +14,9 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PreorderCampaign;
 use App\Models\PreorderReservation;
+use App\Models\ProductReview;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -33,10 +35,109 @@ class AdminOperationsController extends Controller
         ]]);
     }
 
+    public function tasks()
+    {
+        $tasks = [];
+        $now = now();
+
+        $pendings = Payment::with('order:id,order_number,placed_at')
+            ->where('status', 'pending')->where('method', 'bank_transfer')
+            ->orderBy('created_at')->take(20)->get();
+        foreach ($pendings as $p) {
+            $ageH = $p->created_at ? (int) $now->diffInHours($p->created_at) : 0;
+            $tasks[] = [
+                'key' => "payment:{$p->id}",
+                'severity' => $ageH >= 24 ? 'high' : 'normal',
+                'category' => 'payments',
+                'title' => "Chờ xác nhận chuyển khoản đơn {$p->order?->order_number}",
+                'detail' => number_format((int) $p->amount, 0, ',', '.').' ₫ • tạo '.($p->created_at?->diffForHumans() ?? '—'),
+                'link' => '/orders',
+                'created_at' => $p->created_at,
+            ];
+        }
+
+        $failed = Payment::with('order:id,order_number')
+            ->where('status', 'failed')->orderByDesc('created_at')->take(10)->get();
+        foreach ($failed as $p) {
+            $tasks[] = [
+                'key' => "payment-failed:{$p->id}",
+                'severity' => 'high',
+                'category' => 'payments',
+                'title' => "Thanh toán thất bại đơn {$p->order?->order_number}",
+                'detail' => $p->reject_reason ?: 'Cần liên hệ khách / kiểm tra lại',
+                'link' => '/orders',
+                'created_at' => $p->created_at,
+            ];
+        }
+
+        $overdueDeposits = PreorderReservation::with('orderItem.order:id,order_number')
+            ->where('status', 'awaiting_deposit')->whereNotNull('deposit_deadline_at')
+            ->where('deposit_deadline_at', '<', $now)->orderBy('deposit_deadline_at')->take(20)->get();
+        foreach ($overdueDeposits as $r) {
+            $tasks[] = [
+                'key' => "reservation:{$r->id}",
+                'severity' => 'high',
+                'category' => 'preorders',
+                'title' => "Cọc pre-order quá hạn (đơn {$r->orderItem?->order?->order_number})",
+                'detail' => 'Hạn cọc: '.($r->deposit_deadline_at?->format('d/m/Y H:i') ?? '—'),
+                'link' => '/preorders',
+                'created_at' => $r->deposit_deadline_at,
+            ];
+        }
+
+        $balanceDues = PreorderReservation::with('orderItem.order:id,order_number')
+            ->where('status', 'balance_due')->orderBy('balance_deadline_at')->take(20)->get();
+        foreach ($balanceDues as $r) {
+            $overdue = $r->balance_deadline_at && $r->balance_deadline_at->lt($now);
+            $tasks[] = [
+                'key' => "balance:{$r->id}",
+                'severity' => $overdue ? 'high' : 'normal',
+                'category' => 'preorders',
+                'title' => "Thu số dư pre-order (đơn {$r->orderItem?->order?->order_number})",
+                'detail' => number_format((int) $r->balance_due_amount, 0, ',', '.').' ₫ • hạn: '.($r->balance_deadline_at?->format('d/m/Y H:i') ?? '—'),
+                'link' => '/preorders',
+                'created_at' => $r->created_at,
+            ];
+        }
+
+        $lows = InventoryLevel::with('variant:id,sku,product_id', 'variant.product:id,name')
+            ->whereRaw('on_hand - reserved <= 3')->orderByRaw('on_hand - reserved')->take(20)->get();
+        foreach ($lows as $lv) {
+            $avail = (int) $lv->on_hand - (int) $lv->reserved;
+            $tasks[] = [
+                'key' => "stock:{$lv->variant_id}",
+                'severity' => $avail <= 0 ? 'high' : 'normal',
+                'category' => 'inventory',
+                'title' => "Sắp hết hàng: {$lv->variant?->product?->name} ({$lv->variant?->sku})",
+                'detail' => "Khả dụng: {$avail} (tồn {$lv->on_hand}, giữ {$lv->reserved})",
+                'link' => '/inventory',
+                'created_at' => $lv->updated_at ?? $now,
+            ];
+        }
+
+        $reviews = ProductReview::with('product:id,name')
+            ->where('status', 'pending')->orderBy('created_at')->take(20)->get();
+        foreach ($reviews as $rv) {
+            $tasks[] = [
+                'key' => "review:{$rv->id}",
+                'severity' => 'normal',
+                'category' => 'reviews',
+                'title' => "Duyệt đánh giá {$rv->rating}★: {$rv->product?->name}",
+                'detail' => '“'.mb_substr((string) $rv->body, 0, 80).(mb_strlen((string) $rv->body) > 80 ? '…' : '').'”',
+                'link' => '/reviews',
+                'created_at' => $rv->created_at,
+            ];
+        }
+
+        usort($tasks, fn ($a, $b) => [($a['severity'] === 'high' ? 0 : 1), (string) ($a['created_at'] ?? '')] <=> [($b['severity'] === 'high' ? 0 : 1), (string) ($b['created_at'] ?? '')]);
+
+        return response()->json(['data' => $tasks]);
+    }
+
     public function orders(Request $request)
     {
         $q = Order::withCount('items')->orderByDesc('created_at');
-        foreach (['order_status', 'payment_status', 'checkout_type'] as $f) {
+        foreach (['order_status', 'payment_status', 'fulfillment_status', 'checkout_type'] as $f) {
             if ($v = $request->query($f)) {
                 $q->where($f, $v);
             }
@@ -53,6 +154,17 @@ class AdminOperationsController extends Controller
         return response()->json(['data' => Order::with(['items', 'payments', 'addresses', 'history'])->findOrFail($id)]);
     }
 
+    public function invoice(int $id)
+    {
+        $order = Order::with(['items', 'addresses'])->findOrFail($id);
+        $addr = $order->addresses->firstWhere('type', 'shipping');
+        $address = $addr ? trim("{$addr->line1}, {$addr->district}, {$addr->province}", ', ') : '—';
+
+        return Pdf::setOption(['defaultFont' => 'DejaVu Sans'])
+            ->loadView('pdf.invoice', ['order' => $order, 'address' => $address])
+            ->download("hoa-don-{$order->order_number}.pdf");
+    }
+
     public function transition(Request $request, int $id, OrderService $orders)
     {
         $data = $request->validate(['to' => ['required', 'string'], 'reason' => ['nullable', 'string']]);
@@ -66,6 +178,10 @@ class AdminOperationsController extends Controller
         $q = InventoryLevel::with(['variant:id,sku,label,product_id', 'variant.product:id,name'])->orderBy('updated_at', 'desc');
         if ($v = $request->query('variant_id')) {
             $q->where('variant_id', $v);
+        }
+        if ($s = $request->query('q')) {
+            $q->whereHas('variant', fn ($w) => $w->where('sku', 'ilike', "%{$s}%")
+                ->orWhereHas('product', fn ($p) => $p->where('name', 'ilike', "%{$s}%")));
         }
         $paginator = $q->paginate(min(100, max(1, (int) request()->query('per_page', 50))));
         $paginator->getCollection()->transform(fn ($l) => [
@@ -122,7 +238,11 @@ class AdminOperationsController extends Controller
             return response()->json(['data' => $c], 201);
         }
 
-        $paginator = PreorderCampaign::with(['variant:id,sku,label,product_id', 'variant.product:id,name'])->orderByDesc('created_at')->paginate(min(100, max(1, (int) request()->query('per_page', 20))));
+        $cq = PreorderCampaign::with(['variant:id,sku,label,product_id', 'variant.product:id,name'])->orderByDesc('created_at');
+        if ($request->isMethod('get') && $s = $request->query('status')) {
+            $cq->where('status', $s);
+        }
+        $paginator = $cq->paginate(min(100, max(1, (int) request()->query('per_page', 20))));
         $paginator->getCollection()->transform(fn ($c) => array_merge($c->toArray(), [
             'available' => max(0, $c->quota - $c->reserved_quantity),
             'sku' => $c->variant?->sku, 'variant_label' => $c->variant?->label,
@@ -173,7 +293,15 @@ class AdminOperationsController extends Controller
 
     public function reservations()
     {
-        return response()->json(PreorderReservation::orderByDesc('created_at')->paginate(min(100, max(1, (int) request()->query('per_page', 20)))));
+        return response()->json(PreorderReservation::orderByDesc('created_at')->paginate(20));
+    }
+
+    public function balanceDue(Request $request, int $id, PreorderService $preorders)
+    {
+        $days = max(1, (int) $request->input('due_days', 14));
+        $r = $preorders->markBalanceDue($id, $request->user()->id, $days);
+
+        return response()->json(['data' => $r]);
     }
 
     public function confirmPayment(Request $request, int $id, PaymentService $payments)
@@ -213,10 +341,13 @@ class AdminOperationsController extends Controller
         ]]);
     }
 
-    public function salesReport()
+    public function salesReport(Request $request)
     {
+        $days = min(90, max(1, (int) $request->query('days', 30)));
         $rows = Order::selectRaw("date_trunc('day', placed_at) as day, COUNT(*) as orders, SUM(total_amount) as gmv, SUM(paid_amount) as collected")
-            ->where('order_status', '!=', 'cancelled')->groupBy('day')->orderBy('day', 'desc')->limit(30)->get();
+            ->where('order_status', '!=', 'cancelled')
+            ->where('placed_at', '>=', now()->subDays($days))
+            ->groupBy('day')->orderBy('day', 'desc')->limit($days)->get();
 
         return response()->json(['data' => $rows]);
     }

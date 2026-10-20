@@ -23,11 +23,25 @@ interface AdminProduct {
 }
 
 const statusFilter = Astro.url.searchParams.get('status') ?? '';
+const q = Astro.url.searchParams.get('q') ?? '';
+const seriesFilter = Astro.url.searchParams.get('series') ?? '';
+const makerFilter = Astro.url.searchParams.get('maker') ?? '';
 const listParams: Record<string, string> = { per_page: '20', page: String(page) };
 if (statusFilter) listParams.status = statusFilter;
+if (q) listParams.q = q;
+if (seriesFilter) listParams.anime_series_id = seriesFilter;
+if (makerFilter) listParams.manufacturer_id = makerFilter;
 const qs = new URLSearchParams(listParams).toString();
 const { data: productData, meta: productMeta } = await apiGet<AdminProduct[]>(`/admin/products?${qs}`, Astro);
 const products = productData ?? [];
+const { data: seriesOpts } = await apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro);
+const { data: makerOpts } = await apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro);
+const filterParams: Record<string, string> = {
+  ...(statusFilter ? { status: statusFilter } : {}),
+  ...(q ? { q } : {}),
+  ...(seriesFilter ? { series: seriesFilter } : {}),
+  ...(makerFilter ? { maker: makerFilter } : {}),
+};
 ---
 
 <AdminLayout
@@ -37,12 +51,12 @@ const products = productData ?? [];
 >
   <!-- Header action slot -->
   <div slot="actions" class="flex gap-2">
-    <Button variant="secondary" size="sm">
+    <button id="export-csv-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:border-[#17141F] text-[13px] font-bold text-[#17141F] shadow-xs cursor-pointer">
       <svg class="w-4 h-4 text-[#534F5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
       </svg>
-      <span>Xuất Excel</span>
-    </Button>
+      <span>Xuất CSV</span>
+    </button>
     <Button variant="primary" size="sm" href="/products/new">
       <span>+ Thêm sản phẩm mới</span>
     </Button>
@@ -67,38 +81,37 @@ const products = productData ?? [];
   <!-- Filter Toolbar -->
   <div class="bg-white rounded-[12px] border border-[#D8D4D0] p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div class="flex flex-wrap items-center gap-2.5 flex-1">
-      <div class="relative w-full sm:w-64">
+      <form action="/products" method="GET" class="relative w-full sm:w-64">
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
         <input
           type="text"
+          name="q"
+          value={q}
           placeholder="Tìm tên figure, SKU, anime..."
           class="w-full h-9 pl-8 pr-3 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
         />
-        <svg class="w-4 h-4 text-[#6A6572] absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-[#6A6572] absolute left-2.5 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
-      </div>
+      </form>
 
-      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
-        <option>Tất cả Anime Series</option>
-        <option>Jujutsu Kaisen</option>
-        <option>One Piece</option>
-        <option>Spy x Family</option>
-        <option>Chainsaw Man</option>
-      </select>
+      <form action="/products" method="GET" class="contents">
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
+        {q && <input type="hidden" name="q" value={q} />}
+        <select name="series" onchange="this.form.submit()" class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F] cursor-pointer">
+          <option value="">Tất cả Anime Series</option>
+          {(seriesOpts ?? []).map((s) => (
+            <option value={s.id} selected={seriesFilter === String(s.id)}>{s.name}</option>
+          ))}
+        </select>
 
-      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
-        <option>Tất cả loại figure</option>
-        <option>Scale Figures</option>
-        <option>Nendoroid</option>
-        <option>Action Figures</option>
-      </select>
-
-      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
-        <option>Trạng thái tồn kho</option>
-        <option>Còn hàng</option>
-        <option>Tồn kho thấp</option>
-        <option>Hết hàng</option>
-      </select>
+        <select name="maker" onchange="this.form.submit()" class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F] cursor-pointer">
+          <option value="">Tất cả hãng</option>
+          {(makerOpts ?? []).map((m) => (
+            <option value={m.id} selected={makerFilter === String(m.id)}>{m.name}</option>
+          ))}
+        </select>
+      </form>
     </div>
 
     <div class="text-[12px] text-[#6A6572] shrink-0">
@@ -194,6 +207,34 @@ const products = productData ?? [];
         </tbody>
       </table>
     </div>
-    <Pagination meta={productMeta} pathname="/products" params={statusFilter ? { status: statusFilter } : {}} />
+    <Pagination meta={productMeta} pathname="/products" params={filterParams} />
   </div>
+
+  <script>
+    import { downloadCSV } from '../../lib/export';
+
+    document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('export-csv-btn') as HTMLButtonElement | null;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang xuất...';
+      }
+      try {
+        const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+        const res = await fetch(`${base}/api/v1/admin/products?per_page=100`, { credentials: 'include', headers: { Accept: 'application/json' } });
+        const json = await res.json();
+        const rows = (json?.data ?? []).map((p: { id: number; name: string; slug: string; status: string; series?: string; manufacturer?: string; min_price?: number }) => [
+          p.id, p.name, p.slug, p.status, p.series ?? '', p.manufacturer ?? '', p.min_price ?? '',
+        ]);
+        downloadCSV('products.csv', ['ID', 'Tên', 'Slug', 'Trạng thái', 'Series', 'Hãng', 'Giá từ (VND)'], rows);
+      } catch {
+        alert('Xuất thất bại. Kiểm tra đăng nhập.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Xuất CSV';
+        }
+      }
+    });
+  </script>
 </AdminLayout>

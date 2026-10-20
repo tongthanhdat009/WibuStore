@@ -112,6 +112,7 @@ export interface CartItem {
   id: string;
   productId: string;
   variantId?: number;
+  preorderCampaignId?: number;
   slug: string;
   name: string;
   series: string;

@@ -22,8 +22,17 @@ class AdminCatalogController extends Controller
         if ($s = $request->query('status')) {
             $q->where('status', $s);
         }
+        if ($v = $request->query('anime_series_id')) {
+            $q->where('anime_series_id', $v);
+        }
+        if ($v = $request->query('manufacturer_id')) {
+            $q->where('manufacturer_id', $v);
+        }
         if ($s = $request->query('q')) {
-            $q->where('name', 'ilike', '%'.$s.'%');
+            $q->where(fn ($w) => $w->where('name', 'ilike', '%'.$s.'%')
+                ->orWhere('slug', 'ilike', '%'.$s.'%')
+                ->orWhereHas('activeVariants', fn ($v) => $v->where('sku', 'ilike', '%'.$s.'%'))
+                ->orWhereHas('series', fn ($sr) => $sr->where('name', 'ilike', '%'.$s.'%')));
         }
         $paginator = $q->paginate(min(100, max(1, (int) request()->query('per_page', 20))));
         $variantIds = $paginator->getCollection()->flatMap(fn ($p) => $p->activeVariants->pluck('id'))->unique();
@@ -164,6 +173,27 @@ class AdminCatalogController extends Controller
         }
 
         return response()->json(['data' => AnimeSeries::withCount('products')->orderBy('name')->get()]);
+    }
+
+    public function reviews(Request $request)
+    {
+        $q = \App\Models\ProductReview::with(['product:id,name,slug', 'user:id,name'])->orderByDesc('created_at');
+        if ($s = $request->query('status')) {
+            $q->where('status', $s);
+        }
+        $paginator = $q->paginate(min(100, max(1, (int) $request->query('per_page', 20))));
+
+        return response()->json($paginator);
+    }
+
+    public function moderateReview(Request $request, int $id)
+    {
+        $review = \App\Models\ProductReview::findOrFail($id);
+        $to = $request->validate(['status' => ['required', 'in:approved,rejected']])['status'];
+        $review->update(['status' => $to]);
+        ActivityLog::record('review.moderated', 'product_review', (string) $id, [], ['status' => $to]);
+
+        return response()->json(['data' => $review->fresh()]);
     }
 
     public function manufacturers(Request $request)

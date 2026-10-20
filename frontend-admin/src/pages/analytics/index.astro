@@ -24,9 +24,9 @@ const aov = orders > 0 ? Math.round(gmv / orders) : 0;
   breadcrumbs={[{ label: 'Báo cáo' }, { label: 'Tổng quan kinh doanh' }]}
 >
   <div slot="actions" class="flex gap-2">
-    <Button variant="secondary" size="sm">
-      Xuất dữ liệu PDF / Excel
-    </Button>
+    <button id="export-csv-btn" type="button" class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:border-[#17141F] text-[13px] font-bold text-[#17141F] shadow-xs cursor-pointer">
+      Xuất CSV doanh thu
+    </button>
   </div>
 
   <!-- Metric row -->
@@ -81,4 +81,22 @@ const aov = orders > 0 ? Math.round(gmv / orders) : 0;
       </table>
     </div>
   </div>
+
+  <script>
+    import { downloadCSV } from '../../lib/export';
+
+    document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
+      try {
+        const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+        const res = await fetch(`${base}/api/v1/admin/reports/sales?days=90`, { credentials: 'include', headers: { Accept: 'application/json' } });
+        const json = await res.json();
+        const rows = (json?.data ?? []).map((r: { day: string; orders: number; gmv: number; collected: number }) => [
+          new Date(r.day).toLocaleDateString('vi-VN'), r.orders, r.gmv, r.collected,
+        ]);
+        downloadCSV('sales-report.csv', ['Ngày', 'Số đơn', 'GMV (VND)', 'Thực thu (VND)'], rows);
+      } catch {
+        alert('Xuất thất bại. Kiểm tra đăng nhập.');
+      }
+    });
+  </script>
 </AdminLayout>

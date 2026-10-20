@@ -2,71 +2,114 @@
 import AdminLayout from '../layouts/AdminLayout.astro';
 import Badge from '../components/ui/Badge.astro';
 import Button from '../components/ui/Button.astro';
-import { mockTasks } from '../data/mockData';
+import { apiGet, requireStaff } from '../lib/api';
+
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+
+interface WorkTask {
+  key: string;
+  severity: 'high' | 'normal';
+  category: 'payments' | 'preorders' | 'inventory' | 'reviews';
+  title: string;
+  detail: string;
+  link: string;
+  created_at?: string | null;
+}
+
+const { data: taskData } = await apiGet<WorkTask[]>('/admin/dashboard/tasks', Astro);
+const tasks = taskData ?? [];
+
+const categoryLabel: Record<WorkTask['category'], string> = {
+  payments: 'Thanh toán',
+  preorders: 'Pre-order',
+  inventory: 'Kho hàng',
+  reviews: 'Đánh giá',
+};
+
+const counts = {
+  all: tasks.length,
+  high: tasks.filter((t) => t.severity === 'high').length,
+  payments: tasks.filter((t) => t.category === 'payments').length,
+  preorders: tasks.filter((t) => t.category === 'preorders').length,
+  inventory: tasks.filter((t) => t.category === 'inventory').length,
+  reviews: tasks.filter((t) => t.category === 'reviews').length,
+};
 ---
 
 <AdminLayout
   title="Việc cần xử lý (Work Queue)"
-  description="Danh sách các đầu việc vận hành khẩn cấp cần nhân sự xử lý để đảm bảo tiến độ đơn hàng"
+  description="Hàng đợi vận hành tổng hợp trực tiếp từ dữ liệu: thanh toán chờ xác nhận, cọc pre-order, tồn kho thấp, đánh giá chờ duyệt"
   breadcrumbs={[{ label: 'Tổng quan', href: '/' }, { label: 'Việc cần xử lý' }]}
 >
   <div slot="actions" class="flex gap-2">
-    <Button variant="secondary" size="sm">
-      <span>Đánh dấu đã hoàn thành tất cả</span>
-    </Button>
+    <button
+      id="dismiss-all-btn"
+      type="button"
+      class="inline-flex items-center px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-bold text-[#17141F] shadow-xs cursor-pointer"
+    >
+      <span>Ẩn tất cả đang hiện</span>
+    </button>
+    <button
+      id="restore-btn"
+      type="button"
+      class="hidden items-center px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-bold text-[#3258D7] shadow-xs cursor-pointer"
+    >
+      <span>Hiện lại việc đã ẩn</span>
+    </button>
   </div>
 
   <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
-    <!-- Filter Bar -->
     <div class="p-4 border-b border-[#D8D4D0] bg-[#FAF8F5] flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-2">
-        <button class="px-3 py-1.5 rounded-[6px] bg-[#17141F] text-white text-[13px] font-bold">
-          Tất cả (4)
-        </button>
-        <button class="px-3 py-1.5 rounded-[6px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-semibold text-[#534F5C]">
-          Khẩn cấp (2)
-        </button>
-        <button class="px-3 py-1.5 rounded-[6px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-semibold text-[#534F5C]">
-          Đơn hàng & Cọc (2)
-        </button>
-        <button class="px-3 py-1.5 rounded-[6px] bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] text-[13px] font-semibold text-[#534F5C]">
-          Kho & Review (2)
-        </button>
+      <div class="flex items-center gap-2 flex-wrap" id="task-filters">
+        <button type="button" data-filter="all" class="task-filter px-3 py-1.5 rounded-[6px] text-[13px] font-bold">Tất cả ({counts.all})</button>
+        <button type="button" data-filter="high" class="task-filter px-3 py-1.5 rounded-[6px] text-[13px] font-semibold">Khẩn cấp ({counts.high})</button>
+        <button type="button" data-filter="payments" class="task-filter px-3 py-1.5 rounded-[6px] text-[13px] font-semibold">Thanh toán ({counts.payments})</button>
+        <button type="button" data-filter="preorders" class="task-filter px-3 py-1.5 rounded-[6px] text-[13px] font-semibold">Pre-order ({counts.preorders})</button>
+        <button type="button" data-filter="inventory" class="task-filter px-3 py-1.5 rounded-[6px] text-[13px] font-semibold">Kho ({counts.inventory})</button>
+        <button type="button" data-filter="reviews" class="task-filter px-3 py-1.5 rounded-[6px] text-[13px] font-semibold">Đánh giá ({counts.reviews})</button>
       </div>
 
-      <div class="text-[12px] text-[#6A6572]">
+      <div class="text-[12px] text-[#6A6572]" id="task-auto-refresh-label">
         Tự động làm mới mỗi 60 giây
       </div>
     </div>
 
-    <!-- Task List -->
-    <ul class="divide-y divide-[#F2EFE9]">
-      {mockTasks.map((t) => (
-        <li class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#FDFBF7] transition-colors">
+    <div id="task-empty" class="hidden p-10 text-center">
+      <div class="text-4xl mb-2">🎉</div>
+      <p class="text-[14px] font-bold text-[#17141F]">Tuyệt vời, không còn việc tồn đọng!</p>
+      <p class="text-[12px] text-[#6A6572] mt-1">Mọi thanh toán, cọc pre-order, tồn kho và đánh giá đều đã được xử lý.</p>
+    </div>
+
+    <ul id="task-list" class="divide-y divide-[#F2EFE9]">
+      {tasks.map((t) => (
+        <li
+          data-task-key={t.key}
+          data-task-category={t.category}
+          data-task-severity={t.severity}
+          class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#FDFBF7] transition-colors"
+        >
           <div class="flex items-start gap-3.5">
             <input
               type="checkbox"
-              class="mt-1 w-4 h-4 rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7]"
+              data-dismiss-task={t.key}
+              aria-label={`Ẩn việc: ${t.title}`}
+              class="mt-1 w-4 h-4 rounded border-[#D8D4D0] text-[#D6284F] focus:ring-[#3258D7] cursor-pointer"
             />
             <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                  t.priority === 'high' ? 'bg-[#FDEDEC] text-[#B42318]' : 'bg-[#FFF3DA] text-[#9A5A00]'
-                }`}>
-                  {t.priority === 'high' ? 'Khẩn cấp' : 'Bình thường'}
-                </span>
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <Badge variant={t.severity === 'high' ? 'danger' : 'warning'} size="sm">
+                  {t.severity === 'high' ? 'Khẩn cấp' : 'Bình thường'}
+                </Badge>
                 <span class="text-[11px] font-bold uppercase text-[#6A6572] tracking-wider">
-                  Mô-đun {t.type}
+                  {categoryLabel[t.category]}
                 </span>
-                <span class="text-[#D8D4D0]">•</span>
-                <span class="text-[12px] text-[#6A6572]">{t.createdAt}</span>
               </div>
               <h3 class="text-[15px] font-bold text-[#17141F]">
                 {t.title}
               </h3>
-              <p class="text-[13px] text-[#534F5C] mt-0.5 flex items-center gap-1.5">
-                <span class="text-[#D6284F] font-bold">⚠️</span>
-                <span>Thời hạn: <strong>{t.dueNotice}</strong></span>
+              <p class="text-[13px] text-[#534F5C] mt-0.5">
+                {t.detail}
               </p>
             </div>
           </div>
@@ -80,4 +123,100 @@ import { mockTasks } from '../data/mockData';
       ))}
     </ul>
   </div>
+
+  <script>
+    const DISMISS_KEY = 'wibu_admin_dismissed_tasks_v1';
+
+    function readDismissed(): string[] {
+      try {
+        return JSON.parse(localStorage.getItem(DISMISS_KEY) || '[]') as string[];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveDismissed(ids: string[]) {
+      localStorage.setItem(DISMISS_KEY, JSON.stringify(ids));
+    }
+
+    const list = document.getElementById('task-list');
+    const emptyBox = document.getElementById('task-empty');
+    const restoreBtn = document.getElementById('restore-btn');
+    let activeFilter = 'all';
+
+    function rowVisible(li: HTMLElement, dismissed: string[]): boolean {
+      if (dismissed.includes(li.dataset.taskKey || '')) return false;
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'high') return li.dataset.taskSeverity === 'high';
+      return li.dataset.taskCategory === activeFilter;
+    }
+
+    function refresh() {
+      const dismissed = readDismissed();
+      let shown = 0;
+      list?.querySelectorAll<HTMLElement>('li[data-task-key]').forEach((li) => {
+        const show = rowVisible(li, dismissed);
+        li.classList.toggle('hidden', !show);
+        const box = li.querySelector<HTMLInputElement>('input[data-dismiss-task]');
+        if (box) box.checked = dismissed.includes(li.dataset.taskKey || '');
+        if (show) shown++;
+      });
+      emptyBox?.classList.toggle('hidden', shown > 0);
+      list?.classList.toggle('hidden', shown === 0);
+      if (restoreBtn) {
+        const hasHidden = dismissed.length > 0;
+        restoreBtn.classList.toggle('hidden', !hasHidden);
+        restoreBtn.classList.toggle('inline-flex', hasHidden);
+      }
+    }
+
+    function paintFilters() {
+      document.querySelectorAll<HTMLButtonElement>('.task-filter').forEach((btn) => {
+        const on = btn.dataset.filter === activeFilter;
+        btn.className = `task-filter px-3 py-1.5 rounded-[6px] text-[13px] cursor-pointer ${
+          on
+            ? 'bg-[#17141F] text-white font-bold'
+            : 'bg-white border border-[#D8D4D0] hover:bg-[#F7F5F0] font-semibold text-[#534F5C]'
+        }`;
+      });
+    }
+
+    document.querySelectorAll<HTMLButtonElement>('.task-filter').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        activeFilter = btn.dataset.filter || 'all';
+        paintFilters();
+        refresh();
+      });
+    });
+
+    list?.querySelectorAll<HTMLInputElement>('input[data-dismiss-task]').forEach((box) => {
+      box.addEventListener('change', () => {
+        const key = box.closest('li')?.dataset.taskKey || '';
+        const dismissed = readDismissed();
+        if (box.checked && !dismissed.includes(key)) dismissed.push(key);
+        if (!box.checked) saveDismissed(dismissed.filter((k) => k !== key));
+        else saveDismissed(dismissed);
+        refresh();
+      });
+    });
+
+    document.getElementById('dismiss-all-btn')?.addEventListener('click', () => {
+      const dismissed = readDismissed();
+      list?.querySelectorAll<HTMLElement>('li[data-task-key]:not(.hidden)').forEach((li) => {
+        const key = li.dataset.taskKey || '';
+        if (key && !dismissed.includes(key)) dismissed.push(key);
+      });
+      saveDismissed(dismissed);
+      refresh();
+    });
+
+    restoreBtn?.addEventListener('click', () => {
+      saveDismissed([]);
+      refresh();
+    });
+
+    paintFilters();
+    refresh();
+    window.setTimeout(() => window.location.reload(), 60000);
+  </script>
 </AdminLayout>

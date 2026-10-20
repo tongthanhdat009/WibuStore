@@ -3,18 +3,78 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import ProductGrid from '../../components/catalog/ProductGrid.astro';
 import StickerBadge from '../../components/comic/StickerBadge.astro';
-import { collections } from '../../data/collections';
-import { products } from '../../data/products';
+import { collections as staticCollections } from '../../data/collections';
+import { getProductBySlug } from '../../lib/catalog';
 
-export function getStaticPaths() {
-  return collections.map((col) => ({
-    params: { slug: col.slug },
-    props: { collection: col },
+export async function getStaticPaths() {
+  const slugs = new Set(staticCollections.map((col) => col.slug));
+  try {
+    const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+    const res = await fetch(`${base}/api/v1/collections`, { headers: { Accept: 'application/json' } });
+    if (res.ok) {
+      const json = await res.json();
+      for (const p of json?.data ?? []) {
+        if (p?.slug) slugs.add(String(p.slug).replace(/^collection-/, ''));
+      }
+    }
+  } catch {
+  }
+  return [...slugs].map((slug) => ({
+    params: { slug },
+    props: { collection: staticCollections.find((c) => c.slug === slug) },
   }));
 }
 
-const { collection } = Astro.props;
-const collectionProducts = products.filter((p) => collection.productSlugs.includes(p.slug));
+const { slug } = Astro.params;
+const staticOne = staticCollections.find((c) => c.slug === slug);
+
+interface CollectionContent {
+  title?: string;
+  tagline?: string;
+  description?: string;
+  badge?: string;
+  products?: string[];
+}
+
+let collection = staticOne
+  ? { ...staticOne }
+  : { slug, title: slug, tagline: '', description: '', badge: 'COLLECTION', productSlugs: [] as string[] };
+let liveSlugs: string[] | null = null;
+try {
+  const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+  const res = await fetch(`${base}/api/v1/collections/${encodeURIComponent(slug)}`, { headers: { Accept: 'application/json' } });
+  if (res.ok) {
+    const json = await res.json();
+    const content = (json?.data ?? {}) as CollectionContent;
+    collection = {
+      slug,
+      title: content.title ?? collection.title,
+      tagline: content.tagline ?? ('tagline' in collection ? (collection as { tagline: string }).tagline : ''),
+      description: content.description ?? collection.description,
+      badge: content.badge ?? collection.badge,
+      productSlugs: content.products ?? collection.productSlugs,
+    };
+    if (content.products) liveSlugs = content.products;
+  }
+} catch {
+}
+if (!staticOne && !liveSlugs) {
+  throw new Error(`Collection not found: ${slug}`);
+}
+
+const { products: staticProducts } = await import('../../data/products').then((m) => ({ products: m.products }));
+let collectionProducts = staticProducts.filter((p) => collection.productSlugs.includes(p.slug));
+if (liveSlugs) {
+  const found: typeof staticProducts = [];
+  for (const s of liveSlugs.slice(0, 12)) {
+    try {
+      const { product } = await getProductBySlug(s);
+      found.push(product);
+    } catch {
+    }
+  }
+  if (found.length > 0) collectionProducts = found;
+}
 ---
 
 <BaseLayout

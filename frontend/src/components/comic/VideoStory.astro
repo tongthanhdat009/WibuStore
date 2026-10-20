@@ -1,0 +1,402 @@
+---
+import StickerBadge from './StickerBadge.astro';
+import Button from '../ui/Button.astro';
+
+interface Chapter {
+  src: string;
+  tag: string;
+  title: string;
+  subtitle: string;
+  body: string;
+}
+
+const chapters: Chapter[] = [
+  {
+    src: '/videos/ichigo.mp4',
+    tag: 'CHƯƠNG 01',
+    title: 'ICHIGO',
+    subtitle: 'Bleach — Tử thần thức tỉnh',
+    body: 'Lưỡi kiếm trảm hồn xé toang màn đêm. Cuộn xuống để tua từng khung hình, xem Yaiba Ichigo xoay chuyển giữa đống đổ nát.',
+  },
+  {
+    src: '/videos/goku.mp4',
+    tag: 'CHƯƠNG 02',
+    title: 'GOKU',
+    subtitle: 'Dragon Ball — Saiyan vượt giới hạn',
+    body: 'Hào quang Super Saiyan bùng nổ cùng rồng thần. Mỗi nhịp cuộn là một nhịp năng lượng dồn vào đòn Kamehameha.',
+  },
+  {
+    src: '/videos/promo.mp4',
+    tag: 'CHƯƠNG 03',
+    title: 'WIBU STORE',
+    subtitle: 'Anime Pop Collectibles — Chính hãng 100%',
+    body: 'Vòng lửa khép lại câu chuyện. Hơn 50 mô hình Scale, Nendoroid, Gunpla đang chờ bạn khám phá.',
+  },
+];
+---
+
+<div id="video-story" class="relative bg-[#FFFDF7] border-y-2 border-[#17141F]" style="height: 420vh">
+  <div class="sticky top-0 h-svh min-h-[560px] flex flex-col justify-center overflow-hidden">
+    <div class="absolute inset-0 pattern-halftone opacity-10 pointer-events-none"></div>
+
+    <div class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div class="flex items-center gap-2 mb-4">
+        <StickerBadge text="STORY" variant="brand" angle="left" size="sm" />
+        <span id="story-counter" class="ml-auto font-display text-sm text-[#534F5C] tracking-wider">
+          <span id="story-current" class="text-[#D6284F]">01</span> / 03
+        </span>
+      </div>
+
+      <div aria-hidden="true" class="pointer-events-none select-none absolute inset-0 flex items-center justify-center overflow-hidden">
+        <span id="story-bignum" class="font-display leading-none text-transparent opacity-[0.08] [-webkit-text-stroke:3px_#17141F] text-[42vw] lg:text-[24rem] [@media(min-width:1024px)_and_(min-height:850px)]:lg:text-[30rem]">01</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-3 sm:gap-4 lg:gap-8 [@media(min-width:1024px)_and_(min-height:850px)]:lg:gap-14 items-center relative">
+        <div class="relative min-h-[110px] sm:min-h-[130px] lg:min-h-[320px] order-1">
+          {chapters.map((clip, i) => (
+            <div
+              data-story-left={i}
+              class="lg:absolute lg:inset-0 lg:flex lg:flex-col lg:justify-center"
+              class:list={[{ 'story-off': i !== 0 }]}
+            >
+              <span class="inline-block w-fit font-display text-[11px] uppercase tracking-wider px-2 py-0.5 bg-[#17141F] text-[#FFD44A] rounded-md mb-2 sm:mb-3">
+                {clip.tag}
+              </span>
+              <h2 class="font-display text-4xl sm:text-5xl xl:text-6xl [@media(min-width:1280px)_and_(min-height:850px)]:text-7xl text-[#17141F] uppercase tracking-tight leading-[0.95]">
+                {clip.title}
+              </h2>
+            </div>
+          ))}
+        </div>
+
+        <div class="relative mx-auto w-full max-w-[360px] sm:max-w-[420px] lg:w-[min(42vw,70svh)] lg:max-w-[680px] lg:mx-auto order-2">
+          <div aria-hidden="true" class="sunburst absolute -inset-8 sm:-inset-12 rounded-full pointer-events-none"></div>
+          <div aria-hidden="true" class="bob absolute -top-2 -left-3 sm:-left-6 z-20 hidden sm:flex items-center font-display text-xs bg-[#D6284F] text-white px-3 py-1.5 rounded-xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] -rotate-12">
+            HOT!
+          </div>
+          <div aria-hidden="true" class="bob bob-late absolute -bottom-2 -right-2 sm:-right-5 z-20 hidden sm:flex items-center font-display text-xs bg-[#FFD44A] text-[#17141F] px-3 py-1.5 rounded-xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] rotate-6">
+            NEW DROP
+          </div>
+          <canvas data-story-canvas class="relative z-10 block w-full aspect-square"></canvas>
+          {chapters.map((clip) => (
+            <video
+              data-story-video
+              class="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+              src={clip.src}
+              muted
+              playsinline
+              preload="auto"
+              disablepictureinpicture
+              aria-hidden="true"
+              tabindex="-1"
+            />
+          ))}
+        </div>
+
+        <div class="relative min-h-[150px] sm:min-h-[170px] lg:min-h-[320px] order-3">
+          {chapters.map((clip, i) => (
+            <div
+              data-story-right={i}
+              class="lg:absolute lg:inset-0 lg:flex lg:flex-col lg:justify-center"
+              class:list={[{ 'story-off': i !== 0 }]}
+            >
+              <p class="font-bold text-sm sm:text-base [@media(min-height:850px)]:sm:text-lg text-[#D6284F]">{clip.subtitle}</p>
+              <p class="text-xs sm:text-sm [@media(min-height:850px)]:sm:text-base text-[#534F5C] mt-2 sm:mt-3 max-w-[46ch]">{clip.body}</p>
+              {i === chapters.length - 1 && (
+                <div class="mt-4 sm:mt-5">
+                  <Button href="/figures" variant="primary" size="md">
+                    <span>Khám phá 54 mô hình</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+          <div class="hidden lg:flex items-center gap-2 mt-6">
+            <span class="font-display text-[10px] uppercase tracking-wider px-2 py-0.5 bg-white border-2 border-[#17141F] rounded-md shadow-[2px_2px_0px_#17141F]">CHÍNH HÃNG 100%</span>
+            <span class="font-display text-[10px] uppercase tracking-wider px-2 py-0.5 bg-white border-2 border-[#17141F] rounded-md shadow-[2px_2px_0px_#17141F]">FULL BOX</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center gap-4">
+        <div class="flex-1 h-2 rounded-full bg-[#17141F]/10 border border-[#17141F]/20 overflow-hidden">
+          <div id="story-progress" class="h-full w-0 bg-[#D6284F] rounded-full"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          {chapters.map((clip, i) => (
+            <button
+              type="button"
+              data-story-dot={i}
+              aria-label={`Tới ${clip.tag}`}
+              title={clip.title}
+              class="story-dot h-2.5 rounded-full border-2 border-[#17141F] transition-all cursor-pointer"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .story-dot {
+    width: 10px;
+    background: transparent;
+  }
+  .story-dot[data-active='true'] {
+    width: 28px;
+    background: #d6284f;
+  }
+  .story-off {
+    display: none !important;
+  }
+  .story-video {
+    background: transparent;
+  }
+  .sunburst {
+    background: repeating-conic-gradient(from 0deg, rgba(214, 40, 79, 0.14) 0deg 5deg, transparent 5deg 11deg);
+    -webkit-mask-image: radial-gradient(circle, black 25%, transparent 68%);
+    mask-image: radial-gradient(circle, black 25%, transparent 68%);
+    animation: story-spin 70s linear infinite;
+  }
+  @keyframes story-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .bob {
+    animation: story-bob 3.2s ease-in-out infinite alternate;
+  }
+  .bob-late {
+    animation-delay: -1.6s;
+  }
+  @keyframes story-bob {
+    from {
+      transform: translateY(-6px) rotate(-4deg);
+    }
+    to {
+      transform: translateY(6px) rotate(4deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sunburst,
+    .bob {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  function lumaKeyFrame(canvas: HTMLCanvasElement, video: HTMLVideoElement): boolean {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return false;
+    const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
+    if (!ctx) return false;
+    const scale = Math.min(1, 800 / Math.max(vw, vh));
+    const W = Math.max(2, Math.round(vw * scale));
+    const H = Math.max(2, Math.round(vh * scale));
+    if (canvas.width !== W || canvas.height !== H) {
+      canvas.width = W;
+      canvas.height = H;
+    }
+    ctx.drawImage(video, 0, 0, W, H);
+    const img = ctx.getImageData(0, 0, W, H);
+    const d = img.data;
+    let opaque = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i];
+      const g = d[i + 1];
+      const b = d[i + 2];
+      const mn = r < g ? (r < b ? r : b) : g < b ? g : b;
+      const mx = r > g ? (r > b ? r : b) : g > b ? g : b;
+      if (mx - mn < 24) {
+        let a = 255;
+        if (mn >= 250) a = 0;
+        else if (mn > 232) a = Math.round((255 * (250 - mn)) / 18);
+        if (a < d[i + 3]) d[i + 3] = a;
+      }
+      if (d[i + 3] > 8) opaque++;
+    }
+    if (opaque < d.length / 4 / 50) return false;
+    ctx.putImageData(img, 0, 0);
+    return true;
+  }
+
+  function initVideoStory() {
+    const wrap = document.getElementById('video-story') as HTMLElement | null;
+    if (!wrap || wrap.dataset.bound === 'true') return;
+    wrap.dataset.bound = 'true';
+
+    const videos = [...wrap.querySelectorAll<HTMLVideoElement>('[data-story-video]')];
+    const canvas = wrap.querySelector<HTMLCanvasElement>('[data-story-canvas]');
+    const lefts = [...wrap.querySelectorAll<HTMLElement>('[data-story-left]')];
+    const rights = [...wrap.querySelectorAll<HTMLElement>('[data-story-right]')];
+    const dots = [...wrap.querySelectorAll<HTMLButtonElement>('[data-story-dot]')];
+    const progress = document.getElementById('story-progress');
+    const current = document.getElementById('story-current');
+    const bignum = document.getElementById('story-bignum');
+    const total = videos.length;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let activeIdx = 0;
+    let lastDrawnIdx = -1;
+    let lastDrawnT = -1;
+    let targetT = 0;
+    let smoothT = -1;
+    let lastSeekAt = 0;
+
+    videos.forEach((v) => v.pause());
+
+    function seekSmooth(video: HTMLVideoElement, t: number) {
+      const fast = (video as HTMLVideoElement & { fastSeek?: (t: number) => void }).fastSeek;
+      try {
+        if (typeof fast === 'function') fast.call(video, t);
+        else video.currentTime = t;
+      } catch {
+      }
+    }
+
+    function drawActive() {
+      if (!canvas) return;
+      const video = videos[activeIdx];
+      if (!video || video.readyState < 2 || video.seeking) return;
+      if (activeIdx !== lastDrawnIdx || Math.abs(video.currentTime - lastDrawnT) > 0.001) {
+        if (lumaKeyFrame(canvas, video)) {
+          lastDrawnIdx = activeIdx;
+          lastDrawnT = video.currentTime;
+        }
+      }
+    }
+
+    (function tick() {
+      drawActive();
+      const video = videos[activeIdx];
+      if (video && video.readyState >= 1 && smoothT >= 0) {
+        if (smoothT !== targetT) smoothT += (targetT - smoothT) * 0.22;
+        if (Math.abs(smoothT - targetT) < 0.02) smoothT = targetT;
+        const now = performance.now();
+        if (Math.abs(video.currentTime - smoothT) > 0.08 && now - lastSeekAt > 90) {
+          lastSeekAt = now;
+          seekSmooth(video, smoothT);
+        }
+      }
+      requestAnimationFrame(tick);
+    })();
+    let durations = videos.map(() => 8);
+
+    function showChapter(idx: number) {
+      if (idx !== activeIdx) {
+        activeIdx = idx;
+        smoothT = targetT;
+      }
+      const changed = (els: HTMLElement[]) => {
+        let swapped = false;
+        els.forEach((t, i) => {
+          const on = i === idx;
+          if (on && t.classList.contains('story-off')) {
+            t.classList.remove('story-off');
+            t.animate(
+              [{ opacity: 0, transform: 'translateY(16px) scale(0.98)' }, { opacity: 1, transform: 'none' }],
+              { duration: 380, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+            );
+            swapped = true;
+          } else if (!on && !t.classList.contains('story-off')) {
+            t.classList.add('story-off');
+          }
+        });
+        return swapped;
+      };
+      const swapped = changed(lefts) || changed(rights);
+      if (swapped && canvas && !reduced) {
+        canvas.animate(
+          [{ transform: 'scale(0.96) rotate(-1deg)' }, { transform: 'none' }],
+          { duration: 380, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+        );
+      }
+      dots.forEach((d, i) => d.setAttribute('data-active', String(i === idx)));
+      if (current) current.textContent = String(idx + 1).padStart(2, '0');
+      if (bignum) bignum.textContent = String(idx + 1).padStart(2, '0');
+    }
+
+    function storyProgress(): number {
+      const top = wrap.getBoundingClientRect().top + window.scrollY;
+      const scrollable = Math.max(1, wrap.offsetHeight - window.innerHeight);
+      return Math.min(1, Math.max(0, (window.scrollY - top) / scrollable));
+    }
+
+    function scrub() {
+      if (reduced) return;
+      const p = storyProgress();
+      const totalDur = durations.reduce((a, b) => a + b, 0);
+      const tGlobal = p * totalDur;
+      let acc = 0;
+      let idx = total - 1;
+      let local = durations[idx];
+      for (let i = 0; i < total; i++) {
+        if (tGlobal < acc + durations[i] || i === total - 1) {
+          idx = i;
+          local = Math.min(durations[i], Math.max(0, tGlobal - acc));
+          break;
+        }
+        acc += durations[i];
+      }
+      targetT = local;
+      if (smoothT < 0) smoothT = local;
+      showChapter(idx);
+      if (progress) progress.style.width = `${p * 100}%`;
+    }
+
+    videos.forEach((video, i) => {
+      video.addEventListener('loadedmetadata', () => {
+        if (video.duration && Number.isFinite(video.duration)) durations[i] = video.duration;
+        scrub();
+      });
+      video.addEventListener('seeked', () => {
+        lastDrawnT = -1;
+      });
+    });
+
+    let ticking = false;
+    let settleTimer = 0;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          scrub();
+          ticking = false;
+        });
+      }
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        scrub();
+        const video = videos[activeIdx];
+        if (video && video.readyState >= 1 && Math.abs(video.currentTime - targetT) > 0.03) {
+          lastSeekAt = performance.now();
+          seekSmooth(video, targetT);
+        }
+      }, 300);
+    }, { passive: true });
+    window.addEventListener('resize', scrub);
+
+    dots.forEach((d, i) => {
+      d.addEventListener('click', () => {
+        const top = wrap.getBoundingClientRect().top + window.scrollY;
+        const scrollable = Math.max(1, wrap.offsetHeight - window.innerHeight);
+        window.scrollTo({ top: top + (scrollable * (i + 0.5)) / total, behavior: 'smooth' });
+      });
+    });
+
+    showChapter(0);
+    scrub();
+  }
+
+  initVideoStory();
+  document.addEventListener('astro:page-load', () => {
+    const wrap = document.getElementById('video-story') as HTMLElement | null;
+    if (wrap) delete wrap.dataset.bound;
+    initVideoStory();
+  });
+</script>

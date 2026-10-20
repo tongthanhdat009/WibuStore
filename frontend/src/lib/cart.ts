@@ -23,9 +23,11 @@ export function saveCart(items: CartItem[]): void {
   }
 }
 
-export function addToCartItem(product: Product, quantity = 1): CartItem[] {
+export function addToCartItem(product: Product, quantity = 1, preorderCampaignId?: number): CartItem[] {
   const current = getStoredCart();
-  const existingIdx = current.findIndex((item) => item.productId === product.id);
+  const existingIdx = current.findIndex(
+    (item) => item.productId === product.id && (item.preorderCampaignId || undefined) === preorderCampaignId,
+  );
 
   if (existingIdx > -1) {
     current[existingIdx].quantity += quantity;
@@ -34,6 +36,7 @@ export function addToCartItem(product: Product, quantity = 1): CartItem[] {
       id: `${product.id}-${Date.now()}`,
       productId: product.id,
       variantId: product.defaultVariantId,
+      preorderCampaignId,
       slug: product.slug,
       name: product.name,
       series: product.series,
@@ -41,8 +44,8 @@ export function addToCartItem(product: Product, quantity = 1): CartItem[] {
       price: product.price,
       depositPrice: product.depositPrice,
       quantity,
-      status: product.status,
-      isPreOrder: product.status === 'pre_order',
+      status: preorderCampaignId ? 'pre_order' : product.status,
+      isPreOrder: preorderCampaignId != null || product.status === 'pre_order',
       scale: product.scale,
     });
   }
@@ -80,12 +83,26 @@ const API_BASE =
   (import.meta.env.PUBLIC_API_URL as string | undefined)?.replace(/\/$/, '') ||
   'http://localhost:8000';
 
+function readXsrf(): string {
+  if (typeof document === 'undefined') return '';
+  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
 export async function syncItemToServer(variantId: number, quantity: number): Promise<boolean> {
   try {
+    if (typeof document !== 'undefined' && !readXsrf()) {
+      await fetch(`${API_BASE}/sanctum/csrf-cookie`, { credentials: 'include' }).catch(() => {});
+    }
+    const token = readXsrf();
     const res = await fetch(`${API_BASE}/api/v1/cart/items`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(token ? { 'X-XSRF-TOKEN': token } : {}),
+      },
       body: JSON.stringify({ variant_id: variantId, quantity }),
     });
     return res.ok;

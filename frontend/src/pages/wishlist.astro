@@ -44,18 +44,69 @@ import { products } from '../data/products';
       <div id="wishlist-grid-wrapper" class="hidden">
         <ProductGrid products={products} />
       </div>
+
+      <div id="wishlist-server-wrapper" class="hidden">
+        <div id="wishlist-server-grid" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"></div>
+      </div>
     </div>
   </div>
 </BaseLayout>
 
 <script>
-  import { getStoredWishlist } from '../lib/wishlist';
+  import { fetchServerWishlist, getStoredWishlist, toggleWishlist } from '../lib/wishlist';
+  import { formatVND } from '../lib/utils';
 
-  function initWishlistPage() {
+  function cardHTML(item: { id: string; name: string; slug: string; price_amount: number | null; image: string | null }): string {
+    return `
+      <div class="product-card group relative bg-white rounded-2xl border border-[#D8D4D0] hover:border-[#17141F] shadow-[1px_1px_3px_rgba(0,0,0,0.05)] hover:shadow-[4px_4px_0px_#17141F] transition-all duration-200 flex flex-col justify-between overflow-hidden">
+        <div class="relative w-full aspect-square bg-[#F7F5F0] overflow-hidden p-3 flex items-center justify-center">
+          <a href="/products/${item.slug}" class="block w-full h-full relative">
+            ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover rounded-xl" loading="lazy" />` : '<span class="text-xs text-[#6A6572]">Chưa có ảnh</span>'}
+          </a>
+          <button type="button" data-wish-remove="${item.id}" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 border border-[#D6284F] text-[#D6284F] flex items-center justify-center cursor-pointer" aria-label="Bỏ yêu thích">✕</button>
+        </div>
+        <div class="p-3">
+          <a href="/products/${item.slug}" class="text-xs font-bold text-[#17141F] hover:text-[#D6284F] line-clamp-2">${item.name}</a>
+          <div class="mt-1.5 font-black text-sm text-[#D6284F]">${item.price_amount != null ? formatVND(item.price_amount) : 'Liên hệ'}</div>
+        </div>
+      </div>`;
+  }
+
+  async function initWishlistPage() {
     const emptyEl = document.getElementById('wishlist-empty');
     const gridWrapper = document.getElementById('wishlist-grid-wrapper');
-    const cards = document.querySelectorAll<HTMLElement>('.product-card');
+    const serverWrapper = document.getElementById('wishlist-server-wrapper');
+    const serverGrid = document.getElementById('wishlist-server-grid');
 
+    const serverItems = await fetchServerWishlist().catch(() => null);
+    if (serverItems && serverItems.length > 0) {
+      emptyEl?.classList.add('hidden');
+      gridWrapper?.classList.add('hidden');
+      if (serverGrid) {
+        serverGrid.innerHTML = serverItems.map(cardHTML).join('');
+      }
+      serverWrapper?.classList.remove('hidden');
+      serverGrid?.querySelectorAll('button[data-wish-remove]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = (btn as HTMLElement).dataset.wishRemove || '';
+          toggleWishlist(id);
+          (btn.closest('.product-card') as HTMLElement | null)?.remove();
+          if (!serverGrid?.querySelector('.product-card')) {
+            serverWrapper?.classList.add('hidden');
+            emptyEl?.classList.remove('hidden');
+          }
+        });
+      });
+      return;
+    }
+    if (serverItems !== null) {
+      emptyEl?.classList.remove('hidden');
+      gridWrapper?.classList.add('hidden');
+      serverWrapper?.classList.add('hidden');
+      return;
+    }
+
+    const cards = document.querySelectorAll<HTMLElement>('.product-card');
     const wishlistIds = getStoredWishlist();
 
     if (wishlistIds.length === 0) {

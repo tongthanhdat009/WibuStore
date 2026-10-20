@@ -3,8 +3,59 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Breadcrumb from '../../components/ui/Breadcrumb.astro';
 import StickerBadge from '../../components/comic/StickerBadge.astro';
 import Button from '../../components/ui/Button.astro';
-import { collections } from '../../data/collections';
-import { products } from '../../data/products';
+import { collections as staticCollections } from '../../data/collections';
+import { products as staticProducts } from '../../data/products';
+import { getProductBySlug } from '../../lib/catalog';
+
+interface ApiCollection {
+  slug: string;
+  title: string;
+}
+
+const staticImages = (slugs: string[]) =>
+  staticProducts.filter((p) => slugs.includes(p.slug)).slice(0, 2).map((p) => p.images[0]).filter(Boolean);
+let collections = staticCollections.map((c) => ({ ...c, images: staticImages(c.productSlugs) }));
+try {
+  const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+  const res = await fetch(`${base}/api/v1/collections`, { headers: { Accept: 'application/json' } });
+  if (res.ok) {
+    const json = await res.json();
+    const apiCols = (json?.data ?? []) as { slug: string; title: string }[];
+    if (apiCols.length > 0) {
+      const mapped = [];
+      for (const p of apiCols) {
+        const slug = String(p.slug).replace(/^collection-/, '');
+        const images: string[] = [];
+        try {
+          const cres = await fetch(`${base}/api/v1/collections/${encodeURIComponent(slug)}`, { headers: { Accept: 'application/json' } });
+          if (cres.ok) {
+            const cj = await cres.json();
+            for (const ps of ((cj?.data?.products ?? []) as string[]).slice(0, 2)) {
+              try {
+                const { product } = await getProductBySlug(ps);
+                if (product.images[0]) images.push(product.images[0]);
+              } catch {
+              }
+            }
+          }
+        } catch {
+        }
+        const fb = staticCollections.find((c) => c.slug === slug);
+        mapped.push({
+          slug,
+          badge: 'COLLECTION',
+          title: p.title,
+          tagline: fb?.tagline ?? '',
+          description: fb?.description ?? '',
+          productSlugs: [] as string[],
+          images,
+        });
+      }
+      collections = mapped;
+    }
+  }
+} catch {
+}
 ---
 
 <BaseLayout
@@ -29,7 +80,7 @@ import { products } from '../../data/products';
     <div class="space-y-8">
       {
         collections.map((col) => {
-          const colProducts = products.filter((p) => col.productSlugs.includes(p.slug));
+          const previewImages = (col as { images?: string[] }).images ?? [];
           return (
             <div class="rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] overflow-hidden bg-white p-6 md:p-10 relative">
               <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
@@ -48,7 +99,7 @@ import { products } from '../../data/products';
                   </p>
                   <div class="mt-6">
                     <Button href={`/collections/${col.slug}`} variant="primary" size="md">
-                      <span>Xem bộ sưu tập ({colProducts.length} mô hình)</span>
+                      <span>Xem bộ sưu tập</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                       </svg>
@@ -57,9 +108,9 @@ import { products } from '../../data/products';
                 </div>
 
                 <div class="lg:col-span-5 grid grid-cols-2 gap-3">
-                  {colProducts.slice(0, 2).map((item) => (
+                  {previewImages.slice(0, 2).map((src) => (
                     <div class="aspect-square rounded-2xl overflow-hidden border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F] bg-[#F7F5F0]">
-                      <img src={item.images[0]} alt={item.name} class="w-full h-full object-cover" />
+                      <img src={src} alt={col.title} class="w-full h-full object-cover" loading="lazy" />
                     </div>
                   ))}
                 </div>

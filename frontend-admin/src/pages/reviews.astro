@@ -1,54 +1,85 @@
 ---
 import AdminLayout from '../layouts/AdminLayout.astro';
-import Button from '../components/ui/Button.astro';
 import Badge from '../components/ui/Badge.astro';
-import { mockReviews } from '../data/mockData';
+import { apiGet, currentPage, requireStaff } from '../lib/api';
+import Pagination from '../components/ui/Pagination.astro';
 import { formatDateTime } from '../lib/formatters';
 
-const reviews = mockReviews;
+const { redirect } = await requireStaff(Astro);
+if (redirect) return redirect;
+const page = currentPage(Astro);
+
+interface ReviewRow {
+  id: number;
+  rating: number;
+  title?: string | null;
+  body: string;
+  status: string;
+  created_at: string;
+  product?: { id: number; name: string; slug: string } | null;
+  user?: { id: number; name: string } | null;
+}
+
+const statusFilter = Astro.url.searchParams.get('status') ?? '';
+const listParams: Record<string, string> = { per_page: '20', page: String(page) };
+if (statusFilter) listParams.status = statusFilter;
+const { data: reviewData, meta: reviewMeta } = await apiGet<ReviewRow[]>(`/admin/reviews?${new URLSearchParams(listParams).toString()}`, Astro);
+const reviews = reviewData ?? [];
+const tabParams: Record<string, string> = statusFilter ? { status: statusFilter } : {};
+const tabs = [
+  { v: '', label: 'Tất cả' },
+  { v: 'pending', label: 'Chờ kiểm duyệt' },
+  { v: 'approved', label: 'Đã phê duyệt' },
+  { v: 'rejected', label: 'Bị từ chối' },
+];
 ---
 
 <AdminLayout
   title="Đánh giá & Kiểm duyệt (Reviews)"
-  description="Duyệt bài đánh giá, hình ảnh unbox và phản hồi từ cộng đồng sưu tầm figure trước khi hiển thị công khai"
+  description="Duyệt bài đánh giá từ cộng đồng sưu tầm figure trước khi hiển thị công khai"
   breadcrumbs={[{ label: 'Nội dung & Marketing' }, { label: 'Đánh giá' }]}
 >
-  <div class="flex items-center gap-2 border-b border-[#D8D4D0] pb-3">
-    <button class="px-3.5 py-1.5 rounded-[8px] bg-[#17141F] text-white font-bold text-[13px]">
-      Chờ kiểm duyệt (1)
-    </button>
-    <button class="px-3.5 py-1.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[#534F5C] font-semibold text-[13px]">
-      Đã phê duyệt (1)
-    </button>
-    <button class="px-3.5 py-1.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[#534F5C] font-semibold text-[13px]">
-      Bị từ chối / Vi phạm (0)
-    </button>
+  <div class="flex items-center gap-2 border-b border-[#D8D4D0] pb-3 overflow-x-auto">
+    {tabs.map((t) => (
+      <a
+        href={t.v ? `/reviews?status=${t.v}` : '/reviews'}
+        class={`px-3.5 py-1.5 rounded-[8px] font-bold text-[13px] whitespace-nowrap ${statusFilter === t.v ? 'bg-[#17141F] text-white shadow-xs' : 'bg-white border border-[#D8D4D0] text-[#534F5C]'}`}
+      >
+        {t.label}
+      </a>
+    ))}
   </div>
 
   <div class="space-y-4">
+    {reviews.length === 0 && (
+      <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-10 text-center text-[13px] text-[#6A6572]">
+        Không có đánh giá nào trong mục này.
+      </div>
+    )}
     {reviews.map((rev) => (
       <div class="bg-white rounded-[14px] border border-[#D8D4D0] p-5 shadow-xs flex flex-col sm:flex-row items-start justify-between gap-4">
         <div class="flex items-start gap-4">
-          <img
-            src={rev.productImage}
-            alt=""
-            class="w-16 h-16 rounded-[8px] object-cover border border-[#D8D4D0] shrink-0"
-          />
+          <div class="w-16 h-16 rounded-[8px] bg-[#FFD44A] border-2 border-[#17141F] shrink-0 flex items-center justify-center font-black text-xl text-[#17141F]">
+            {rev.rating}
+          </div>
           <div>
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-bold text-[#17141F] text-[14px]">{rev.customerName}</span>
+              <span class="font-bold text-[#17141F] text-[14px]">{rev.user?.name ?? 'Khách'}</span>
               <span class="text-[#D8D4D0]">•</span>
-              <span class="text-[#FFD44A] text-[13px] font-bold">★ {rev.rating}.0 / 5.0</span>
+              <span class="text-[#D6284F] text-[13px] font-bold">★ {rev.rating} / 5</span>
               <span class="text-[#D8D4D0]">•</span>
-              <span class="text-[12px] text-[#6A6572]">{formatDateTime(rev.createdAt)}</span>
+              <span class="text-[12px] text-[#6A6572]">{formatDateTime(rev.created_at)}</span>
             </div>
 
             <div class="text-[12px] font-semibold text-[#D6284F] mb-1.5">
-              Đánh giá sản phẩm: {rev.productName}
+              Đánh giá sản phẩm: {rev.product?.name ?? `#${rev.id}`}
             </div>
+            {rev.title && (
+              <div class="text-[13px] font-bold text-[#17141F] mb-1">{rev.title}</div>
+            )}
 
             <p class="text-[13px] text-[#17141F] bg-[#FAF8F5] p-3 rounded-[8px] border border-[#E8E5E1] max-w-2xl leading-relaxed">
-              "{rev.content}"
+              "{rev.body}"
             </p>
           </div>
         </div>
@@ -56,20 +87,46 @@ const reviews = mockReviews;
         <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
           {rev.status === 'pending' ? (
             <>
-              <Button variant="primary" size="sm">
+              <button type="button" data-moderate={rev.id} data-to="approved" class="px-3 py-1.5 rounded-[8px] bg-[#D6284F] text-white text-[12px] font-bold cursor-pointer">
                 Phê duyệt hiển thị
-              </Button>
-              <Button variant="danger" size="sm">
+              </button>
+              <button type="button" data-moderate={rev.id} data-to="rejected" class="px-3 py-1.5 rounded-[8px] bg-white border border-[#D8D4D0] text-[#B42318] text-[12px] font-bold cursor-pointer">
                 Từ chối
-              </Button>
+              </button>
             </>
-          ) : (
+          ) : rev.status === 'approved' ? (
             <Badge variant="success" size="md">
-              ✓ Đã hiển thị ngoài Storefront
+              ✓ Đang hiển thị
+            </Badge>
+          ) : (
+            <Badge variant="neutral" size="md">
+              Đã từ chối
             </Badge>
           )}
         </div>
       </div>
     ))}
   </div>
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] overflow-hidden">
+    <Pagination meta={reviewMeta} pathname="/reviews" params={tabParams} />
+  </div>
+
+  <script>
+    import { mutate } from '../lib/api';
+
+    document.querySelectorAll('button[data-moderate]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.moderate;
+        const to = (btn as HTMLElement).dataset.to;
+        if (!confirm(to === 'approved' ? 'Phê duyệt đánh giá này?' : 'Từ chối đánh giá này?')) return;
+        const { error } = await mutate(`/admin/reviews/${id}`, 'PATCH', { status: to });
+        if (error) {
+          alert(error.message || 'Thao tác thất bại.');
+          return;
+        }
+        window.location.reload();
+      });
+    });
+  </script>
 </AdminLayout>

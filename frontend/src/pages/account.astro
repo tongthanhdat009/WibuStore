@@ -40,6 +40,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
 
 <script>
   import { customerLogout, customerMe, myOrders } from '../lib/auth';
+  import { API_URL } from '../lib/api';
   import { formatVND } from '../lib/utils';
 
   async function initAccount() {
@@ -70,7 +71,10 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
               <div class="font-mono font-bold text-[#17141F]">${o.order_number}</div>
               <div class="text-[11px] text-[#534F5C]">${o.order_status} • ${o.payment_status}</div>
             </div>
-            <span class="font-black text-[#D6284F]">${formatVND(o.total_amount)}</span>
+            <div class="flex items-center gap-2">
+              <span class="font-black text-[#D6284F]">${formatVND(o.total_amount)}</span>
+              <a href="${API_URL}/api/v1/orders/${o.id}/invoice" class="px-2.5 py-1.5 rounded-lg bg-white border border-[#17141F] text-[11px] font-bold text-[#17141F] hover:bg-[#FFF4DC]" title="Tải hóa đơn PDF">🧾 PDF</a>
+            </div>
           </div>`,
           )
           .join('');

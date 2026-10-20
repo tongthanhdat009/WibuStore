@@ -34,6 +34,63 @@ const discountPercent =
   product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
+
+interface CampaignLite {
+  id: number;
+  quota: number;
+  available: number;
+  deposit_per_unit_amount: number;
+  sale_price_per_unit_amount: number;
+  closes_at?: string | null;
+}
+
+let preorderCampaign: CampaignLite | null = null;
+try {
+  const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+  const cr = await fetch(`${base}/api/v1/preorders`);
+  if (cr.ok) {
+    const cj = await cr.json();
+    const list = (cj.data ?? []) as (CampaignLite & { variant_id: number })[];
+    const wanted = Astro.url.searchParams.get('preorder');
+    const match = wanted
+      ? list.find((c) => String(c.id) === wanted)
+      : list.find((c) => product.defaultVariantId != null && c.variant_id === product.defaultVariantId);
+    if (match && (match.available ?? 1) > 0) {
+      preorderCampaign = {
+        id: match.id,
+        quota: match.quota,
+        available: match.available,
+        deposit_per_unit_amount: match.deposit_per_unit_amount,
+        sale_price_per_unit_amount: match.sale_price_per_unit_amount,
+        closes_at: match.closes_at ?? null,
+      };
+    }
+  }
+} catch {
+}
+
+interface ReviewItem {
+  id: number;
+  rating: number;
+  title?: string | null;
+  body: string;
+  author: string;
+  created_at: string;
+}
+
+let ssrReviews: ReviewItem[] = [];
+let ssrRating = { count: 0, average: 0 };
+try {
+  const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+  const rr = await fetch(`${base}/api/v1/products/${encodeURIComponent(slug)}/reviews?per_page=6`);
+  if (rr.ok) {
+    const rj = await rr.json();
+    ssrReviews = rj.data ?? [];
+    ssrRating = rj.meta?.stats ?? ssrRating;
+  }
+} catch {
+}
+const ssrReviewsJson = JSON.stringify(ssrReviews);
 ---
 
 <BaseLayout
@@ -170,11 +227,25 @@ const discountPercent =
             </div>
 
             <!-- Pre-order deposit notice if applicable -->
-            {product.status === 'pre_order' && product.depositPrice && (
-              <div class="mt-2.5 pt-2 border-t border-[#17141F]/15 flex items-center justify-between text-xs">
-                <span class="text-[#9A5A00] font-bold">Số tiền cọc trước:</span>
-                <span class="font-black text-[#17141F] text-sm">{formatVND(product.depositPrice)}</span>
+            {preorderCampaign ? (
+              <div class="mt-2.5 pt-2 border-t border-[#17141F]/15 space-y-1.5 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-[#9A5A00] font-bold">Tiền cọc giữ suất:</span>
+                  <span class="font-black text-[#D6284F] text-sm">{formatVND(preorderCampaign.deposit_per_unit_amount)}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[#534F5C]">Giá niêm yết khi về hàng:</span>
+                  <span class="font-bold text-[#17141F]">{formatVND(preorderCampaign.sale_price_per_unit_amount)}</span>
+                </div>
+                <div class="text-[#9A5A00] font-bold">Còn {preorderCampaign.available}/{preorderCampaign.quota} suất</div>
               </div>
+            ) : (
+              product.status === 'pre_order' && product.depositPrice && (
+                <div class="mt-2.5 pt-2 border-t border-[#17141F]/15 flex items-center justify-between text-xs">
+                  <span class="text-[#9A5A00] font-bold">Số tiền cọc trước:</span>
+                  <span class="font-black text-[#17141F] text-sm">{formatVND(product.depositPrice)}</span>
+                </div>
+              )
             )}
 
             <!-- Stock status indicator -->
@@ -226,7 +297,7 @@ const discountPercent =
                 </div>
               </div>
 
-              <div class="flex items-center gap-3 pt-2">
+              <div class="flex items-center gap-3 pt-2" data-preorder-campaign={preorderCampaign?.id ?? ''}>
                 <Button
                   id="pdp-add-cart-btn"
                   variant="primary"
@@ -236,7 +307,7 @@ const discountPercent =
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                   </svg>
-                  <span>{product.status === 'pre_order' ? 'Đặt trước ngay' : 'Thêm vào giỏ hàng'}</span>
+                  <span>{preorderCampaign ? 'Đặt cọc giữ suất' : product.status === 'pre_order' ? 'Đặt trước ngay' : 'Thêm vào giỏ hàng'}</span>
                 </Button>
 
                 <!-- Wishlist Toggle -->
@@ -343,6 +414,58 @@ const discountPercent =
       </div>
     </div>
 
+    <!-- Reviews -->
+    <div class="mt-16" id="reviews-section">
+      <div class="flex items-center gap-2 mb-2">
+        <StickerBadge text="REVIEWS" variant="mint" angle="left" size="sm" />
+        <h2 class="font-display text-2xl uppercase tracking-wider text-[#17141F]">
+          ĐÁNH GIÁ SẢN PHẨM
+        </h2>
+      </div>
+      <div id="reviews-summary" class="flex items-center gap-3 mb-6 text-sm">
+        <span id="reviews-stars" class="text-[#D6284F] font-black text-xl tracking-wider">★★★★★</span>
+        <span id="reviews-meta" class="text-[#534F5C] font-semibold">Đang tải đánh giá...</span>
+      </div>
+      <div id="reviews-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+      <div class="mt-8 bg-white p-6 md:p-8 rounded-3xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F]">
+        <h3 class="font-display text-lg uppercase tracking-wider text-[#17141F] mb-1">VIẾT ĐÁNH GIÁ</h3>
+        <p class="text-xs text-[#534F5C] mb-4">Chỉ khách hàng đã mua sản phẩm này mới được đánh giá.</p>
+        <div id="review-form-guest" class="hidden text-xs">
+          <a href="/login" class="font-bold text-[#D6284F] hover:underline">Đăng nhập</a>
+          <span class="text-[#534F5C]"> để kiểm tra quyền đánh giá của bạn.</span>
+        </div>
+        <div id="review-form-denied" class="hidden text-xs text-[#9A5A00] font-bold bg-[#FFF4DC] border border-[#9A5A00]/30 rounded-xl p-3">
+          Bạn cần mua sản phẩm này (đơn đã giao/thanh toán) mới có thể đánh giá.
+        </div>
+        <div id="review-form-ok" class="hidden text-xs text-[#147A4B] font-bold bg-[#EDF7F0] border border-[#147A4B]/30 rounded-xl p-3">
+          Cảm ơn! Đánh giá của bạn đang chờ duyệt và sẽ hiển thị sau khi được xác nhận.
+        </div>
+        <form id="review-form" class="hidden space-y-4 text-xs">
+          <div id="review-error" class="hidden p-3 rounded-xl bg-[#FFF0F3] border border-[#D6284F]/30 text-[#A61B3F]"></div>
+          <div>
+            <span class="block font-bold text-[#17141F] mb-1.5">Chấm điểm *</span>
+            <div id="review-stars-input" class="flex items-center gap-1 text-2xl cursor-pointer select-none">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button type="button" data-star={n} class="star-btn text-[#D8D4D0] hover:scale-110 transition-transform" aria-label={`${n} sao`}>★</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label for="review-title" class="block font-bold text-[#17141F] mb-1">Tiêu đề</label>
+            <input id="review-title" type="text" maxlength="255" placeholder="Tóm tắt cảm nhận (không bắt buộc)" class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none" />
+          </div>
+          <div>
+            <label for="review-body" class="block font-bold text-[#17141F] mb-1">Nội dung (tối thiểu 10 ký tự) *</label>
+            <textarea id="review-body" rows="4" minlength="10" maxlength="2000" required placeholder="Chia sẻ trải nghiệm thực tế: chất lượng sơn, khớp, đóng gói, giao hàng..." class="w-full bg-[#F7F5F0] focus:bg-white font-semibold px-3.5 py-2.5 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none"></textarea>
+          </div>
+          <button type="submit" id="review-submit" class="px-6 py-3 rounded-2xl bg-[#D6284F] hover:bg-[#AF1E40] text-white font-display text-sm uppercase tracking-wider border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] cursor-pointer">
+            Gửi đánh giá
+          </button>
+        </form>
+      </div>
+    </div>
+
     <!-- Related Products -->
     {relatedProducts.length > 0 && (
       <div class="mt-16">
@@ -388,8 +511,18 @@ const discountPercent =
   </div>
 </BaseLayout>
 
-<script define:vars={{ productJson: JSON.stringify(product) }}>
+<script define:vars={{ productJson: JSON.stringify(product), productSlug: slug, ssrReviewsJson, ssrRatingJson: JSON.stringify(ssrRating) }}>
+  window.__PDP_DATA__ = { productJson, productSlug, ssrReviewsJson, ssrRatingJson };
+</script>
+<script>
   import { addToCartItem, syncItemToServer } from '../../lib/cart';
+  import { API_URL } from '../../lib/api';
+
+  const { productJson, productSlug, ssrReviewsJson, ssrRatingJson } = (
+    window as unknown as {
+      __PDP_DATA__: { productJson: string; productSlug: string; ssrReviewsJson: string; ssrRatingJson: string };
+    }
+  ).__PDP_DATA__;
 
   let pdpBound = false;
 
@@ -466,7 +599,10 @@ const discountPercent =
         const product = JSON.parse(productJson);
         const qtyInputEl = qtyInput as HTMLInputElement | null;
         const qty = Math.max(1, parseInt(qtyInputEl?.value || '1', 10) || 1);
-        const items = addToCartItem(product, qty);
+        const wrap = (addCartBtn as HTMLElement).closest('div[data-preorder-campaign]') as HTMLElement | null;
+        const campaignRaw = wrap?.dataset.preorderCampaign || '';
+        const campaignId = campaignRaw ? Number(campaignRaw) : undefined;
+        const items = addToCartItem(product, qty, campaignId);
         window.dispatchEvent(new CustomEvent('wibu-open-cart'));
         const btn = addCartBtn as HTMLButtonElement | null;
         const label = btn?.querySelector('span:last-child');
@@ -489,6 +625,158 @@ const discountPercent =
     });
   }
 
+  function starRow(rating: number): string {
+    return '★★★★★'.slice(0, rating) + '☆☆☆☆☆'.slice(0, 5 - rating);
+  }
+
+  function renderReviews(items: { rating: number; title?: string | null; body: string; author: string }[], count: number, average: number) {
+    const starsEl = document.getElementById('reviews-stars');
+    const metaEl = document.getElementById('reviews-meta');
+    const listEl = document.getElementById('reviews-list');
+    if (starsEl) {
+      starsEl.textContent = count > 0 ? starRow(Math.round(average)) : '☆☆☆☆☆';
+      starsEl.className = 'font-black text-xl tracking-wider ' + (count > 0 ? 'text-[#D6284F]' : 'text-[#D8D4D0]');
+    }
+    if (metaEl) metaEl.textContent = count > 0 ? `${average.toFixed(1)}/5 từ ${count} đánh giá đã duyệt` : 'Chưa có đánh giá nào. Hãy là người đầu tiên!';
+    if (listEl) {
+      listEl.innerHTML = items.length === 0
+        ? '<p class="text-xs text-[#534F5C] col-span-full">Sản phẩm chưa có đánh giá được duyệt.</p>'
+        : items.map((r) => `
+          <div class="bg-white p-4 rounded-2xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F]">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span class="text-[#D6284F] font-black tracking-wider">${starRow(r.rating)}</span>
+              <span class="text-[11px] text-[#6A6572] font-bold">${r.author}</span>
+            </div>
+            ${r.title ? `<div class="font-bold text-xs text-[#17141F] mb-1">${r.title.replace(/</g, '&lt;')}</div>` : ''}
+            <p class="text-xs text-[#534F5C] leading-relaxed">${r.body.replace(/</g, '&lt;')}</p>
+          </div>`).join('');
+    }
+  }
+
+  let reviewsBound = false;
+
+  async function csrfHeaders(): Promise<Record<string, string>> {
+    const read = () => document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+    if (!read()) {
+      await fetch(`${API_URL}/sanctum/csrf-cookie`, { credentials: 'include' }).catch(() => {});
+    }
+    const m = read();
+    return m ? { 'X-XSRF-TOKEN': decodeURIComponent(m[1]) } : {};
+  }
+
+  async function initReviews() {
+    if (reviewsBound) return;
+    reviewsBound = true;
+    let items: { rating: number; title?: string | null; body: string; author: string }[] = [];
+    let count = 0;
+    let average = 0;
+    try {
+      const parsed = JSON.parse(ssrReviewsJson);
+      const stats = JSON.parse(ssrRatingJson);
+      if (Array.isArray(parsed)) items = parsed;
+      count = stats.count || 0;
+      average = stats.average || 0;
+    } catch {
+    }
+    renderReviews(items, count, average);
+
+    const form = document.getElementById('review-form');
+    const guest = document.getElementById('review-form-guest');
+    const denied = document.getElementById('review-form-denied');
+    let eligible = false;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/products/${encodeURIComponent(productSlug)}/reviews/eligibility`, { credentials: 'include', headers: { Accept: 'application/json' } });
+      if (res.status === 401) {
+        guest?.classList.remove('hidden');
+        return;
+      }
+      if (res.ok) {
+        const json = await res.json();
+        eligible = !!json?.data?.eligible;
+      }
+    } catch {
+    }
+    if (!eligible) {
+      denied?.classList.remove('hidden');
+      return;
+    }
+    form?.classList.remove('hidden');
+
+    let chosen = 5;
+    const starBtns = Array.from(document.querySelectorAll('#review-stars-input .star-btn')) as HTMLElement[];
+    const paint = () => {
+      starBtns.forEach((b, i) => {
+        b.classList.toggle('text-[#D6284F]', i < chosen);
+        b.classList.toggle('text-[#D8D4D0]', i >= chosen);
+      });
+    };
+    starBtns.forEach((b, i) => {
+      b.addEventListener('click', () => {
+        chosen = i + 1;
+        paint();
+      });
+    });
+    paint();
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = (document.getElementById('review-title') as HTMLInputElement | null)?.value.trim() || '';
+      const body = (document.getElementById('review-body') as HTMLTextAreaElement | null)?.value.trim() || '';
+      const errEl = document.getElementById('review-error');
+      const btn = document.getElementById('review-submit') as HTMLButtonElement | null;
+      if (body.length < 10) {
+        if (errEl) {
+          errEl.textContent = 'Nội dung tối thiểu 10 ký tự.';
+          errEl.classList.remove('hidden');
+        }
+        return;
+      }
+      errEl?.classList.add('hidden');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'ĐANG GỬI...';
+      }
+      try {
+        const res = await fetch(`${API_URL}/api/v1/products/${encodeURIComponent(productSlug)}/reviews`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(await csrfHeaders()) },
+          body: JSON.stringify({ rating: chosen, title: title || undefined, body }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          if (errEl) {
+            errEl.textContent = json?.error?.message || 'Gửi thất bại.';
+            errEl.classList.remove('hidden');
+          }
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Gửi đánh giá';
+          }
+          return;
+        }
+        (document.getElementById('review-body') as HTMLTextAreaElement | null)!.value = '';
+        form?.classList.add('hidden');
+        document.getElementById('review-form-ok')?.classList.remove('hidden');
+      } catch {
+        if (errEl) {
+          errEl.textContent = 'Không kết nối được máy chủ.';
+          errEl.classList.remove('hidden');
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Gửi đánh giá';
+        }
+      }
+    });
+  }
+
   initPDP();
-  document.addEventListener('astro:page-load', initPDP);
+  initReviews();
+  document.addEventListener('astro:page-load', () => {
+    pdpBound = false;
+    reviewsBound = false;
+    initPDP();
+    initReviews();
+  });
 </script>

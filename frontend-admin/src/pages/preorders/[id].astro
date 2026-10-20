@@ -118,13 +118,20 @@ if (!batch) return Astro.redirect('/preorders');
                       {formatCurrency(r.deposit_required_amount)}
                     </td>
                     <td class="py-3.5 px-4 text-center">
-                      {r.order_id ? (
-                        <Button variant="secondary" size="sm" href={`/orders/${r.order_id}`}>
-                          Chi tiết đơn
-                        </Button>
-                      ) : (
-                        <span class="text-[#6A6572]">—</span>
-                      )}
+                      <div class="flex items-center justify-center gap-1.5">
+                        {r.status === 'deposit_paid' && (
+                          <button type="button" data-balance-due={r.id} class="px-2.5 py-1 rounded-[6px] text-[12px] font-bold bg-[#FFD44A] border border-[#17141F] text-[#17141F] cursor-pointer">
+                            Báo thu phần còn lại
+                          </button>
+                        )}
+                        {r.order_id ? (
+                          <Button variant="secondary" size="sm" href={`/orders/${r.order_id}`}>
+                            Chi tiết đơn
+                          </Button>
+                        ) : (
+                          <span class="text-[#6A6572]">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -215,6 +222,15 @@ if (!batch) return Astro.redirect('/preorders');
         if (!confirm('Đóng chiến dịch pre-order này?')) return;
         const { error } = await mutate(`/admin/preorder-campaigns/${id}/close`, 'POST', {});
         if (error) return alert(error.message || 'Đóng cọc thất bại.');
+        window.location.reload();
+      });
+    });
+    document.querySelectorAll('button[data-balance-due]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.balanceDue;
+        if (!confirm('Báo thu phần còn lại cho reservation này? Hệ thống sẽ tạo phiếu thu số dư.')) return;
+        const { error } = await mutate(`/admin/preorder-reservations/${id}/balance-due`, 'POST', {});
+        if (error) return alert(error.message || 'Báo thu thất bại.');
         window.location.reload();
       });
     });

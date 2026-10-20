@@ -5,6 +5,30 @@ interface Props {
 
 const { currentPath = '/' } = Astro.props;
 
+const ICONS: Record<string, string> = {
+  dashboard: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  'clipboard-check': '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M9 14l2 2 4-4"/>',
+  'shopping-bag': '<path d="M6 7h15l-1.5 13.5a1 1 0 01-1 .5H5.5a1 1 0 01-1-.5L3 7h3z"/><path d="M9 10V6a3 3 0 016 0v4"/>',
+  'calendar-clock': '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/><circle cx="16" cy="16" r="3"/><path d="M16 14.5V16l1 1"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 4.5a3.5 3.5 0 010 7M21.5 20a6.5 6.5 0 00-4-6"/>',
+  package: '<path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 8.3L12 13l8.7-4.7M12 13v9"/>',
+  tag: '<path d="M20.6 13.4L11 3H4v7l9.6 10.4a2 2 0 002.8 0l4.2-4.2a2 2 0 000-2.8z"/><circle cx="8" cy="7" r="1.5"/>',
+  film: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 4v16M17 4v16M2 9h5M2 15h5M17 9h5M17 15h5"/>',
+  briefcase: '<rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M2 13h20"/>',
+  boxes: '<path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 8.3L12 13l8.7-4.7M12 13v9"/>',
+  layout: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
+  layers: '<path d="M12 2l10 5.5L12 13 2 7.5 12 2z"/><path d="M2 12.5L12 18l10-5.5M2 17.5L12 23l10-5.5"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  percent: '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1L12 2z"/>',
+  'bar-chart-2': '<path d="M18 20V10M12 20V4M6 20v-6"/>',
+  'trending-up': '<path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/>',
+  'pie-chart': '<path d="M21.2 15.9A10 10 0 118 2.8"/><path d="M22 12A10 10 0 0012 2v10h10z"/>',
+  'shield-check': '<path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.2a1.7 1.7 0 00-1.5 1z"/>',
+  history: '<path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l4 2"/>',
+};
+
 const navGroups = [
   {
     title: 'TỔNG QUAN',
@@ -77,8 +101,8 @@ function isActive(href: string): boolean {
 
 <aside id="admin-sidebar" class="w-64 bg-white border-r border-[#D8D4D0] flex flex-col h-screen shrink-0 select-none z-30 transition-transform duration-200 lg:translate-x-0 -translate-x-full fixed lg:static top-0 left-0">
   <!-- Brand logo header -->
-  <div class="h-16 px-5 border-b border-[#D8D4D0] flex items-center justify-between">
-    <a href="/" class="flex items-center gap-2.5 min-w-0">
+  <div id="sidebar-brandbar" class="h-16 px-5 border-b border-[#D8D4D0] flex items-center justify-between">
+    <a href="/" class="brand-link flex items-center gap-2.5 min-w-0">
       <div class="w-8 h-8 rounded-[6px] bg-[#D6284F] flex items-center justify-center text-white font-extrabold text-[15px] shadow-sm shrink-0">
         W
       </div>
@@ -118,6 +142,7 @@ function isActive(href: string): boolean {
         <ul class="space-y-0.5">
           {group.items.map((item) => {
             const active = isActive(item.href);
+            const iconSvg = `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">${ICONS[item.icon] ?? ''}</svg>`;
             return (
               <li>
                 <a
@@ -129,9 +154,12 @@ function isActive(href: string): boolean {
                       : 'text-[#534F5C] hover:bg-[#F7F5F0] hover:text-[#17141F]'
                   }`}
                 >
-                  <span class="nav-item-text flex items-center gap-2.5">
-                    {active && <span class="w-1.5 h-1.5 rounded-full bg-[#D6284F]"></span>}
-                    {item.name}
+                  <span class="flex items-center gap-2.5 min-w-0">
+                    <span class="nav-item-icon w-5 h-5 shrink-0 flex items-center justify-center" set:html={iconSvg} />
+                    <span class="nav-item-text flex items-center gap-2.5">
+                      {active && <span class="w-1.5 h-1.5 rounded-full bg-[#D6284F]"></span>}
+                      {item.name}
+                    </span>
                   </span>
 
                   {item.badge && (
@@ -196,6 +224,14 @@ function isActive(href: string): boolean {
 
   function applyCollapsed(collapsed) {
     document.documentElement.classList.toggle('admin-sidebar-collapsed', collapsed);
+    var brandBar = document.getElementById('sidebar-brandbar');
+    var brandLink = sidebar ? sidebar.querySelector('.brand-link') : null;
+    if (brandLink) brandLink.style.display = collapsed ? 'none' : '';
+    if (brandBar) {
+      brandBar.style.justifyContent = collapsed ? 'center' : '';
+      brandBar.style.paddingLeft = collapsed ? '0.5rem' : '';
+      brandBar.style.paddingRight = collapsed ? '0.5rem' : '';
+    }
     if (sidebar) {
       sidebar.style.transition = 'width 0.2s ease, transform 0.2s ease';
       sidebar.style.width = collapsed ? '4.75rem' : '';

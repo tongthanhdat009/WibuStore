@@ -87,7 +87,16 @@ const revTemplate = '{"products": [], "note": "Danh sách slug sản phẩm củ
   </div>
 
   <script define:vars={{ pageSlug: page.slug }}>
+    window.__COLLECTION_DATA__ = { pageSlug };
+  </script>
+  <script>
     import { mutate } from '../../../lib/api';
+
+    const { pageSlug } = (
+      window as unknown as {
+        __COLLECTION_DATA__: { pageSlug: string };
+      }
+    ).__COLLECTION_DATA__;
 
     function fail(msg: string) {
       const el = document.getElementById('rev-error');

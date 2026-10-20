@@ -27,11 +27,25 @@ interface AdminOrder {
 }
 
 const statusFilter = Astro.url.searchParams.get('status') ?? '';
+const q = Astro.url.searchParams.get('q') ?? '';
+const payFilter = Astro.url.searchParams.get('payment') ?? '';
+const shipFilter = Astro.url.searchParams.get('fulfillment') ?? '';
+const typeFilter = Astro.url.searchParams.get('type') ?? '';
 const listParams: Record<string, string> = { per_page: '20', page: String(page) };
 if (statusFilter) listParams.order_status = statusFilter;
+if (q) listParams.q = q;
+if (payFilter) listParams.payment_status = payFilter;
+if (shipFilter) listParams.fulfillment_status = shipFilter;
+if (typeFilter) listParams.checkout_type = typeFilter;
 const { data: orderData, meta: orderMeta } = await apiGet<AdminOrder[]>(`/admin/orders?${new URLSearchParams(listParams).toString()}`, Astro);
 const orders = orderData ?? [];
-const pageParams: Record<string, string> = statusFilter ? { status: statusFilter } : {};
+const pageParams: Record<string, string> = {
+  ...(statusFilter ? { status: statusFilter } : {}),
+  ...(q ? { q } : {}),
+  ...(payFilter ? { payment: payFilter } : {}),
+  ...(shipFilter ? { fulfillment: shipFilter } : {}),
+  ...(typeFilter ? { type: typeFilter } : {}),
+};
 ---
 
 <AdminLayout
@@ -40,12 +54,12 @@ const pageParams: Record<string, string> = statusFilter ? { status: statusFilter
   breadcrumbs={[{ label: 'Bán hàng' }, { label: 'Đơn hàng' }]}
 >
   <div slot="actions" class="flex gap-2">
-    <Button variant="secondary" size="sm">
+    <button id="export-csv-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-[8px] bg-white border border-[#D8D4D0] hover:border-[#17141F] text-[13px] font-bold text-[#17141F] shadow-xs cursor-pointer">
       <svg class="w-4 h-4 text-[#534F5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m4 4V4"></path>
       </svg>
-      <span>Xuất danh sách</span>
-    </Button>
+      <span>Xuất CSV</span>
+    </button>
   </div>
 
   <!-- Status Tabs -->
@@ -72,37 +86,44 @@ const pageParams: Record<string, string> = statusFilter ? { status: statusFilter
   <!-- Filter & Search Toolbar -->
   <div class="bg-white rounded-[12px] border border-[#D8D4D0] p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div class="flex flex-wrap items-center gap-2.5 flex-1">
-      <div class="relative w-full sm:w-64">
+      <form action="/orders" method="GET" class="relative w-full sm:w-64">
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
         <input
           type="text"
+          name="q"
+          value={q}
           placeholder="Tìm mã đơn, tên, sđt khách..."
           class="w-full h-9 pl-8 pr-3 text-[13px] bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] focus:outline-none focus:ring-2 focus:ring-[#3258D7]"
         />
-        <svg class="w-4 h-4 text-[#6A6572] absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-[#6A6572] absolute left-2.5 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
-      </div>
+      </form>
 
-      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
-        <option>Tất cả thanh toán</option>
-        <option>Đã thanh toán</option>
-        <option>Chờ thanh toán / cọc</option>
-        <option>Chưa thanh toán</option>
-      </select>
+      <form action="/orders" method="GET" class="contents">
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
+        {q && <input type="hidden" name="q" value={q} />}
+        <select name="payment" onchange="this.form.submit()" class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F] cursor-pointer">
+          <option value="">Tất cả thanh toán</option>
+          <option value="paid" selected={payFilter === 'paid'}>Đã thanh toán</option>
+          <option value="partially_paid" selected={payFilter === 'partially_paid'}>Thanh toán một phần</option>
+          <option value="unpaid" selected={payFilter === 'unpaid'}>Chưa thanh toán</option>
+        </select>
 
-      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
-        <option>Tất cả vận chuyển</option>
-        <option>Chờ đóng gói</option>
-        <option>Đã đóng gói</option>
-        <option>Đang giao</option>
-        <option>Đã giao</option>
-      </select>
+        <select name="fulfillment" onchange="this.form.submit()" class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F] cursor-pointer">
+          <option value="">Tất cả vận chuyển</option>
+          <option value="unfulfilled" selected={shipFilter === 'unfulfilled'}>Chờ đóng gói</option>
+          <option value="preparing" selected={shipFilter === 'preparing'}>Đang chuẩn bị</option>
+          <option value="shipped" selected={shipFilter === 'shipped'}>Đang giao</option>
+          <option value="delivered" selected={shipFilter === 'delivered'}>Đã giao</option>
+        </select>
 
-      <select class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F]">
-        <option>Loại: Tất cả</option>
-        <option>Đơn tiêu chuẩn</option>
-        <option>Đơn Pre-order</option>
-      </select>
+        <select name="type" onchange="this.form.submit()" class="h-9 px-3 text-[13px] font-medium bg-[#F7F5F0] border border-[#D8D4D0] rounded-[6px] text-[#17141F] cursor-pointer">
+          <option value="">Loại: Tất cả</option>
+          <option value="regular" selected={typeFilter === 'regular'}>Đơn tiêu chuẩn</option>
+          <option value="preorder" selected={typeFilter === 'preorder'}>Đơn Pre-order</option>
+        </select>
+      </form>
 
       <a href="/orders" class="text-[12px] font-bold text-[#D6284F] hover:underline px-2">
         Đặt lại bộ lọc
@@ -192,4 +213,32 @@ const pageParams: Record<string, string> = statusFilter ? { status: statusFilter
 
     <Pagination meta={orderMeta} pathname="/orders" params={pageParams} />
   </div>
+
+  <script>
+    import { downloadCSV } from '../../lib/export';
+
+    document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('export-csv-btn') as HTMLButtonElement | null;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang xuất...';
+      }
+      try {
+        const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+        const res = await fetch(`${base}/api/v1/admin/orders?per_page=100`, { credentials: 'include', headers: { Accept: 'application/json' } });
+        const json = await res.json();
+        const rows = (json?.data ?? []).map((o: { order_number: string; customer_name: string; phone: string; email: string; checkout_type: string; order_status: string; payment_status: string; total_amount: number; paid_amount: number; created_at: string }) => [
+          o.order_number, o.customer_name, o.phone, o.email, o.checkout_type, o.order_status, o.payment_status, o.total_amount, o.paid_amount, o.created_at,
+        ]);
+        downloadCSV('orders.csv', ['Mã đơn', 'Khách', 'SĐT', 'Email', 'Loại', 'Trạng thái', 'Thanh toán', 'Tổng', 'Đã trả', 'Ngày tạo'], rows);
+      } catch {
+        alert('Xuất thất bại. Kiểm tra đăng nhập.');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Xuất CSV';
+        }
+      }
+    });
+  </script>
 </AdminLayout>

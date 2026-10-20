@@ -12,6 +12,6 @@ class DatabaseSeeder extends Seeder
         if (app()->environment('testing')) {
             return;
         }
-        $this->call([DemoSeeder::class, PortfolioImageSeeder::class, PortfolioEnrichSeeder::class]);
+        $this->call([DemoSeeder::class, PortfolioImageSeeder::class, PortfolioEnrichSeeder::class, CollectionSeeder::class]);
     }
 }

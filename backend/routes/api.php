@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\RbacController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\Public\CatalogController;
+use App\Http\Controllers\Api\V1\Public\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 // Fallback for unauthenticated redirects (always JSON 401, never HTML).
@@ -17,12 +18,16 @@ Route::prefix('v1')->group(function () {
     Route::get('/health', [CatalogController::class, 'health']);
     Route::get('/products', [CatalogController::class, 'index']);
     Route::get('/products/{slug}', [CatalogController::class, 'show']);
+    Route::get('/products/{slug}/reviews', [ReviewController::class, 'index']);
+    Route::get('/products/{slug}/reviews/eligibility', [ReviewController::class, 'eligibility'])->middleware('auth:sanctum');
+    Route::post('/products/{slug}/reviews', [ReviewController::class, 'store'])->middleware(['auth:sanctum', 'throttle:5,1']);
     Route::get('/categories', [CatalogController::class, 'categories']);
     Route::get('/anime-series', [CatalogController::class, 'series']);
     Route::get('/manufacturers', [CatalogController::class, 'manufacturers']);
     Route::get('/preorders', [CatalogController::class, 'preorders']);
     Route::get('/preorders/{id}', [CatalogController::class, 'preorderShow']);
     Route::get('/pages/home', [CatalogController::class, 'home']);
+    Route::get('/collections', [CatalogController::class, 'collections']);
     Route::get('/collections/{slug}', [CatalogController::class, 'collection']);
 
     // Auth (Sanctum stateful session)
@@ -40,6 +45,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/checkout/preview', [CartController::class, 'preview']);
     Route::post('/orders', [CartController::class, 'checkout'])->middleware('throttle:20,1');
     Route::get('/orders/{publicId}', [CartController::class, 'showOrder']);
+    Route::get('/orders/{publicId}/invoice', [CartController::class, 'invoice']);
     Route::post('/orders/{publicId}/cancel', [CartController::class, 'cancel']);
     Route::post('/orders/lookup', [CartController::class, 'lookup'])->middleware('throttle:10,1');
 
@@ -53,12 +59,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/orders', [CartController::class, 'myOrders']);
         Route::get('/me/addresses', [AuthController::class, 'addresses']);
         Route::post('/me/addresses', [AuthController::class, 'storeAddress']);
+        Route::get('/wishlist', [AuthController::class, 'wishlist']);
+        Route::post('/wishlist', [AuthController::class, 'storeWishlist']);
+        Route::delete('/wishlist/{product}', [AuthController::class, 'destroyWishlist']);
     });
 
     // Admin (auth + per-permission)
     Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/overview', [AdminOperationsController::class, 'overview'])->middleware('perm:reports.read');
-
+        Route::get('/dashboard/tasks', [AdminOperationsController::class, 'tasks'])->middleware('perm:reports.read');
         Route::get('/products', [AdminCatalogController::class, 'products'])->middleware('perm:products.read');
         Route::post('/products', [AdminCatalogController::class, 'storeProduct'])->middleware('perm:products.write');
         Route::get('/products/{id}', [AdminCatalogController::class, 'showProduct'])->middleware('perm:products.read');
@@ -70,9 +79,12 @@ Route::prefix('v1')->group(function () {
         Route::match(['get', 'post'], '/categories', [AdminCatalogController::class, 'categories'])->middleware('perm:products.write');
         Route::match(['get', 'post'], '/anime-series', [AdminCatalogController::class, 'series'])->middleware('perm:products.write');
         Route::match(['get', 'post'], '/manufacturers', [AdminCatalogController::class, 'manufacturers'])->middleware('perm:products.write');
+        Route::get('/reviews', [AdminCatalogController::class, 'reviews'])->middleware('perm:products.write');
+        Route::patch('/reviews/{id}', [AdminCatalogController::class, 'moderateReview'])->middleware('perm:products.publish');
 
         Route::get('/orders', [AdminOperationsController::class, 'orders'])->middleware('perm:orders.transition');
         Route::get('/orders/{id}', [AdminOperationsController::class, 'showOrder'])->middleware('perm:orders.transition');
+        Route::get('/orders/{id}/invoice', [AdminOperationsController::class, 'invoice'])->middleware('perm:orders.transition');
         Route::post('/orders/{id}/transition', [AdminOperationsController::class, 'transition'])->middleware('perm:orders.transition');
         Route::get('/inventory', [AdminOperationsController::class, 'inventory'])->middleware('perm:inventory.adjust');
         Route::post('/inventory/adjustments', [AdminOperationsController::class, 'adjust'])->middleware('perm:inventory.adjust');
@@ -82,6 +94,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/preorder-campaigns/{id}/open', [AdminOperationsController::class, 'openCampaign'])->middleware('perm:preorders.manage');
         Route::post('/preorder-campaigns/{id}/close', [AdminOperationsController::class, 'closeCampaign'])->middleware('perm:preorders.manage');
         Route::get('/preorder-reservations', [AdminOperationsController::class, 'reservations'])->middleware('perm:preorders.manage');
+        Route::post('/preorder-reservations/{id}/balance-due', [AdminOperationsController::class, 'balanceDue'])->middleware('perm:preorders.manage');
         Route::post('/payments/{id}/confirm', [AdminOperationsController::class, 'confirmPayment'])->middleware('perm:payments.confirm');
         Route::post('/payments/{id}/reject', [AdminOperationsController::class, 'rejectPayment'])->middleware('perm:payments.confirm');
         Route::get('/customers', [AdminOperationsController::class, 'customers'])->middleware('perm:orders.transition');

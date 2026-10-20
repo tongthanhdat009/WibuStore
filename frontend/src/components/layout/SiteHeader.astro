@@ -25,16 +25,16 @@ import { animeSeriesList } from '../../data/anime';
       </a>
 
       <!-- Desktop Nav Links -->
-      <nav class="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-bold ml-4" aria-label="Menu chính">
+      <nav class="hidden xl:flex items-center gap-1 text-sm font-bold ml-2" aria-label="Menu chính">
         <a
           href="/figures"
-          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors"
+          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors whitespace-nowrap shrink-0"
         >
           Mô hình Figures
         </a>
 
         <!-- Anime Dropdown Trigger -->
-        <div class="relative group">
+        <div class="relative group shrink-0">
           <a
             href="/figures"
             class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors flex items-center gap-1"
@@ -67,16 +67,19 @@ import { animeSeriesList } from '../../data/anime';
 
         <a
           href="/collections"
-          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors"
+          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors whitespace-nowrap shrink-0"
         >
           Bộ sưu tập
         </a>
 
         <a
           href="/pre-orders"
-          class="px-3 py-1.5 rounded-lg text-[#9A5A00] hover:text-[#17141F] bg-[#FFF4DC] hover:bg-[#FFD44A] border border-amber-300 transition-colors flex items-center gap-1.5"
+          class="px-3 py-1.5 rounded-lg text-[#9A5A00] hover:text-[#17141F] bg-[#FFF4DC] hover:bg-[#FFD44A] border border-amber-300 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+          <span class="relative flex w-1.5 h-1.5 shrink-0">
+            <span class="absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75 animate-ping"></span>
+            <span class="relative inline-flex rounded-full w-1.5 h-1.5 bg-amber-600"></span>
+          </span>
           <span>Đặt trước (Pre-order)</span>
         </a>
       </nav>
@@ -88,7 +91,7 @@ import { animeSeriesList } from '../../data/anime';
       <form
         action="/search"
         method="GET"
-        class="hidden md:flex items-center relative w-56 lg:w-72"
+        class="hidden md:flex items-center relative w-44 lg:w-56 xl:w-52 2xl:w-72"
         role="search"
       >
         <input
@@ -164,7 +167,7 @@ import { animeSeriesList } from '../../data/anime';
       <button
         id="mobile-menu-toggle"
         type="button"
-        class="lg:hidden w-9 h-9 rounded-xl border-2 border-[#17141F] bg-white text-[#17141F] flex items-center justify-center shadow-[2px_2px_0px_#17141F] cursor-pointer"
+        class="xl:hidden w-9 h-9 rounded-xl border-2 border-[#17141F] bg-white text-[#17141F] flex items-center justify-center shadow-[2px_2px_0px_#17141F] cursor-pointer"
         aria-label="Mở menu danh mục"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

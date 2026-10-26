@@ -15,7 +15,7 @@ import { products as staticProducts } from '../data/products';
 import { animeSeriesList } from '../data/anime';
 import { collections } from '../data/collections';
 import { formatVND } from '../lib/utils';
-import { getCatalogProducts } from '../lib/catalog';
+import { getCatalogProducts, getProductBySlug } from '../lib/catalog';
 import { getHomeContent, findSection, isSectionEnabled } from '../lib/cms';
 
 const { products } = await getCatalogProducts();
@@ -50,6 +50,15 @@ const featuredCollection = collections.find((c) => c.slug === 'wano-kuni-climax'
 const featuredCollectionProducts = products.filter((p) =>
   featuredCollection.productSlugs.includes(p.slug)
 );
+// Lấy thẳng detail Gojo để thẻ demo luôn đúng món (list trang chủ chỉ detail 24 món đầu).
+// Rớt mạng build thì fallback món Gojo trong list, cuối cùng mới lấy món đầu.
+const recognitionDemo = await getProductBySlug('figure-4-seed')
+  .then((r) => r.product)
+  .catch(() => products.find((p) => /gojo/i.test(p.name)) ?? products[0]);
+const tryOnDemo =
+  products.find((p) => /haori/i.test(p.name)) ??
+  products.find((p) => p.slug.startsWith('cosplay')) ??
+  products[0];
 ---
 
 <BaseLayout
@@ -279,6 +288,22 @@ const featuredCollectionProducts = products.filter((p) =>
           <p class="text-xs sm:text-sm text-[#534F5C] mt-2 leading-relaxed">
             Có ảnh figure mà không biết tên? Tải ảnh lên — AI đọc tên, danh mục và đặc điểm nổi bật, rồi gợi ý ngay món tương tự đang bán trong kho.
           </p>
+
+          <ol class="mt-5 space-y-2.5">
+            <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
+              <span class="font-display text-xs bg-[#D6284F] text-white w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">01</span>
+              <p class="text-xs text-[#17141F]"><strong>Tải ảnh lên</strong> <span class="text-[#534F5C]">— kéo thả JPG/PNG/WEBP, tối đa 5MB.</span></p>
+            </li>
+            <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
+              <span class="font-display text-xs bg-[#FFD44A] text-[#17141F] w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">02</span>
+              <p class="text-xs text-[#17141F]"><strong>AI phân tích</strong> <span class="text-[#534F5C]">— tên, danh mục, đặc điểm sau 10–30 giây.</span></p>
+            </li>
+            <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
+              <span class="font-display text-xs bg-white text-[#17141F] w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">03</span>
+              <p class="text-xs text-[#17141F]"><strong>Gợi ý + hỏi thêm</strong> <span class="text-[#534F5C]">— 3 món tương tự trong kho, chat hỏi tiếp.</span></p>
+            </li>
+          </ol>
+
           <div class="flex flex-wrap gap-3 mt-5">
             <Button href="/recognition" variant="primary" size="md">
               <span>Thử nhận diện ngay ✦</span>
@@ -289,25 +314,37 @@ const featuredCollectionProducts = products.filter((p) =>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
-            <span class="font-display text-[10px] text-[#D6284F]">STEP 01</span>
-            <div class="text-3xl my-1.5">🖼️</div>
-            <h4 class="font-bold text-xs text-[#17141F] mb-1">Tải ảnh lên</h4>
-            <p class="text-[11px] text-[#534F5C] leading-normal">Kéo thả JPG/PNG/WEBP, tối đa 5MB.</p>
+        <!-- Visual: art AI + thẻ sản phẩm thật -->
+        <div class="relative mx-auto w-full max-w-md lg:max-w-none">
+          <div class="rounded-3xl overflow-hidden border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] -rotate-1 hover:rotate-0 transition-transform duration-300 bg-[#FFF4DC]">
+            <img
+              src="/images/ai/ai-recognition.jpg"
+              alt="Minh họa AI nhận diện mô hình figure"
+              class="w-full aspect-square object-cover"
+              loading="lazy"
+            />
           </div>
-          <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
-            <span class="font-display text-[10px] text-[#D6284F]">STEP 02</span>
-            <div class="text-3xl my-1.5">🔍</div>
-            <h4 class="font-bold text-xs text-[#17141F] mb-1">AI phân tích</h4>
-            <p class="text-[11px] text-[#534F5C] leading-normal">Tên, danh mục, đặc điểm sau 10–30 giây.</p>
-          </div>
-          <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
-            <span class="font-display text-[10px] text-[#D6284F]">STEP 03</span>
-            <div class="text-3xl my-1.5">💬</div>
-            <h4 class="font-bold text-xs text-[#17141F] mb-1">Gợi ý + hỏi thêm</h4>
-            <p class="text-[11px] text-[#534F5C] leading-normal">3 món tương tự trong kho, chat hỏi tiếp.</p>
-          </div>
+          <span class="absolute -top-3 right-6 rotate-3 font-display text-[11px] bg-[#16A34A] text-white px-3 py-1 rounded-lg border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
+            ✓ SCAN CHUẨN 99%
+          </span>
+          {recognitionDemo && (
+            <a
+              href={`/products/${recognitionDemo.slug}`}
+              class="absolute -bottom-5 left-2 sm:left-4 flex items-center gap-3 p-2.5 pr-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[4px_4px_0px_#17141F] hover:-translate-y-1 transition-transform max-w-[calc(100%-1rem)]"
+            >
+              <img
+                src={recognitionDemo.images[0]}
+                alt={recognitionDemo.name}
+                class="w-14 h-14 rounded-xl object-cover border-2 border-[#17141F] shrink-0"
+                loading="lazy"
+              />
+              <span class="min-w-0">
+                <span class="block font-display text-[10px] text-[#D6284F]">AI VỪA NHẬN DIỆN ✦</span>
+                <span class="block text-xs font-bold text-[#17141F] truncate">{recognitionDemo.name}</span>
+                <span class="block text-xs font-black text-[#D6284F]">{formatVND(recognitionDemo.price)}</span>
+              </span>
+            </a>
+          )}
         </div>
       </div>
     </div>
@@ -319,25 +356,37 @@ const featuredCollectionProducts = products.filter((p) =>
     <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <div class="p-6 md:p-10 rounded-3xl border-3 border-[#FFD44A] shadow-[6px_6px_0px_#FFD44A] bg-[#FFFDF7] relative overflow-hidden">
         <div class="grid lg:grid-cols-2 gap-8 items-center">
-          <div class="order-2 lg:order-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
-              <span class="font-display text-[10px] text-[#9A5A00]">STEP 01</span>
-              <div class="text-3xl my-1.5">🧍</div>
-              <h4 class="font-bold text-xs text-[#17141F] mb-1">Ảnh của bạn</h4>
-              <p class="text-[11px] text-[#534F5C] leading-normal">1 ảnh chân dung rõ mặt, đủ sáng.</p>
+          <!-- Visual: art AI + thẻ đồ cosplay thật -->
+          <div class="relative order-2 lg:order-1 mx-auto w-full max-w-md lg:max-w-none">
+            <div class="rounded-3xl overflow-hidden border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] rotate-1 hover:rotate-0 transition-transform duration-300 bg-[#17141F]">
+              <img
+                src="/images/ai/ai-tryon.jpg"
+                alt="Minh họa tủ đồ cosplay thử đồ AI"
+                class="w-full aspect-square object-cover"
+                loading="lazy"
+              />
             </div>
-            <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
-              <span class="font-display text-[10px] text-[#9A5A00]">STEP 02</span>
-              <div class="text-3xl my-1.5">👘</div>
-              <h4 class="font-bold text-xs text-[#17141F] mb-1">Chọn trang phục</h4>
-              <p class="text-[11px] text-[#534F5C] leading-normal">Tải 1–3 ảnh đồ cosplay muốn thử.</p>
-            </div>
-            <div class="p-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
-              <span class="font-display text-[10px] text-[#9A5A00]">STEP 03</span>
-              <div class="text-3xl my-1.5">✨</div>
-              <h4 class="font-bold text-xs text-[#17141F] mb-1">Generate & tải về</h4>
-              <p class="text-[11px] text-[#534F5C] leading-normal">So sánh Trước/Sau, tải ảnh về máy.</p>
-            </div>
+            <span class="absolute -top-3 left-6 -rotate-3 font-display text-[11px] bg-[#FFD44A] text-[#17141F] px-3 py-1 rounded-lg border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
+              ✦ WARDROBE AI
+            </span>
+            {tryOnDemo && (
+              <a
+                href={`/products/${tryOnDemo.slug}`}
+                class="absolute -bottom-5 right-2 sm:right-4 flex items-center gap-3 p-2.5 pr-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[4px_4px_0px_#17141F] hover:-translate-y-1 transition-transform max-w-[calc(100%-1rem)]"
+              >
+                <img
+                  src={tryOnDemo.images[0]}
+                  alt={tryOnDemo.name}
+                  class="w-14 h-14 rounded-xl object-cover border-2 border-[#17141F] shrink-0"
+                  loading="lazy"
+                />
+                <span class="min-w-0">
+                  <span class="block font-display text-[10px] text-[#9A5A00]">ĐỒ COSPLAY TRONG KHO</span>
+                  <span class="block text-xs font-bold text-[#17141F] truncate">{tryOnDemo.name}</span>
+                  <span class="block text-xs font-black text-[#D6284F]">{formatVND(tryOnDemo.price)}</span>
+                </span>
+              </a>
+            )}
           </div>
 
           <div class="order-1 lg:order-2">
@@ -353,6 +402,22 @@ const featuredCollectionProducts = products.filter((p) =>
             <p class="text-xs sm:text-sm text-[#534F5C] mt-2 leading-relaxed">
               Phân vân bộ cosplay có hợp mình không? Upload ảnh bạn + ảnh trang phục — AI ghép thử trong 1–2 phút, ưng thì chốt đơn luôn.
             </p>
+
+            <ol class="mt-5 space-y-2.5">
+              <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
+                <span class="font-display text-xs bg-[#17141F] text-white w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">01</span>
+                <p class="text-xs text-[#17141F]"><strong>Ảnh của bạn</strong> <span class="text-[#534F5C]">— 1 ảnh chân dung rõ mặt, đủ sáng.</span></p>
+              </li>
+              <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
+                <span class="font-display text-xs bg-[#FFD44A] text-[#17141F] w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">02</span>
+                <p class="text-xs text-[#17141F]"><strong>Chọn trang phục</strong> <span class="text-[#534F5C]">— tải 1–3 ảnh đồ cosplay muốn thử.</span></p>
+              </li>
+              <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
+                <span class="font-display text-xs bg-[#D6284F] text-white w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">03</span>
+                <p class="text-xs text-[#17141F]"><strong>Generate & tải về</strong> <span class="text-[#534F5C]">— so sánh Trước/Sau, tải ảnh về máy.</span></p>
+              </li>
+            </ol>
+
             <div class="flex flex-wrap gap-3 mt-5">
               <Button href="/virtual-try-on" variant="secondary" size="md">
                 <span>Thử đồ ngay ✦</span>

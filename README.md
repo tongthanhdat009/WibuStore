@@ -6,13 +6,20 @@ Spec duy nhất: `Wibu_Store_Laravel_PostgreSQL_Backend_Architecture_Spec.md` (b
 
 ## Yeu cau
 
-- Docker + Postgres dang chay (`postgres-docker-postgres-1`, port `127.0.0.1:5432`, user `app`).
-- Node 20+ + pnpm, tmux (cho `make dev`). Backend khong can PHP local (chay qua image `wibu-php:8.3`).
+- Postgres dang chay (`postgres-docker-postgres-1`, port `127.0.0.1:5432`, user `app`).
+- PHP 8.3+ local **co `pdo_pgsql`** — backend chay truc tiep tren host, khong dung Docker.
+  `make install` tai `pdo_pgsql`/`pgsql` tu RPM Fedora vao `~/.local/lib/php-ext` (khong can sudo),
+  roi chay `composer install` + `pnpm install` cho ca 2 frontend.
+- Node 20+ + pnpm, tmux (cho `make dev`).
+
+> `backend/Dockerfile.dev` la ban con tu thoi kien chay Docker — `Makefile` khong dung no.
+> `make doctor` kiem tra php + pdo_pgsql, Postgres, node/pnpm.
 
 ## Chay nhanh (3 services)
 
 ```bash
-make doctor     # kiem tra postgres / ports / node / php image
+make install    # (1 lan) tai pdo_pgsql tu RPM + composer install + pnpm install
+make doctor     # kiem tra php + pdo_pgsql / postgres / node
 make db-create  # tao db wibu_store + wibu_store_test (1 lan)
 make fresh      # migrate + seed demo (admin@wibustore.vn / Admin@123)
 make dev        # chay api :8000 + storefront :4321 + admin :4322 (tmux 'wibu')
@@ -39,7 +46,7 @@ Gio hang luu `variantId` tu API; checkout goi `POST /api/v1/orders` that
 ## Backend
 
 ```bash
-make test       # phpunit (db wibu_store_test, 10 tests)
+make test       # phpunit (db wibu_store_test, 19 tests)
 make pint       # code style
 make queue      # queue worker (mail giao dich)
 make schedule   # scheduler (expire reservation, purge carts)

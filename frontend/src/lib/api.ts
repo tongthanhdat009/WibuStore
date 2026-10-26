@@ -27,7 +27,7 @@ export interface ApiProductItem {
   series: { name: string; slug: string } | null;
   manufacturer: { name: string; slug: string } | null;
   image: string | null;
-  availability: string;
+  availability: 'in_stock' | 'sold_out' | 'pre_order';
 }
 
 export interface ApiProductDetail extends Omit<ApiProductItem, 'price_amount'> {
@@ -41,18 +41,22 @@ export interface ApiProductDetail extends Omit<ApiProductItem, 'price_amount'> {
 
 const CATEGORY_MAP: Record<string, FigureCategoryType> = {
   scale: 'scale',
-  'scale-figure': 'scale',
-  'scale-figure-seed': 'scale',
+  'scale-figures': 'scale',
   nendoroid: 'nendoroid',
-  'chibi-seed': 'nendoroid',
   action: 'action',
-  'cosplay-seed': 'action',
+  'action-figures': 'action',
   model_kit: 'model_kit',
-  'set-figure-seed': 'model_kit',
+  'model-kits': 'model_kit',
+  cosplay: 'cosplay',
 };
 
-function mapCategory(slug: string | undefined): FigureCategoryType {
+export function mapCategory(slug: string | undefined): FigureCategoryType {
   return (slug && CATEGORY_MAP[slug]) || 'scale';
+}
+
+/** API availability -> storefront stock badge. */
+function mapAvailability(availability: string | undefined): StockStatusType {
+  return availability === 'sold_out' || availability === 'pre_order' ? availability : 'in_stock';
 }
 
 /** Map API product -> storefront Product (gi form hien thi, them defaultVariantId de checkout). */
@@ -63,13 +67,15 @@ export function toStoreProduct(
   const d = detail ?? (p as ApiProductDetail);
   const variants = d.variants ?? [];
   const first = variants[0];
-  const price = first?.price_amount ?? p.price_amount ?? 0;
+  const price = first?.price_amount ?? ('price_amount' in p ? p.price_amount : null) ?? 0;
+  // Sản phẩm chưa có ảnh (VD: 3 món demo Gojo/Megumi/Nobara) → placeholder nội bộ
+  // để <img> không bao giờ vỡ khung (broken icon + alt text tràn card).
   const gallery =
     (d.gallery ?? []).map((g) => g.url).filter((u): u is string => !!u).length > 0
       ? (d.gallery ?? []).map((g) => g.url).filter((u): u is string => !!u)
       : p.image
         ? [p.image]
-        : [];
+        : ['/images/product-placeholder.svg'];
   const catSlug = d.categories?.[0]?.slug;
   const attrs = (d.attributes ?? {}) as Record<string, string>;
   return {
@@ -88,7 +94,7 @@ export function toStoreProduct(
     releaseDate: 'Hàng có sẵn',
     price,
     originalPrice: first?.compare_at_amount ?? undefined,
-    status: 'in_stock' as StockStatusType,
+    status: mapAvailability(p.availability),
     stockCount: Math.max(variants.length, 1) * 5,
     isFeatured: false,
     isTrending: false,
@@ -121,12 +127,13 @@ export interface Paginated<T> {
   meta?: { total?: number };
 }
 
-export async function fetchProducts(params: Record<string, string | number> = {}): Promise<ApiProductItem[]> {
+/** Returns null when the API is unreachable, [] when it answered with no rows. */
+export async function fetchProducts(params: Record<string, string | number> = {}): Promise<ApiProductItem[] | null> {
   const qs = new URLSearchParams(
     Object.entries(params).map(([k, v]) => [k, String(v)]),
   ).toString();
   const json = await getJSON<Paginated<ApiProductItem>>(`/products${qs ? `?${qs}` : ''}`);
-  return json?.data ?? [];
+  return json ? json.data ?? [] : null;
 }
 
 export async function fetchProductDetail(slug: string): Promise<ApiProductDetail | null> {

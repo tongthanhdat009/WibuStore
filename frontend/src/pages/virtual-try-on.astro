@@ -1,0 +1,278 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/ui/Breadcrumb.astro';
+import Button from '../components/ui/Button.astro';
+import StickerBadge from '../components/comic/StickerBadge.astro';
+---
+
+<BaseLayout
+  title="AI thử trang phục cosplay | Wibu Store"
+  description="Tải ảnh của bạn và ảnh trang phục lên để AI ghép thử đồ cosplay, so sánh trước/sau và tải ảnh về."
+>
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
+    <Breadcrumb items={[{ label: 'AI thử trang phục' }]} className="mb-6" />
+
+    <div class="text-center mb-8">
+      <div class="flex items-center justify-center gap-2 mb-3">
+        <StickerBadge text="AI STUDIO" variant="yellow" angle="right" size="sm" />
+      </div>
+      <h1 class="font-display text-3xl md:text-4xl uppercase tracking-tight text-[#17141F]">
+        AI VIRTUAL TRY-ON
+      </h1>
+      <p class="text-sm font-medium text-[#534F5C] mt-2">
+        Upload ảnh bạn → chọn trang phục → Generate → xem ảnh thử đồ AI.
+      </p>
+    </div>
+
+    <div class="grid lg:grid-cols-[30%_35%_35%] md:grid-cols-2 gap-5 items-start">
+      <!-- STEP 01: Your photo -->
+      <section class="rounded-3xl border-[3px] border-[#17141F] shadow-[5px_5px_0px_#17141F] bg-white p-5">
+        <p class="font-display text-xs tracking-widest text-[#D6284F]">STEP 01</p>
+        <h2 class="font-display text-lg tracking-wide text-[#17141F] mb-4">YOUR PHOTO</h2>
+        <div
+          id="vto-person-drop"
+          role="button"
+          tabindex="0"
+          aria-label="Tải ảnh của bạn"
+          class="rounded-2xl border-[3px] border-dashed border-[#17141F] bg-[#F7F5F0] hover:bg-[#FFF4DC] transition-colors cursor-pointer min-h-[240px] flex flex-col items-center justify-center gap-2 p-5 text-center"
+        >
+          <img id="vto-person-preview" alt="Ảnh của bạn" class="hidden max-h-60 rounded-xl border-2 border-[#17141F] object-contain" />
+          <div id="vto-person-placeholder">
+            <div class="text-4xl mb-1">🧍</div>
+            <p class="font-bold text-sm text-[#17141F]">Tải ảnh của bạn</p>
+            <p class="text-[11px] font-bold text-[#534F5C] mt-1">JPG / PNG / WEBP, ≤ 5MB</p>
+          </div>
+        </div>
+        <input id="vto-person-file" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" />
+        <button id="vto-person-change" type="button" class="hidden mt-3 w-full text-xs font-bold px-4 py-2 rounded-xl bg-white border-2 border-[#17141F] hover:bg-[#F7F5F0] transition-all cursor-pointer">Đổi ảnh khác</button>
+      </section>
+
+      <!-- STEP 02: Wardrobe -->
+      <section id="vto-wardrobe" class="rounded-3xl border-[3px] border-[#17141F] shadow-[5px_5px_0px_#17141F] bg-white p-5 opacity-60 pointer-events-none">
+        <p class="font-display text-xs tracking-widest text-[#D6284F]">STEP 02</p>
+        <h2 class="font-display text-lg tracking-wide text-[#17141F] mb-1">WARDROBE</h2>
+        <p class="text-[11px] font-medium text-[#534F5C] mb-3">Tải 1–3 ảnh trang phục/phụ kiện, tick chọn để ghép.</p>
+        <div id="vto-outfit-grid" class="grid grid-cols-2 gap-2.5 mb-3"></div>
+        <button id="vto-outfit-add" type="button" class="w-full rounded-2xl border-[3px] border-dashed border-[#17141F] bg-[#F7F5F0] hover:bg-[#FFF4DC] py-4 text-sm font-bold text-[#17141F] transition-colors cursor-pointer">+ Thêm ảnh trang phục</button>
+        <input id="vto-outfit-file" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" />
+        <input
+          id="vto-prompt"
+          type="text"
+          maxlength="300"
+          placeholder="Yêu cầu thêm (vd: nền lễ hội, ban đêm...)"
+          class="mt-3 w-full text-xs font-medium px-3 py-2.5 rounded-xl border-2 border-[#17141F] bg-[#F7F5F0] focus:bg-white focus:outline-none placeholder-[#6A6572]"
+        />
+        <Button id="vto-generate" variant="secondary" size="md" className="w-full mt-3" disabled>✦ GENERATE AI</Button>
+      </section>
+
+      <!-- STEP 03: Result -->
+      <section class="rounded-3xl border-[3px] border-[#17141F] shadow-[5px_5px_0px_#17141F] bg-white p-5 md:col-span-2 lg:col-span-1">
+        <p class="font-display text-xs tracking-widest text-[#D6284F]">STEP 03</p>
+        <h2 class="font-display text-lg tracking-wide text-[#17141F] mb-4">AI RESULT</h2>
+
+        <div id="vto-empty" class="rounded-2xl bg-[#F7F5F0] border-2 border-[#D8D4D0] min-h-[260px] flex flex-col items-center justify-center gap-2 p-6 text-center">
+          <div class="text-4xl">✨</div>
+          <p class="text-xs font-bold text-[#534F5C]">Ảnh AI sẽ hiện ở đây<br />sau khi bạn nhấn Generate</p>
+        </div>
+
+        <div id="vto-loading" class="hidden rounded-2xl bg-[#F7F5F0] border-2 border-[#17141F] min-h-[260px] flex-col items-center justify-center gap-3 p-6 text-center">
+          <div class="flex gap-1.5" aria-hidden="true">
+            <span class="w-3 h-3 rounded-full bg-[#D6284F] animate-bounce"></span>
+            <span class="w-3 h-3 rounded-full bg-[#FFD44A] animate-bounce" style="animation-delay:120ms"></span>
+            <span class="w-3 h-3 rounded-full bg-[#17141F] animate-bounce" style="animation-delay:240ms"></span>
+          </div>
+          <p class="font-bold text-sm text-[#17141F]">Đang ghép trang phục...</p>
+          <p class="text-[11px] font-medium text-[#534F5C]">Có thể mất 1–2 phút, đừng tắt trang nhé.</p>
+        </div>
+
+        <div id="vto-error" class="hidden rounded-2xl border-2 border-[#DC2626] bg-[#FEF2F2] p-4">
+          <p class="font-bold text-sm text-[#DC2626]">⚠️ Tạo ảnh thất bại</p>
+          <p id="vto-error-msg" class="text-xs font-medium text-[#7F1D1D] mt-1"></p>
+          <button id="vto-retry" type="button" class="mt-3 text-xs font-bold px-4 py-2 rounded-xl bg-[#DC2626] text-white border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F] hover:brightness-110 transition-all cursor-pointer">Thử lại</button>
+        </div>
+
+        <div id="vto-success" class="hidden">
+          <p class="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#16A34A] border-2 border-[#17141F] rounded-full px-3 py-1 mb-3">
+            ✓ Generation Successful <span id="vto-model" class="font-normal opacity-80"></span>
+          </p>
+          <div class="rounded-2xl overflow-hidden border-2 border-[#17141F] bg-[#F7F5F0]">
+            <img id="vto-result" alt="Ảnh thử đồ AI" class="w-full object-contain max-h-[420px]" />
+          </div>
+          <div class="flex items-center gap-2 mt-3">
+            <span class="text-[11px] font-bold text-[#534F5C]">So sánh:</span>
+            <button id="vto-compare-before" type="button" class="text-[11px] font-bold px-3 py-1.5 rounded-full border-2 border-[#17141F] bg-white cursor-pointer">Trước</button>
+            <button id="vto-compare-after" type="button" class="text-[11px] font-bold px-3 py-1.5 rounded-full border-2 border-[#17141F] bg-[#FFD44A] cursor-pointer">Sau AI</button>
+          </div>
+          <div class="flex gap-2.5 mt-3">
+            <a id="vto-download" href="#" download="wibu-tryon.jpg" class="flex-1 text-center text-xs font-bold px-4 py-2.5 rounded-xl bg-[#FFD44A] border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F] hover:bg-[#FACC15] transition-all">⬇ Tải ảnh về</a>
+            <button id="vto-regen" type="button" class="flex-1 text-xs font-bold px-4 py-2.5 rounded-xl bg-white border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F] hover:bg-[#F7F5F0] transition-all cursor-pointer">↻ Tạo lại</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <p class="text-center text-[11px] font-medium text-[#534F5C] mt-6">
+      Ghép đồ dùng model ảnh Gemini qua server Wibu Store — khả dụng trên bản Việt Nam, bản staging Hong Kong tạm thời chưa hỗ trợ.
+    </p>
+  </div>
+</BaseLayout>
+
+<script>
+  import { postAiTryOn } from '../lib/ai';
+
+  interface Outfit { file: File; url: string; selected: boolean }
+
+  const personDrop = document.getElementById('vto-person-drop') as HTMLDivElement;
+  const personFile = document.getElementById('vto-person-file') as HTMLInputElement;
+  const personPreview = document.getElementById('vto-person-preview') as HTMLImageElement;
+  const personPlaceholder = document.getElementById('vto-person-placeholder') as HTMLDivElement;
+  const personChange = document.getElementById('vto-person-change') as HTMLButtonElement;
+  const wardrobe = document.getElementById('vto-wardrobe') as HTMLElement;
+  const outfitGrid = document.getElementById('vto-outfit-grid') as HTMLDivElement;
+  const outfitAdd = document.getElementById('vto-outfit-add') as HTMLButtonElement;
+  const outfitFile = document.getElementById('vto-outfit-file') as HTMLInputElement;
+  const promptInput = document.getElementById('vto-prompt') as HTMLInputElement;
+  const generateBtn = document.getElementById('vto-generate') as HTMLButtonElement;
+  const emptyEl = document.getElementById('vto-empty') as HTMLDivElement;
+  const loadingEl = document.getElementById('vto-loading') as HTMLDivElement;
+  const errorEl = document.getElementById('vto-error') as HTMLDivElement;
+  const errorMsg = document.getElementById('vto-error-msg') as HTMLParagraphElement;
+  const successEl = document.getElementById('vto-success') as HTMLDivElement;
+  const resultImg = document.getElementById('vto-result') as HTMLImageElement;
+  const modelEl = document.getElementById('vto-model') as HTMLSpanElement;
+  const downloadLink = document.getElementById('vto-download') as HTMLAnchorElement;
+  const cmpBefore = document.getElementById('vto-compare-before') as HTMLButtonElement;
+  const cmpAfter = document.getElementById('vto-compare-after') as HTMLButtonElement;
+
+  let person: File | null = null;
+  let personUrl = '';
+  let outfits: Outfit[] = [];
+  let busy = false;
+
+  function setResult(s: 'empty' | 'loading' | 'error' | 'success') {
+    emptyEl.classList.toggle('hidden', s !== 'empty');
+    loadingEl.classList.toggle('hidden', s !== 'loading');
+    loadingEl.classList.toggle('flex', s === 'loading');
+    errorEl.classList.toggle('hidden', s !== 'error');
+    successEl.classList.toggle('hidden', s !== 'success');
+  }
+
+  function refreshState() {
+    const hasPerson = !!person;
+    wardrobe.classList.toggle('opacity-60', !hasPerson);
+    wardrobe.classList.toggle('pointer-events-none', !hasPerson);
+    const n = outfits.filter((o) => o.selected).length;
+    generateBtn.toggleAttribute('disabled', !(hasPerson && n >= 1 && !busy));
+    generateBtn.textContent = busy ? 'ĐANG TẠO...' : n > 0 ? `✦ GENERATE AI (${n} đồ)` : '✦ GENERATE AI';
+  }
+
+  function validImage(f: File): string | null {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) return 'Chỉ nhận file JPG, PNG, WEBP.';
+    if (f.size > 5 * 1024 * 1024) return 'Ảnh quá lớn (tối đa 5MB).';
+    return null;
+  }
+
+  personDrop.addEventListener('click', () => personFile.click());
+  personDrop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') personFile.click(); });
+  personFile.addEventListener('change', () => {
+    const f = personFile.files?.[0];
+    if (!f) return;
+    const err = validImage(f);
+    if (err) { alert(err); return; }
+    person = f;
+    if (personUrl) URL.revokeObjectURL(personUrl);
+    personUrl = URL.createObjectURL(f);
+    personPreview.src = personUrl;
+    personPreview.classList.remove('hidden');
+    personPlaceholder.classList.add('hidden');
+    personChange.classList.remove('hidden');
+    refreshState();
+  });
+  personChange.addEventListener('click', () => personFile.click());
+
+  function renderOutfits() {
+    outfitGrid.innerHTML = '';
+    outfits.forEach((o, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `relative rounded-xl overflow-hidden border-[3px] transition-all cursor-pointer aspect-square bg-[#F7F5F0] ${
+        o.selected ? 'border-[#D6284F] shadow-[3px_3px_0px_#D6284F]' : 'border-[#17141F] opacity-70 hover:opacity-100'
+      }`;
+      b.innerHTML = `<img src="${o.url}" alt="Trang phục ${i + 1}" class="w-full h-full object-cover" />${
+        o.selected
+          ? '<span class="absolute top-1 right-1 w-6 h-6 rounded-full bg-[#D6284F] text-white text-xs font-bold border-2 border-white flex items-center justify-center">✓</span>'
+          : ''
+      }<span class="absolute bottom-1 left-1 text-[10px] font-bold bg-white/90 border border-[#17141F] rounded-full px-2 py-0.5">Outfit ${String(i + 1).padStart(2, '0')}</span><span data-del="${i}" class="absolute top-1 left-1 w-6 h-6 rounded-full bg-white text-[#17141F] text-xs font-bold border-2 border-[#17141F] items-center justify-center flex hover:bg-[#FEE2E2]" title="Xóa">✕</span>`;
+      b.addEventListener('click', (e) => {
+        const del = (e.target as HTMLElement).closest('[data-del]');
+        if (del) {
+          e.stopPropagation();
+          URL.revokeObjectURL(outfits[i].url);
+          outfits.splice(i, 1);
+          renderOutfits();
+          refreshState();
+          return;
+        }
+        const sel = outfits.filter((x) => x.selected).length;
+        if (!o.selected && sel >= 3) { alert('Chọn tối đa 3 ảnh trang phục.'); return; }
+        o.selected = !o.selected;
+        renderOutfits();
+        refreshState();
+      });
+      outfitGrid.appendChild(b);
+    });
+    outfitAdd.classList.toggle('hidden', outfits.length >= 5);
+  }
+
+  outfitAdd.addEventListener('click', () => outfitFile.click());
+  outfitFile.addEventListener('change', () => {
+    const files = [...(outfitFile.files ?? [])].slice(0, 5 - outfits.length);
+    files.forEach((f) => {
+      if (validImage(f)) return;
+      outfits.push({ file: f, url: URL.createObjectURL(f), selected: outfits.filter((x) => x.selected).length < 3 });
+    });
+    outfitFile.value = '';
+    renderOutfits();
+    refreshState();
+  });
+
+  async function generate() {
+    if (!person || busy) return;
+    const selected = outfits.filter((o) => o.selected);
+    if (selected.length === 0) { alert('Hãy tick chọn ít nhất 1 ảnh trang phục.'); return; }
+    busy = true;
+    refreshState();
+    setResult('loading');
+    const r = await postAiTryOn(person, selected.map((o) => o.file), promptInput.value);
+    busy = false;
+    refreshState();
+    if (!r.ok) {
+      errorMsg.textContent = r.error;
+      setResult('error');
+      return;
+    }
+    aiUrl = r.data.url;
+    resultImg.src = aiUrl;
+    downloadLink.href = aiUrl;
+    modelEl.textContent = `· ${r.data.model}`;
+    setResult('success');
+    cmpAfter.click();
+  }
+
+  generateBtn.addEventListener('click', generate);
+  document.getElementById('vto-retry')?.addEventListener('click', generate);
+  document.getElementById('vto-regen')?.addEventListener('click', generate);
+
+  let aiUrl = '';
+  function showOriginal(show: boolean) {
+    if (show && personUrl) resultImg.src = personUrl;
+    else if (!show && aiUrl) resultImg.src = aiUrl;
+    cmpBefore.classList.toggle('bg-[#FFD44A]', show);
+    cmpAfter.classList.toggle('bg-[#FFD44A]', !show);
+  }
+  cmpBefore.addEventListener('click', () => showOriginal(true));
+  cmpAfter.addEventListener('click', () => showOriginal(false));
+
+  refreshState();
+  renderOutfits();
+</script>

@@ -11,6 +11,7 @@ use App\Models\CmsPage;
 use App\Models\Manufacturer;
 use App\Models\PreorderCampaign;
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 class CatalogController extends Controller
@@ -22,9 +23,48 @@ class CatalogController extends Controller
 
     public function index(Request $request)
     {
-        $q = Product::published()->with(['series', 'manufacturer', 'activeVariants', 'primaryMedia.asset']);
+        $q = Product::published()->with(['series', 'manufacturer', 'activeVariants.inventoryLevels', 'activeVariants.openPreorderCampaigns', 'primaryMedia.asset']);
+        $relevanceBindings = [];
+        $relevanceExpr = null;
         if ($s = $request->query('q')) {
-            $q->where('name', 'ilike', '%'.$s.'%');
+            // Tìm theo từng từ (OR) trên tên + series + hãng, xếp hạng theo số từ khớp.
+            // Khớp nguyên cụm (AND ngầm qua 1 LIKE) làm "rengoku kyojuro kimetsu"
+            // trắng trơn dù shop có figure Rengoku.
+            $words = array_slice(array_values(array_unique(preg_split('/\s+/', mb_strtolower(trim($s)), -1, PREG_SPLIT_NO_EMPTY))), 0, 8);
+            // Tên gọi tắt/tên Nhật phổ biến -> tên series trong DB.
+            $aliases = [
+                'kimetsu' => ['demon slayer', 'yaiba'], 'kny' => ['demon slayer'],
+                'jjk' => ['jujutsu kaisen'], 'shingeki' => ['attack on titan'], 'aot' => ['attack on titan'],
+                'bnha' => ['my hero academia', 'hero academia'], 'hxh' => ['hunter x hunter'],
+                'sao' => ['sword art online'], 'snk' => ['attack on titan'],
+                'op' => ['one piece'], 'ds' => ['demon slayer'], 'mha' => ['my hero academia'],
+            ];
+            $terms = $words;
+            foreach ($words as $w) {
+                foreach ($aliases[$w] ?? [] as $alt) {
+                    $terms[] = $alt;
+                }
+            }
+            $terms = array_values(array_unique($terms));
+            $q->where(function ($w) use ($terms) {
+                foreach ($terms as $t) {
+                    $w->orWhere('name', 'ilike', '%'.$t.'%')
+                        ->orWhereHas('series', fn ($sr) => $sr->where('name', 'ilike', '%'.$t.'%')->orWhere('slug', 'ilike', '%'.str_replace(' ', '-', $t).'%'))
+                        ->orWhereHas('manufacturer', fn ($m) => $m->where('name', 'ilike', '%'.$t.'%'));
+                }
+            });
+            // Điểm relevance: mỗi từ gốc khớp tên sản phẩm = 1 điểm.
+            $parts = [];
+            foreach ($words as $word) {
+                $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $word).'%';
+                $parts[] = '(CASE WHEN products.name ILIKE ? THEN 2 WHEN products.name ILIKE ? THEN 1 ELSE 0 END)';
+                $relevanceBindings[] = $word.'%';
+                $relevanceBindings[] = $like;
+            }
+            if ($parts !== []) {
+                $relevanceExpr = '('.implode(' + ', $parts).')';
+                $q->orderByRaw($relevanceExpr.' DESC', $relevanceBindings);
+            }
         }
         if ($cat = $request->query('category')) {
             $q->whereHas('categories', fn ($w) => $w->where('slug', $cat));
@@ -56,7 +96,7 @@ class CatalogController extends Controller
 
     public function show(string $slug)
     {
-        $p = Product::published()->with(['series', 'manufacturer', 'categories', 'activeVariants', 'media.asset'])->where('slug', $slug)->firstOrFail();
+        $p = Product::published()->with(['series', 'manufacturer', 'categories', 'activeVariants.inventoryLevels', 'activeVariants.openPreorderCampaigns', 'media.asset'])->where('slug', $slug)->firstOrFail();
 
         return new ProductDetailResource($p);
     }
@@ -80,7 +120,7 @@ class CatalogController extends Controller
     {
         $c = PreorderCampaign::open()->with('variant.product')->paginate(12);
         $items = collect($c->items())->map(fn ($camp) => array_merge(
-            $camp instanceof \Illuminate\Database\Eloquent\Model ? $camp->toArray() : (array) $camp,
+            $camp instanceof Model ? $camp->toArray() : (array) $camp,
             ['available' => max(0, (int) ($camp->quota ?? 0) - (int) ($camp->reserved_quantity ?? 0))]
         ));
 
@@ -103,7 +143,7 @@ class CatalogController extends Controller
 
     public function collections()
     {
-        $pages = \App\Models\CmsPage::where('slug', 'like', 'collection-%')
+        $pages = CmsPage::where('slug', 'like', 'collection-%')
             ->whereNotNull('current_published_revision_id')
             ->orderBy('slug')->get(['slug', 'title']);
 

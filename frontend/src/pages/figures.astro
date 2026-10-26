@@ -166,6 +166,16 @@ const { products } = await getAllCatalogProducts();
         <div id="catalog-grid-wrapper">
           <ProductGrid products={products} />
         </div>
+
+        <!-- Pagination -->
+        <nav
+          id="catalog-pagination"
+          class="mt-8 flex flex-col items-center gap-3"
+          aria-label="Phân trang sản phẩm"
+        >
+          <p id="pagination-summary" class="text-xs font-bold text-[#534F5C]"></p>
+          <div id="pagination-controls" class="flex items-center justify-center gap-1.5 flex-wrap"></div>
+        </nav>
       </div>
     </div>
   </div>
@@ -231,8 +241,15 @@ const { products } = await getAllCatalogProducts();
     const checkboxes = document.querySelectorAll<HTMLInputElement>('.filter-checkbox');
     const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
     const clearBtn = document.getElementById('clear-filters-btn');
-    const productCards = document.querySelectorAll<HTMLElement>('.product-card');
+    const productCards = Array.from(document.querySelectorAll<HTMLElement>('.product-card'));
     const countEl = document.getElementById('product-count');
+    const paginationEl = document.getElementById('catalog-pagination');
+    const paginationSummary = document.getElementById('pagination-summary');
+    const paginationControls = document.getElementById('pagination-controls');
+
+    const PAGE_SIZE = 12;
+    let currentPage = 1;
+    let totalPages = 1;
 
     // Parse URL search params
     const params = new URLSearchParams(window.location.search);
@@ -240,6 +257,8 @@ const { products } = await getAllCatalogProducts();
     const paramSeries = params.getAll('series');
     const paramStatus = params.getAll('status');
     const paramSort = params.get('sort') || 'newest';
+    const paramPage = parseInt(params.get('page') || '1', 10);
+    if (Number.isFinite(paramPage) && paramPage > 0) currentPage = paramPage;
 
     checkboxes.forEach((cb) => {
       if (
@@ -255,7 +274,53 @@ const { products } = await getAllCatalogProducts();
       sortSelect.value = paramSort;
     }
 
-    function applyFilterAndSort() {
+    function buildPaginationControls(totalPages: number, page: number) {
+      if (!paginationControls) return;
+      const btnBase =
+        'min-w-9 h-9 px-2.5 rounded-lg border-2 border-[#17141F] text-xs font-bold shadow-[2px_2px_0px_#17141F] hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#17141F] transition-all cursor-pointer text-[#17141F]';
+      const activeCls = 'bg-[#FFD44A]';
+      const idleCls = 'bg-white';
+      const disabledCls = 'opacity-40 cursor-not-allowed shadow-none hover:translate-y-0 hover:shadow-none';
+
+      const items: string[] = [];
+      items.push(
+        `<button type="button" data-page="${page - 1}" ${page <= 1 ? 'disabled aria-disabled="true"' : ''} class="${btnBase} ${page <= 1 ? disabledCls : idleCls}" aria-label="Trang trước">‹</button>`
+      );
+
+      // Ít trang thì hiện hết số (không "…"), nhiều trang mới gom cửa sổ quanh trang hiện tại.
+      const pageSet =
+        totalPages <= 7
+          ? new Set<number>(Array.from({ length: totalPages }, (_, i) => i + 1))
+          : new Set<number>([1, totalPages, page, page - 1, page + 1]);
+      let prev = 0;
+      for (let p = 1; p <= totalPages; p++) {
+        if (!pageSet.has(p)) continue;
+        if (prev && p - prev > 1) {
+          items.push('<span class="px-1 text-xs font-bold text-[#534F5C]">…</span>');
+        }
+        items.push(
+          `<button type="button" data-page="${p}" ${p === page ? 'aria-current="page"' : ''} class="${btnBase} ${p === page ? activeCls : idleCls}" aria-label="Trang ${p}">${p}</button>`
+        );
+        prev = p;
+      }
+
+      items.push(
+        `<button type="button" data-page="${page + 1}" ${page >= totalPages ? 'disabled aria-disabled="true"' : ''} class="${btnBase} ${page >= totalPages ? disabledCls : idleCls}" aria-label="Trang sau">›</button>`
+      );
+
+      paginationControls.innerHTML = items.join('');
+      paginationControls.querySelectorAll<HTMLButtonElement>('button[data-page]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const p = Number(btn.dataset.page);
+          if (!Number.isFinite(p) || p < 1 || p > totalPages || p === currentPage) return;
+          currentPage = p;
+          applyFilterAndSort({ resetPage: false });
+          document.getElementById('catalog-grid-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
+
+    function applyFilterAndSort({ resetPage = true }: { resetPage?: boolean } = {}) {
       const selectedCats = Array.from(
         document.querySelectorAll<HTMLInputElement>('input[name="category"]:checked')
       ).map((el) => el.value);
@@ -268,7 +333,7 @@ const { products } = await getAllCatalogProducts();
         document.querySelectorAll<HTMLInputElement>('input[name="status"]:checked')
       ).map((el) => el.value);
 
-      let visibleCount = 0;
+      const matched: HTMLElement[] = [];
 
       productCards.forEach((card) => {
         const cardCat = card.dataset.category || '';
@@ -280,14 +345,48 @@ const { products } = await getAllCatalogProducts();
         const statusMatch = selectedStatus.length === 0 || selectedStatus.includes(cardStatus);
 
         if (catMatch && seriesMatch && statusMatch) {
-          card.classList.remove('hidden');
-          visibleCount++;
+          matched.push(card);
         } else {
           card.classList.add('hidden');
         }
       });
 
-      if (countEl) countEl.textContent = String(visibleCount);
+      // Sort matched cards in DOM order
+      const sort = sortSelect?.value || 'newest';
+      if (sort === 'price_asc' || sort === 'price_desc') {
+        const dir = sort === 'price_asc' ? 1 : -1;
+        matched.sort((a, b) => {
+          const pa = Number(a.dataset.price || 0);
+          const pb = Number(b.dataset.price || 0);
+          return (pa - pb) * dir;
+        });
+        const grid = document.getElementById('catalog-grid-wrapper')?.querySelector('.grid');
+        if (grid) matched.forEach((card) => grid.appendChild(card));
+      }
+
+      const total = matched.length;
+      totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (resetPage) currentPage = 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      matched.forEach((card, i) => {
+        if (i >= start && i < end) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      if (countEl) countEl.textContent = String(total);
+      if (paginationEl) paginationEl.classList.toggle('hidden', total === 0);
+      if (paginationSummary) {
+        const from = total === 0 ? 0 : start + 1;
+        const to = Math.min(end, total);
+        paginationSummary.textContent = `Hiển thị ${from}–${to} / ${total} mô hình`;
+      }
+      if (total > 0) buildPaginationControls(totalPages, currentPage);
 
       // Sync URL
       const newParams = new URLSearchParams();
@@ -297,12 +396,15 @@ const { products } = await getAllCatalogProducts();
       if (sortSelect && sortSelect.value !== 'newest') {
         newParams.set('sort', sortSelect.value);
       }
+      if (currentPage > 1) {
+        newParams.set('page', String(currentPage));
+      }
       const newUrl = `${window.location.pathname}${newParams.toString() ? '?' + newParams.toString() : ''}`;
       window.history.replaceState({}, '', newUrl);
     }
 
-    checkboxes.forEach((cb) => cb.addEventListener('change', applyFilterAndSort));
-    sortSelect?.addEventListener('change', applyFilterAndSort);
+    checkboxes.forEach((cb) => cb.addEventListener('change', () => applyFilterAndSort()));
+    sortSelect?.addEventListener('change', () => applyFilterAndSort());
 
     clearBtn?.addEventListener('click', () => {
       checkboxes.forEach((cb) => (cb.checked = false));
@@ -335,8 +437,8 @@ const { products } = await getAllCatalogProducts();
       applyFilterAndSort();
     });
 
-    // Initial run
-    applyFilterAndSort();
+    // Initial run (keep page from URL)
+    applyFilterAndSort({ resetPage: false });
   }
 
   initCatalogFilters();

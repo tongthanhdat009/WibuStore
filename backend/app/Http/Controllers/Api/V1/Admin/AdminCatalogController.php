@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\InventoryLevel;
 use App\Models\Manufacturer;
 use App\Models\Product;
+use App\Models\ProductReview;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -177,7 +178,7 @@ class AdminCatalogController extends Controller
 
     public function reviews(Request $request)
     {
-        $q = \App\Models\ProductReview::with(['product:id,name,slug', 'user:id,name'])->orderByDesc('created_at');
+        $q = ProductReview::with(['product:id,name,slug', 'user:id,name'])->orderByDesc('created_at');
         if ($s = $request->query('status')) {
             $q->where('status', $s);
         }
@@ -188,7 +189,7 @@ class AdminCatalogController extends Controller
 
     public function moderateReview(Request $request, int $id)
     {
-        $review = \App\Models\ProductReview::findOrFail($id);
+        $review = ProductReview::findOrFail($id);
         $to = $request->validate(['status' => ['required', 'in:approved,rejected']])['status'];
         $review->update(['status' => $to]);
         ActivityLog::record('review.moderated', 'product_review', (string) $id, [], ['status' => $to]);

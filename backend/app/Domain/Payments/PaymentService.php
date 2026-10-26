@@ -2,6 +2,8 @@
 
 namespace App\Domain\Payments;
 
+use App\Domain\Odoo\OdooHookService;
+use App\Domain\Preorders\PreorderService;
 use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\Payment;
@@ -12,7 +14,7 @@ class PaymentService
 {
     public function confirm(int $paymentId, ?int $actorId, ?string $providerRef = null): Payment
     {
-        return DB::transaction(function () use ($paymentId, $actorId, $providerRef) {
+        $payment = DB::transaction(function () use ($paymentId, $actorId, $providerRef) {
             $payment = Payment::where('id', $paymentId)->lockForUpdate()->firstOrFail();
             if ($payment->status === 'confirmed') {
                 return $payment;
@@ -30,6 +32,11 @@ class PaymentService
 
             return $payment->fresh();
         });
+
+        // Outside the transaction: the Odoo POST must not hold the payment row lock.
+        $this->fireOdooIfPaid($payment->order_id);
+
+        return $payment;
     }
 
     public function reject(int $paymentId, ?int $actorId, string $reason): Payment
@@ -48,10 +55,10 @@ class PaymentService
 
     public function handleWebhook(string $provider, string $eventId, array $payload): array
     {
-        return DB::transaction(function () use ($provider, $eventId, $payload) {
+        $result = DB::transaction(function () use ($provider, $eventId, $payload) {
             $existing = PaymentEvent::where('provider', $provider)->where('event_id', $eventId)->first();
             if ($existing) {
-                return ['deduped' => true, 'event_id' => $eventId];
+                return ['deduped' => true, 'event_id' => $eventId, 'order_id' => null];
             }
             $paymentId = $payload['payment_id'] ?? null;
             $event = PaymentEvent::create([
@@ -59,25 +66,44 @@ class PaymentService
                 'payload_redacted' => ['status' => $payload['status'] ?? null, 'amount' => $payload['amount'] ?? null],
                 'processing_status' => 'processed',
             ]);
+            $orderId = null;
             if ($paymentId && ($payload['status'] ?? null) === 'paid') {
                 $payment = Payment::where('id', $paymentId)->lockForUpdate()->first();
                 if ($payment && $payment->status === 'pending') {
                     $payment->update(['status' => 'confirmed', 'confirmed_at' => now(), 'provider_reference' => $eventId]);
                     $this->reconcile($payment->order_id);
                     $this->syncPreorder($payment);
+                    $orderId = $payment->order_id;
                 }
             }
+            ActivityLog::record('payment.webhook', 'payment_event', $event->event_id, [], ['provider' => $provider, 'payment_id' => $paymentId, 'status' => $payload['status'] ?? null]);
 
-            return ['deduped' => false, 'event_id' => $event->event_id];
+            return ['deduped' => false, 'event_id' => $event->event_id, 'order_id' => $orderId];
         });
+
+        // Outside the transaction, and only for a payment this event actually confirmed.
+        if ($result['order_id'] !== null) {
+            $this->fireOdooIfPaid($result['order_id']);
+        }
+
+        return ['deduped' => $result['deduped'], 'event_id' => $result['event_id']];
+    }
+
+    /** Push the order to Odoo once its payment status settles on 'paid'. */
+    protected function fireOdooIfPaid(int $orderId): void
+    {
+        $order = Order::find($orderId);
+        if ($order && $order->payment_status === 'paid') {
+            OdooHookService::firePaid($order);
+        }
     }
 
     public function syncPreorder(Payment $payment): void
     {
         if ($payment->kind === 'deposit') {
-            app(\App\Domain\Preorders\PreorderService::class)->markDepositPaid($payment->order_id);
+            app(PreorderService::class)->markDepositPaid($payment->order_id);
         } elseif ($payment->kind === 'balance') {
-            app(\App\Domain\Preorders\PreorderService::class)->markBalancePaid($payment->order_id);
+            app(PreorderService::class)->markBalancePaid($payment->order_id);
         }
     }
 

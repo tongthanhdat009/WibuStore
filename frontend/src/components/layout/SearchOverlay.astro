@@ -1,0 +1,296 @@
+---
+// Dialog tìm kiếm global (Spotlight behavior + Wibu comic style):
+// Render ở BaseLayout, ngoài header sticky có backdrop-blur, để position:fixed
+// phủ toàn viewport, không kẹt trong stacking context của header.
+// Nút mở nằm ở SearchTrigger.astro trong header, script dưới bắt theo id.
+// - Chưa nhập: Recent searches + từ khóa phổ biến
+// - Đang nhập: live products (debounce 250ms) + suggestions, nav ↑↓ Enter
+---
+
+<!-- Overlay global: căn giữa, dialog comic -->
+<div
+  id="search-overlay"
+  class="hidden fixed inset-0 z-[100] p-4 pt-[10vh] sm:pt-[12vh] justify-center items-start overflow-y-auto"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Tìm kiếm sản phẩm"
+>
+  <div id="search-overlay-backdrop" class="fixed inset-0 bg-[#17141F]/60 backdrop-blur-[6px] opacity-0 transition-opacity duration-200"></div>
+
+  <div
+    id="search-dialog"
+    class="relative w-full max-w-xl max-h-[580px] flex flex-col bg-[#FFFDF7] rounded-3xl border-2 border-[#17141F] shadow-[6px_6px_0px_#17141F] overflow-hidden opacity-0 scale-[0.96] -translate-y-3 transition-all duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+  >
+    <div class="absolute inset-x-0 top-0 h-2 bg-[#FFD44A] border-b-2 border-[#17141F]"></div>
+    <div class="p-5 sm:p-6 pt-6 flex flex-col min-h-0">
+      <div class="flex items-center justify-between mb-4 shrink-0">
+        <span class="font-display text-sm tracking-wider text-[#17141F]">TÌM KIẾM MÔ HÌNH ✦</span>
+        <button
+          id="search-overlay-close"
+          type="button"
+          class="w-8 h-8 rounded-lg border-2 border-[#17141F] bg-white hover:bg-[#FFE6ED] font-bold text-xs text-[#17141F] shadow-[2px_2px_0px_#17141F] transition-all cursor-pointer shrink-0"
+          aria-label="Đóng tìm kiếm (Esc)"
+        >✕</button>
+      </div>
+
+      <!-- Input row comic -->
+      <form id="search-overlay-form" action="/search" method="GET" class="relative flex items-center shrink-0">
+        <input
+          id="search-overlay-input"
+          type="text"
+          name="q"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Gojo, Luffy Gear 5, Rengoku..."
+          class="w-full bg-[#F7F5F0] focus:bg-white text-sm font-semibold text-[#17141F] placeholder-[#6A6572] pl-11 pr-20 py-3.5 rounded-2xl border-2 border-[#17141F] focus:outline-none focus:shadow-[3px_3px_0px_#17141F] transition-all"
+        />
+        <svg class="w-5 h-5 text-[#534F5C] absolute left-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <button
+          id="search-clear-btn"
+          type="button"
+          class="hidden absolute right-[74px] w-6 h-6 rounded-full bg-[#F7F5F0] border border-[#17141F] hover:bg-[#FFE6ED] text-[#17141F] text-[10px] font-bold items-center justify-center shrink-0"
+          aria-label="Xóa từ khóa"
+        >✕</button>
+        <button
+          type="submit"
+          class="absolute right-2 px-3 py-1.5 rounded-xl bg-[#D6284F] text-white font-bold text-xs border border-[#17141F] shadow-[1px_1px_0px_#17141F] hover:bg-[#AF1E40] transition-all cursor-pointer"
+        >
+          Tìm kiếm
+        </button>
+      </form>
+
+      <!-- Content scroll -->
+      <div id="search-suggest" class="overflow-y-auto mt-3 -mx-1 px-1 min-h-[120px] max-h-[320px]"></div>
+
+      <!-- Footer shortcuts comic -->
+      <div class="flex items-center justify-center gap-4 mt-4 pt-3 border-t-2 border-dashed border-[#D8D4D0] text-[11px] font-bold text-[#534F5C] shrink-0">
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded-md border border-[#17141F] bg-white font-display text-[10px]">↑↓</kbd> Chọn</span>
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded-md border border-[#17141F] bg-white font-display text-[10px]">↵</kbd> Mở</span>
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded-md border border-[#17141F] bg-white font-display text-[10px]">ESC</kbd> Đóng</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { API_URL } from '../../lib/api';
+  import { formatVND } from '../../lib/utils';
+
+  type SuggestProduct = {
+    slug: string; name: string; image: string | null;
+    price_amount: number | null; series?: { name?: string };
+    stock_quantity?: number | null;
+  };
+
+  const POPULAR = ['Gojo', 'Luffy Gear 5', 'Rengoku', 'Nendoroid', 'Cosplay'];
+  const RECENT_KEY = 'wibu_recent_searches';
+
+  function getRecent(): string[] {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]'); } catch { return []; }
+  }
+  function pushRecent(q: string) {
+    const clean = q.trim().slice(0, 60);
+    if (clean.length < 2) return;
+    const list = [clean, ...getRecent().filter((x) => x.toLowerCase() !== clean.toLowerCase())].slice(0, 5);
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+  }
+
+  function esc(s: string) { return s.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+  function initSearchOverlay() {
+    const overlay = document.getElementById('search-overlay');
+    const dialog = document.getElementById('search-dialog');
+    const backdrop = document.getElementById('search-overlay-backdrop');
+    const input = document.getElementById('search-overlay-input') as HTMLInputElement | null;
+    const suggest = document.getElementById('search-suggest');
+    const clearBtn = document.getElementById('search-clear-btn');
+    if (!overlay || !dialog || !backdrop || !input || !suggest || !clearBtn || overlay.dataset.ready === '1') return;
+    overlay.dataset.ready = '1';
+
+    let lastFocus: HTMLElement | null = null;
+    let results: SuggestProduct[] = [];
+    let activeIdx = -1;
+    let timer: number | undefined;
+    let seq = 0;
+
+    function paint() {
+      suggest!.querySelectorAll('.spot-result').forEach((a, i) => {
+        a.classList.toggle('bg-[#FFF4DC]', i === activeIdx);
+        a.classList.toggle('shadow-[3px_3px_0px_#17141F]', i === activeIdx);
+        a.classList.toggle('-translate-y-0.5', i === activeIdx);
+      });
+    }
+
+    function renderDefault() {
+      results = [];
+      activeIdx = -1;
+      const recent = getRecent();
+      suggest!.innerHTML = `
+        ${recent.length ? `
+        <p class="px-1 pt-1 pb-1 font-display text-[11px] text-[#534F5C] uppercase tracking-wider">Đã tìm gần đây</p>
+        <div class="pb-1 space-y-0.5">
+          ${recent.map((r) => `
+            <button type="button" data-recent="${esc(r)}" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-bold text-[#17141F] hover:bg-[#FFF4DC] border border-transparent hover:border-[#17141F] transition-all text-left">
+              <span class="w-6 h-6 rounded-lg bg-white border border-[#17141F] flex items-center justify-center text-[10px] shrink-0">◷</span><span class="truncate">${esc(r)}</span>
+            </button>`).join('')}
+        </div>
+        <div class="mx-1 my-2 border-t-2 border-dashed border-[#D8D4D0]"></div>` : ''}
+        <p class="px-1 pt-1 pb-1.5 font-display text-[11px] text-[#534F5C] uppercase tracking-wider">Thử ngay</p>
+        <div class="flex flex-wrap gap-1.5 px-1 pb-2">
+          ${POPULAR.map((kw) => `<button type="button" data-kw="${esc(kw)}" class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F] text-[#17141F] hover:bg-[#FFD44A] transition-all">🔍 ${esc(kw)}</button>`).join('')}
+        </div>`;
+    }
+
+    function renderLoading() {
+      suggest!.innerHTML = '<p class="text-xs font-bold text-[#534F5C] text-center py-8">Đang tìm...</p>';
+    }
+
+    function renderEmpty(q: string) {
+      results = [];
+      activeIdx = -1;
+      suggest!.innerHTML = `
+        <div class="text-center py-8 px-4">
+          <p class="text-3xl mb-2">🔍</p>
+          <p class="text-sm font-black text-[#17141F]">Không thấy món nào cho “${esc(q)}”</p>
+          <p class="text-xs text-[#534F5C] mt-1">Thử tên nhân vật, anime hoặc hãng — vd: Gojo, One Piece, Alter.</p>
+        </div>`;
+    }
+
+    function renderResults(q: string, items: SuggestProduct[]) {
+      results = items;
+      activeIdx = items.length ? 0 : -1;
+      const cards = items.map((p, i) => `
+        <a href="/products/${p.slug}" data-idx="${i}"
+           class="spot-result flex items-center gap-3 p-2 rounded-2xl border-2 border-[#17141F] bg-white hover:bg-[#FFF4DC] hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#17141F] transition-all ${i === activeIdx ? 'bg-[#FFF4DC] shadow-[3px_3px_0px_#17141F] -translate-y-0.5' : ''}">
+          <span class="w-12 h-12 rounded-xl overflow-hidden border border-[#17141F]/15 bg-[#F7F5F0] shrink-0">
+            ${p.image ? `<img src="${p.image}" alt="" loading="lazy" class="w-full h-full object-cover" />` : '<span class="w-full h-full flex items-center justify-center text-lg">📦</span>'}
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-xs font-bold text-[#17141F] truncate">${esc(p.name)}</span>
+            <span class="block text-[11px] font-medium text-[#534F5C] truncate">${esc(p.series?.name ?? '')}${typeof p.stock_quantity === 'number' ? (p.stock_quantity > 0 ? ' • Còn hàng' : ' • Hết hàng') : ''}</span>
+          </span>
+          <span class="text-xs font-black text-[#D6284F] whitespace-nowrap">${typeof p.price_amount === 'number' ? formatVND(p.price_amount) : ''}</span>
+          <span class="font-black text-[#17141F]">→</span>
+        </a>`).join('');
+      const sug = POPULAR.filter((k) => k.toLowerCase() !== q.toLowerCase()).slice(0, 2);
+      suggest!.innerHTML = `
+        <div class="flex items-center justify-between px-1 pt-1 pb-1.5">
+          <p class="font-display text-[11px] text-[#534F5C] uppercase tracking-wider">Sản phẩm</p>
+          <a href="/search?q=${encodeURIComponent(q)}" class="text-xs font-bold text-[#D6284F] hover:underline">Xem tất cả →</a>
+        </div>
+        <div class="space-y-2">${cards}</div>
+        <div class="mx-1 my-3 border-t-2 border-dashed border-[#D8D4D0]"></div>
+        <p class="px-1 pb-1.5 font-display text-[11px] text-[#534F5C] uppercase tracking-wider">Gợi ý thêm</p>
+        <div class="pb-1 space-y-0.5">
+          ${sug.map((k) => `<button type="button" data-kw="${esc(k)}" class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold text-[#17141F] hover:bg-[#FFF4DC] border border-transparent hover:border-[#17141F] transition-all text-left"><span>🔍 ${esc(k)}</span><span>↗</span></button>`).join('')}
+        </div>`;
+    }
+
+    async function search(q: string) {
+      if (q.length < 2) { renderDefault(); return; }
+      renderLoading();
+      const my = ++seq;
+      try {
+        const res = await fetch(`${API_URL}/api/v1/products?q=${encodeURIComponent(q)}&per_page=6`, { headers: { Accept: 'application/json' } });
+        if (!res.ok || my !== seq) return;
+        const json = await res.json();
+        const items = (json?.data ?? []) as SuggestProduct[];
+        if (my !== seq) return;
+        if (!items.length) renderEmpty(q);
+        else renderResults(q, items.slice(0, 6));
+      } catch {
+        if (my === seq) renderDefault();
+      }
+    }
+
+    function open() {
+      lastFocus = document.activeElement as HTMLElement | null;
+      overlay!.classList.remove('hidden');
+      overlay!.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        backdrop!.classList.remove('opacity-0');
+        dialog!.classList.remove('opacity-0', 'scale-[0.96]', '-translate-y-3');
+      });
+      renderDefault();
+      setTimeout(() => input!.focus(), 60);
+    }
+
+    function close() {
+      backdrop!.classList.add('opacity-0');
+      dialog!.classList.add('opacity-0', 'scale-[0.96]', '-translate-y-3');
+      setTimeout(() => {
+        overlay!.classList.add('hidden');
+        overlay!.classList.remove('flex');
+        document.body.style.overflow = '';
+      }, 180);
+      lastFocus?.focus?.();
+    }
+
+    const isOpen = () => !overlay!.classList.contains('hidden');
+
+    document.getElementById('header-search-btn')?.addEventListener('click', open);
+    document.getElementById('header-search-btn-mobile')?.addEventListener('click', open);
+    document.getElementById('search-overlay-close')?.addEventListener('click', close);
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => {
+      if (!isOpen()) return;
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!results.length) return;
+        e.preventDefault();
+        activeIdx = e.key === 'ArrowDown'
+          ? (activeIdx + 1) % results.length
+          : (activeIdx - 1 + results.length) % results.length;
+        paint();
+        suggest.querySelector(`[data-idx="${activeIdx}"]`)?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && activeIdx >= 0 && results[activeIdx] && document.activeElement === input) {
+        e.preventDefault();
+        pushRecent(input.value);
+        window.location.href = `/products/${results[activeIdx].slug}`;
+      }
+    });
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clearBtn.classList.toggle('hidden', q.length === 0);
+      clearBtn.classList.toggle('flex', q.length > 0);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => search(q), 250);
+    });
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      input.focus();
+      clearBtn.classList.add('hidden');
+      clearBtn.classList.remove('flex');
+      renderDefault();
+    });
+
+    suggest.addEventListener('click', (e) => {
+      const el = (e.target as HTMLElement).closest('[data-kw],[data-recent]') as HTMLElement | null;
+      if (el) {
+        input.value = el.dataset.kw ?? el.dataset.recent ?? '';
+        input.dispatchEvent(new Event('input'));
+        input.focus();
+        return;
+      }
+      const link = (e.target as HTMLElement).closest('.spot-result') as HTMLAnchorElement | null;
+      if (link) pushRecent(input.value || link.textContent || '');
+    });
+
+    document.getElementById('search-overlay-form')?.addEventListener('submit', (e) => {
+      if (activeIdx >= 0 && results[activeIdx] && input.value.trim().length >= 2) {
+        e.preventDefault();
+        pushRecent(input.value);
+        window.location.href = `/products/${results[activeIdx].slug}`;
+        return;
+      }
+      pushRecent(input.value);
+    });
+  }
+
+  initSearchOverlay();
+  document.addEventListener('astro:page-load', initSearchOverlay);
+</script>

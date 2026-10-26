@@ -1,6 +1,6 @@
 export type StockStatusType = 'in_stock' | 'pre_order' | 'sold_out' | 'coming_soon';
 
-export type FigureCategoryType = 'scale' | 'nendoroid' | 'action' | 'model_kit';
+export type FigureCategoryType = 'scale' | 'nendoroid' | 'action' | 'model_kit' | 'cosplay';
 
 export interface ProductVariant {
   id: string;
@@ -93,6 +93,8 @@ export interface AnimeSeries {
   description: string;
   figureCount: number;
   themeColor: string;
+  /** Logo sáng màu (trắng/xám nhạt) → hiển thị trên nền tối để không bị chìm. */
+  logoOnDark?: boolean;
 }
 
 export interface Collection {

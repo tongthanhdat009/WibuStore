@@ -1,3 +1,5 @@
 
-/.omc
-/.omo
+.omc/
+.omo/
+/.playwright-mcp
+/.freebuff

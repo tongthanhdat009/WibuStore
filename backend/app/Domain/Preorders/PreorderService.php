@@ -2,7 +2,10 @@
 
 namespace App\Domain\Preorders;
 
+use App\Models\ActivityLog;
+use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\PreorderCampaign;
 use App\Models\PreorderReservation;
 
@@ -60,9 +63,9 @@ class PreorderService
             abort(response()->json(['error' => ['code' => 'INVALID_STATE', 'message' => 'Reservation chua coc xong']], 409));
         }
         $orderItem = OrderItem::find($r->order_item_id);
-        $order = \App\Models\Order::find($orderItem->order_id);
+        $order = Order::find($orderItem->order_id);
         $rest = max(0, (int) $order->total_amount - (int) $order->paid_amount);
-        \App\Models\Payment::firstOrCreate(
+        Payment::firstOrCreate(
             ['order_id' => $orderItem->order_id, 'kind' => 'balance'],
             [
                 'method' => 'bank_transfer', 'amount' => $rest,
@@ -73,7 +76,7 @@ class PreorderService
             'status' => 'balance_due',
             'balance_deadline_at' => now()->addDays($dueDays),
         ]);
-        \App\Models\ActivityLog::record('preorder.balance_due', 'preorder_reservation', (string) $r->id, [], ['balance' => $r->balance_due_amount], $actorId);
+        ActivityLog::record('preorder.balance_due', 'preorder_reservation', (string) $r->id, [], ['balance' => $r->balance_due_amount], $actorId);
 
         return $r->fresh();
     }

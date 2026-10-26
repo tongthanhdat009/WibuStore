@@ -17,7 +17,7 @@ const discountPercent =
 ---
 
 <div
-  class={`product-card group relative bg-white rounded-2xl border border-[#D8D4D0] hover:border-[#17141F] shadow-[1px_1px_3px_rgba(0,0,0,0.05)] hover:shadow-[4px_4px_0px_#17141F] transition-all duration-200 flex flex-col justify-between overflow-hidden ${className}`}
+  class={`product-card @container group relative bg-white rounded-2xl border border-[#D8D4D0] hover:border-[#17141F] shadow-[1px_1px_3px_rgba(0,0,0,0.05)] hover:shadow-[4px_4px_0px_#17141F] transition-all duration-200 flex flex-col justify-between overflow-hidden ${className}`}
   data-product-id={product.id}
   data-category={product.category}
   data-series={product.seriesSlug}
@@ -29,10 +29,11 @@ const discountPercent =
     <!-- Main product image -->
     <a href={`/products/${product.slug}`} class="block w-full h-full relative" aria-label={product.name}>
       <img
-        src={product.images[0]}
+        src={product.images[0] ?? '/images/product-placeholder.svg'}
         alt={product.name}
         class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300"
         loading="lazy"
+        onerror="this.onerror=null;this.src='/images/product-placeholder.svg'"
       />
     </a>
 
@@ -91,8 +92,8 @@ const discountPercent =
 
     <!-- Pricing & Action Row -->
     <div class="mt-3 pt-2.5 border-t border-[#D8D4D0]/60 flex items-end justify-between gap-2">
-      <div>
-        <div class="font-sans text-base sm:text-lg font-black text-[#17141F] leading-none">
+      <div class="min-w-0">
+        <div class="font-sans text-xs @min-[270px]:text-base @min-[330px]:text-lg font-black text-[#17141F] leading-none whitespace-nowrap">
           {formatVND(product.price)}
         </div>
         {product.originalPrice && (
@@ -116,14 +117,15 @@ const discountPercent =
         ) : (
           <button
             type="button"
-            class="quick-add-btn text-xs font-bold bg-[#17141F] hover:bg-[#D6284F] text-white px-3 py-1.5 rounded-lg border border-[#17141F] shadow-[1px_1px_0px_#17141F] hover:shadow-[2px_2px_0px_#17141F] transition-all flex items-center gap-1 cursor-pointer"
+            class="quick-add-btn shrink-0 text-xs font-bold bg-[#17141F] hover:bg-[#D6284F] text-white px-3 py-1.5 rounded-lg border border-[#17141F] shadow-[1px_1px_0px_#17141F] hover:shadow-[2px_2px_0px_#17141F] transition-all flex items-center gap-1 cursor-pointer"
             data-product-json={JSON.stringify(product)}
+            title="Thêm vào giỏ hàng"
             aria-label={`Thêm ${product.name} vào giỏ hàng`}
           >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
-            <span class="hidden sm:inline">Thêm</span>
+            <span class="hidden @min-[270px]:inline">Thêm</span>
           </button>
         )
       }

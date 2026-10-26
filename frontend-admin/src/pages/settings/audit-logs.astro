@@ -43,7 +43,7 @@ const actionLabel = (code: string) => ACTION_LABELS[code] ?? code;
   breadcrumbs={[{ label: 'Hệ thống' }, { label: 'Nhật ký hoạt động' }]}
 >
   <div slot="actions">
-    <Button variant="secondary" size="sm">
+    <Button id="export-csv-btn" variant="secondary" size="sm">
       Xuất tệp nhật ký
     </Button>
   </div>
@@ -86,4 +86,22 @@ const actionLabel = (code: string) => ACTION_LABELS[code] ?? code;
     </div>
     <Pagination meta={logMeta} pathname="/settings/audit-logs" params={{}} />
   </div>
+
+  <script>
+    import { downloadCSV } from '../../lib/export';
+
+    document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
+      try {
+        const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+        const res = await fetch(`${base}/api/v1/admin/activity-logs?per_page=100`, { credentials: 'include', headers: { Accept: 'application/json' } });
+        const json = await res.json();
+        const rows = (json?.data ?? []).map((l: { created_at: string; actor_name?: string | null; action: string; subject_type?: string | null; subject_id?: string | null; request_id?: string | null }) => [
+          l.created_at, l.actor_name ?? 'he thong', l.action, l.subject_type ?? '', l.subject_id ?? '', l.request_id ?? '',
+        ]);
+        downloadCSV('activity-logs.csv', ['Thoi gian', 'Nguoi thuc hien', 'Action', 'Tai nguyen', 'ID', 'Request ID'], rows);
+      } catch {
+        alert('Xuat that bai. Kiem tra dang nhap.');
+      }
+    });
+  </script>
 </AdminLayout>

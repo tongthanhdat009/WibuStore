@@ -1,6 +1,7 @@
 ---
 import { categories } from '../../data/categories';
 import { animeSeriesList } from '../../data/anime';
+import SearchTrigger from './SearchTrigger.astro';
 ---
 
 <header
@@ -46,8 +47,8 @@ import { animeSeriesList } from '../../data/anime';
           </a>
           <!-- Megamenu dropdown -->
           <div class="absolute top-full left-0 w-72 p-3 bg-white border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] rounded-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-150 z-50">
-            <span class="block font-display text-[10px] text-[#534F5C] uppercase tracking-wider mb-2 px-2">
-              FRANCHISE NỔI BẬT
+            <span class="block font-display text-sm font-bold text-[#D6284F] uppercase tracking-wider mb-2 px-2">
+              ✦ Franchise nổi bật
             </span>
             <div class="space-y-1">
               {
@@ -80,42 +81,26 @@ import { animeSeriesList } from '../../data/anime';
             <span class="absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75 animate-ping"></span>
             <span class="relative inline-flex rounded-full w-1.5 h-1.5 bg-amber-600"></span>
           </span>
-          <span>Đặt trước (Pre-order)</span>
+          <span>Đặt trước</span>
+        </a>
+
+        <a
+          href="/recognition"
+          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors whitespace-nowrap shrink-0"
+        >
+          ✦ Nhận diện AI
+        </a>
+        <a
+          href="/virtual-try-on"
+          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors whitespace-nowrap shrink-0"
+        >
+          ✦ Thử đồ AI
         </a>
       </nav>
     </div>
 
-    <!-- Right Controls: Search bar + Wishlist + Cart + Mobile Toggle -->
+    <!-- Right Controls: Wishlist + Cart + Search + Mobile Toggle -->
     <div class="flex items-center gap-2.5 sm:gap-3">
-      <!-- Search Input Desktop -->
-      <form
-        action="/search"
-        method="GET"
-        class="hidden md:flex items-center relative w-44 lg:w-56 xl:w-52 2xl:w-72"
-        role="search"
-      >
-        <input
-          type="search"
-          name="q"
-          placeholder="Tìm nhân vật, anime, scale..."
-          class="w-full bg-[#F7F5F0] focus:bg-white text-xs font-medium text-[#17141F] placeholder-[#6A6572] pl-9 pr-3.5 py-2 rounded-xl border border-[#D8D4D0] focus:border-[#17141F] focus:outline-none focus:shadow-[2px_2px_0px_#17141F] transition-all"
-        />
-        <svg class="w-4 h-4 text-[#534F5C] absolute left-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
-      </form>
-
-      <!-- Mobile Search Icon Trigger -->
-      <a
-        href="/search"
-        class="md:hidden w-9 h-9 rounded-xl border border-[#D8D4D0] bg-[#F7F5F0] flex items-center justify-center text-[#17141F] hover:border-[#17141F] transition-colors"
-        aria-label="Tìm kiếm sản phẩm"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
-      </a>
-
       <!-- Wishlist Link with dynamic count -->
       <a
         href="/wishlist"
@@ -162,6 +147,9 @@ import { animeSeriesList } from '../../data/anime';
           0
         </span>
       </button>
+
+      <!-- Nút tìm kiếm ngoài cùng bên phải (dialog global ở BaseLayout) -->
+      <SearchTrigger />
 
       <!-- Mobile Menu Hamburger Button -->
       <button
@@ -214,10 +202,16 @@ import { animeSeriesList } from '../../data/anime';
             📦 Tất cả mô hình Figures
           </a>
           <a href="/pre-orders" class="block px-3 py-2 rounded-xl text-[#9A5A00] bg-[#FFF4DC] border border-amber-300">
-            ⏳ Đặt trước (Pre-order)
+            ⏳ Đặt trước
           </a>
           <a href="/collections" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
             ✨ Bộ sưu tập giới hạn
+          </a>
+          <a href="/recognition" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
+            ✦ Nhận diện AI
+          </a>
+          <a href="/virtual-try-on" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
+            ✦ Thử đồ AI
           </a>
 
           <div class="pt-3 pb-1 border-t border-[#D8D4D0] mt-3">

@@ -4,8 +4,11 @@ use App\Http\Controllers\Api\V1\Admin\AdminCatalogController;
 use App\Http\Controllers\Api\V1\Admin\AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\AdminOperationsController;
 use App\Http\Controllers\Api\V1\Admin\RbacController;
+use App\Http\Controllers\Api\V1\AiController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CartController;
+use App\Http\Controllers\Api\V1\Internal\CatalogImportController;
+use App\Http\Controllers\Api\V1\Internal\ExportController;
 use App\Http\Controllers\Api\V1\Public\CatalogController;
 use App\Http\Controllers\Api\V1\Public\ReviewController;
 use Illuminate\Support\Facades\Route;
@@ -49,8 +52,18 @@ Route::prefix('v1')->group(function () {
     Route::post('/orders/{publicId}/cancel', [CartController::class, 'cancel']);
     Route::post('/orders/lookup', [CartController::class, 'lookup'])->middleware('throttle:10,1');
 
+    // AI via 9router (key stays server-side, model per env VN/HK)
+    Route::post('/ai/chat', [AiController::class, 'chat'])->middleware('throttle:10,1');
+    Route::post('/ai/image', [AiController::class, 'image'])->middleware('throttle:5,1');
+    Route::post('/ai/vision', [AiController::class, 'vision'])->middleware('throttle:5,1');
+    Route::post('/ai/try-on', [AiController::class, 'tryOn'])->middleware('throttle:3,1');
+
     // Webhooks (no CSRF/session; provider signature verified at gateway level in prod)
     Route::post('/webhooks/payments/{provider}', [AdminOperationsController::class, 'webhook']);
+
+    // Internal export cho odoo-connector-service (server-to-server, header token)
+    Route::get('/internal/export/orders', [ExportController::class, 'orders'])->middleware('source');
+    Route::post('/internal/import/catalog', [CatalogImportController::class, 'catalog'])->middleware('source');
 
     // Customer account
     Route::middleware('auth:sanctum')->group(function () {

@@ -11,8 +11,7 @@ const { status, size = 'md' } = Astro.props;
 
 const config: Record<FulfillmentStatus, { label: string; variant: 'info' | 'warning' | 'success' | 'danger' | 'neutral' }> = {
   unfulfilled: { label: 'Chờ xuất kho', variant: 'neutral' },
-  picking: { label: 'Đang soạn hàng', variant: 'info' },
-  packed: { label: 'Đã đóng gói', variant: 'info' },
+  preparing: { label: 'Đang soạn hàng', variant: 'info' },
   shipped: { label: 'Đang vận chuyển', variant: 'warning' },
   delivered: { label: 'Đã giao hàng', variant: 'success' },
   returned: { label: 'Hàng hoàn về', variant: 'danger' },

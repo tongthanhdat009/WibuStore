@@ -63,7 +63,20 @@ if (!staticOne && !liveSlugs) {
 }
 
 const { products: staticProducts } = await import('../../data/products').then((m) => ({ products: m.products }));
+// productSlugs là slug DB thật: ưu tiên resolve live từng món (rớt về fixture khi offline).
 let collectionProducts = staticProducts.filter((p) => collection.productSlugs.includes(p.slug));
+if (!liveSlugs) {
+  const resolved: typeof staticProducts = [];
+  for (const s of collection.productSlugs) {
+    try {
+      const { product } = await getProductBySlug(s);
+      resolved.push(product);
+    } catch {
+      /* bỏ qua slug lạ */
+    }
+  }
+  if (resolved.length > 0) collectionProducts = resolved;
+}
 if (liveSlugs) {
   const found: typeof staticProducts = [];
   for (const s of liveSlugs.slice(0, 12)) {

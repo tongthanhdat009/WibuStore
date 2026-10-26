@@ -4,6 +4,7 @@ namespace App\Domain\Orders;
 
 use App\Domain\Inventory\InventoryService;
 use App\Domain\Preorders\PreorderService;
+use App\Jobs\SendOrderConfirmation;
 use App\Models\ActivityLog;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
@@ -114,6 +115,10 @@ class CheckoutService
             IdempotencyKey::create(['key' => $idempotencyKey, 'scope' => 'checkout', 'order_id' => $order->id, 'response' => ['order_id' => $order->id], 'expires_at' => now()->addDay()]);
             ActivityLog::record('order.created', 'order', (string) $order->id, [], ['order_number' => $order->order_number, 'total' => $order->total_amount], $userId);
 
+            // Queue row is written in the same transaction as the order, so the
+            // confirmation mail only goes out for orders that actually commit.
+            SendOrderConfirmation::dispatch($order->id);
+
             return $order->fresh(['items', 'payments', 'addresses']);
         });
     }
@@ -147,7 +152,6 @@ class CheckoutService
             }
             $qty = max(1, (int) ($it['quantity'] ?? 1));
             if ($isPreorder) {
-                $unit = (int) $v->product->preorderPriceFor($v) ?? (int) $v->price_amount;
                 $campaign = $this->preorders->campaignForCheckout((int) ($it['preorder_campaign_id'] ?? 0), $lock);
                 if ($campaign->variant_id !== $v->id || $campaign->available < $qty) {
                     abort(response()->json(['error' => ['code' => 'INSUFFICIENT_STOCK', 'message' => 'Het quota pre-order']], 409));

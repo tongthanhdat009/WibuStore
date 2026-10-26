@@ -19,9 +19,11 @@ class PreorderCampaign extends Model
 
     public function scopeOpen($q)
     {
-        return $q->where('status', 'open')->where('opens_at', '<=', now())->where(function ($w) {
-            $w->whereNull('closes_at')->orWhere('closes_at', '>', now());
-        });
+        // NULL opens_at/closes_at mean "unbounded" — same rule as
+        // PreorderService::campaignForCheckout.
+        return $q->where('status', 'open')
+            ->where(fn ($w) => $w->whereNull('opens_at')->orWhere('opens_at', '<=', now()))
+            ->where(fn ($w) => $w->whereNull('closes_at')->orWhere('closes_at', '>', now()));
     }
 
     public function getAvailableAttribute(): int

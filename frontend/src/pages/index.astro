@@ -46,7 +46,7 @@ const heroCampaignsLive = heroCampaigns.map((c, i) =>
 );
 const preOrderProducts = products.filter((p) => p.status === 'pre_order').slice(0, 4);
 const newArrivalProducts = products.filter((p) => p.isNewArrival || p.status === 'in_stock').slice(0, 4);
-const featuredCollection = collections[0];
+const featuredCollection = collections.find((c) => c.slug === 'wano-kuni-climax') ?? collections[0];
 const featuredCollectionProducts = products.filter((p) =>
   featuredCollection.productSlugs.includes(p.slug)
 );
@@ -114,7 +114,7 @@ const featuredCollectionProducts = products.filter((p) =>
     <div class="absolute inset-0 pattern-halftone opacity-15 pointer-events-none"></div>
 
     <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <div class="flex items-center gap-2 mb-1.5">
             <StickerBadge text="PRE-ORDER ZONE" variant="brand" angle="left" size="sm" />

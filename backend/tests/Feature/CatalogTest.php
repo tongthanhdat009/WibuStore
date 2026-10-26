@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
+use App\Models\InventoryLevel;
 use App\Models\Product;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -40,5 +42,45 @@ class CatalogTest extends TestCase
         $this->getJson("/api/v1/products/{$slug}")->assertOk()->assertJsonPath('data.slug', $slug);
         $this->getJson('/api/v1/categories')->assertOk();
         $this->getJson('/api/v1/pages/home')->assertOk()->assertJsonPath('data.sections.0.type', 'hero_comic');
+    }
+
+    /** The storefront addresses categories by the same slug the API stores. */
+    public function test_category_filter_matches_the_storefront_slug(): void
+    {
+        $slug = $this->getJson('/api/v1/categories')->json('data.0.slug');
+        $categoryId = Category::where('slug', $slug)->value('id');
+
+        $res = $this->getJson("/api/v1/products?category={$slug}");
+
+        $res->assertOk();
+        $this->assertGreaterThan(0, $res->json('meta.total'));
+        foreach ($res->json('data') as $product) {
+            $this->assertTrue(
+                Product::where('slug', $product['slug'])
+                    ->whereHas('categories', fn ($q) => $q->where('categories.id', $categoryId))
+                    ->exists(),
+                "product {$product['slug']} is not in category {$slug}",
+            );
+        }
+    }
+
+    public function test_availability_reflects_stock_and_preorder_campaigns(): void
+    {
+        $preorder = Product::where('slug', 'gojo-satoru-unlimited-void-1-7')->firstOrFail();
+        $this->getJson("/api/v1/products/{$preorder->slug}")
+            ->assertOk()
+            ->assertJsonPath('data.availability', 'pre_order');
+
+        $plain = Product::where('slug', 'megumi-fushiguro-1-8')->firstOrFail();
+        $this->getJson("/api/v1/products/{$plain->slug}")
+            ->assertOk()
+            ->assertJsonPath('data.availability', 'in_stock');
+
+        // Drain the stock: the product must stop claiming to be in stock.
+        InventoryLevel::where('variant_id', $plain->variants()->value('id'))
+            ->update(['on_hand' => 0, 'reserved' => 0]);
+        $this->getJson("/api/v1/products/{$plain->slug}")
+            ->assertOk()
+            ->assertJsonPath('data.availability', 'sold_out');
     }
 }

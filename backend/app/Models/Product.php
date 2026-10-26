@@ -67,10 +67,36 @@ class Product extends Model
         return $q->active()->whereNotNull('published_at')->where('published_at', '<=', now());
     }
 
-    public function preorderPriceFor(ProductVariant $variant): ?int
+    /**
+     * Storefront availability: 'pre_order' when an open campaign still has quota,
+     * 'sold_out' when no active variant has stock left, else 'in_stock'.
+     *
+     * Expects `activeVariants.inventoryLevels` and
+     * `activeVariants.openPreorderCampaigns` to be eager loaded.
+     */
+    public function availability(): string
     {
-        $campaign = PreorderCampaign::where('variant_id', $variant->id)->where('status', 'open')->latest('id')->first();
+        foreach ($this->activeVariants as $variant) {
+            foreach ($variant->openPreorderCampaigns as $campaign) {
+                if ($campaign->available > 0) {
+                    return 'pre_order';
+                }
+            }
+        }
 
-        return $campaign ? (int) $campaign->sale_price_per_unit_amount : null;
+        foreach ($this->activeVariants as $variant) {
+            // A variant that does not track inventory is never stock-checked at
+            // checkout, so it is always orderable.
+            if (! $variant->track_inventory) {
+                return 'in_stock';
+            }
+            foreach ($variant->inventoryLevels as $level) {
+                if ($level->available > 0) {
+                    return 'in_stock';
+                }
+            }
+        }
+
+        return 'sold_out';
     }
 }

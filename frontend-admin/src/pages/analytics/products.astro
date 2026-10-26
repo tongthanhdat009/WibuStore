@@ -22,7 +22,7 @@ const products = prodData ?? [];
   ]}
 >
   <div slot="actions">
-    <Button variant="secondary" size="sm">
+    <Button id="export-csv-btn" variant="secondary" size="sm">
       Xuất danh sách
     </Button>
   </div>
@@ -66,4 +66,26 @@ const products = prodData ?? [];
       </table>
     </div>
   </div>
+
+  <script>
+    import { downloadCSV } from '../../lib/export';
+
+    document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
+      try {
+        const base = (import.meta.env.PUBLIC_API_URL as string | undefined) || 'http://localhost:8000';
+        const res = await fetch(`${base}/api/v1/admin/products?per_page=100`, { credentials: 'include', headers: { Accept: 'application/json' } });
+        const json = await res.json();
+        const rows = (json?.data ?? []).map((p: { name: string; series?: string | null; manufacturer?: string | null; min_price?: number | null; stock: { available: number } }) => [
+          p.name,
+          p.series ?? '',
+          p.manufacturer ?? '',
+          p.min_price ?? '',
+          p.stock?.available ?? 0,
+        ]);
+        downloadCSV('product-performance.csv', ['San pham', 'Series', 'Hang', 'Gia tu (VND)', 'Ton kha dung'], rows);
+      } catch {
+        alert('Xuat that bai. Kiem tra dang nhap.');
+      }
+    });
+  </script>
 </AdminLayout>

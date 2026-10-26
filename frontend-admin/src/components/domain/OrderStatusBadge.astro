@@ -10,7 +10,6 @@ interface Props {
 const { status, size = 'md' } = Astro.props;
 
 const config: Record<string, { label: string; variant: 'info' | 'warning' | 'success' | 'danger' | 'neutral' }> = {
-  new: { label: 'Đơn mới', variant: 'info' },
   pending: { label: 'Chờ xác nhận', variant: 'info' },
   confirmed: { label: 'Đã xác nhận', variant: 'info' },
   processing: { label: 'Đang xử lý', variant: 'warning' },
@@ -19,7 +18,6 @@ const config: Record<string, { label: string; variant: 'info' | 'warning' | 'suc
   completed: { label: 'Hoàn tất', variant: 'success' },
   cancelled: { label: 'Đã hủy', variant: 'danger' },
   expired: { label: 'Hết hạn', variant: 'neutral' },
-  on_hold: { label: 'Tạm dừng', variant: 'neutral' },
 };
 
 const current = config[status] || { label: status, variant: 'neutral' };

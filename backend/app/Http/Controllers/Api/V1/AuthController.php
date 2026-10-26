@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
@@ -98,7 +99,7 @@ class AuthController extends Controller
 
     public function wishlist(Request $request)
     {
-        $items = \Illuminate\Support\Facades\DB::table('wishlists')
+        $items = DB::table('wishlists')
             ->join('products', 'products.id', '=', 'wishlists.product_id')
             ->leftJoin('product_variants', function ($j) {
                 $j->on('product_variants.product_id', '=', 'products.id')->where('product_variants.status', 'active');
@@ -131,11 +132,11 @@ class AuthController extends Controller
     public function storeWishlist(Request $request)
     {
         $data = $request->validate(['product_id' => ['required', 'string']]);
-        $product = \App\Models\Product::where('public_id', $data['product_id'])->orWhere('slug', $data['product_id'])->first();
+        $product = Product::where('public_id', $data['product_id'])->orWhere('slug', $data['product_id'])->first();
         if (! $product) {
             return response()->json(['error' => ['code' => 'NOT_FOUND', 'message' => 'Khong tim thay san pham']], 404);
         }
-        \Illuminate\Support\Facades\DB::table('wishlists')->updateOrInsert(
+        DB::table('wishlists')->updateOrInsert(
             ['user_id' => $request->user()->id, 'product_id' => $product->id],
             ['created_at' => now(), 'updated_at' => now()]
         );
@@ -145,9 +146,9 @@ class AuthController extends Controller
 
     public function destroyWishlist(Request $request, string $product)
     {
-        $productId = \App\Models\Product::where('public_id', $product)->orWhere('slug', $product)->value('id');
+        $productId = Product::where('public_id', $product)->orWhere('slug', $product)->value('id');
         if ($productId) {
-            \Illuminate\Support\Facades\DB::table('wishlists')
+            DB::table('wishlists')
                 ->where('user_id', $request->user()->id)->where('product_id', $productId)->delete();
         }
 
@@ -180,10 +181,5 @@ class AuthController extends Controller
             'roles' => $user->roles->pluck('slug'),
             'permissions' => $user->roles->flatMap->permissions->pluck('slug')->unique()->values(),
         ];
-    }
-
-    public static function ensureHash(string $password): string
-    {
-        return Hash::needsRehash($password) ? Hash::make($password) : $password;
     }
 }

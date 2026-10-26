@@ -20,15 +20,19 @@ class ProductVariant extends Model
         return $this->hasMany(InventoryLevel::class, 'variant_id');
     }
 
+    public function preorderCampaigns()
+    {
+        return $this->hasMany(PreorderCampaign::class, 'variant_id');
+    }
+
+    /** Campaigns currently open for ordering (status + date window). */
+    public function openPreorderCampaigns()
+    {
+        return $this->hasMany(PreorderCampaign::class, 'variant_id')->open();
+    }
+
     public function scopeActive($q)
     {
         return $q->where('status', 'active');
-    }
-
-    public function availableIn(int $warehouseId): int
-    {
-        $lvl = $this->inventoryLevels()->where('warehouse_id', $warehouseId)->first();
-
-        return $lvl ? max(0, $lvl->on_hand - $lvl->reserved) : 0;
     }
 }

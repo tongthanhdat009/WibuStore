@@ -23,7 +23,7 @@ class DemoSeeder extends Seeder
 
         $series = AnimeSeries::firstOrCreate(['slug' => 'jujutsu-kaisen'], ['name' => 'Jujutsu Kaisen', 'is_active' => true]);
         $mf = Manufacturer::firstOrCreate(['slug' => 'good-smile'], ['name' => 'Good Smile Company']);
-        $cat = Category::firstOrCreate(['slug' => 'scale-figure'], ['name' => 'Scale Figure', 'sort_order' => 1, 'is_active' => true]);
+        $cat = Category::firstOrCreate(['slug' => 'scale-figures'], ['name' => 'Scale Figures', 'sort_order' => 1, 'is_active' => true]);
 
         $figures = [
             ['name' => 'Gojo Satoru Unlimited Void 1/7', 'slug' => 'gojo-satoru-unlimited-void-1-7', 'price' => 8900000, 'sku' => 'GSC-GOJO-17-STD'],
@@ -62,7 +62,7 @@ class DemoSeeder extends Seeder
             'content' => [
                 'schema_version' => 1,
                 'sections' => [
-                    ['type' => 'hero_comic', 'enabled' => true, 'headline' => 'NEW DROP: Gojo Satoru', 'eyebrow' => 'LIMITED EDITION', 'cta_label' => 'Mua ngay', 'cta_target' => '/products/gojo-satoru-unlimited-void-1-7', 'sort_order' => 1],
+                    ['type' => 'hero_comic', 'enabled' => true, 'headline' => 'NEW DROP: Gojo Satoru', 'eyebrow' => 'LIMITED EDITION', 'cta_label' => 'Mua ngay', 'cta_target' => '/products/figure-4-seed', 'sort_order' => 1],
                     ['type' => 'trending', 'enabled' => true, 'sort_order' => 2],
                     ['type' => 'preorder_spotlight', 'enabled' => true, 'sort_order' => 3],
                     ['type' => 'new_arrivals', 'enabled' => true, 'sort_order' => 4],

@@ -1,6 +1,6 @@
-export type OrderStatus = 'new' | 'confirmed' | 'processing' | 'completed' | 'cancelled' | 'on_hold';
-export type PaymentStatus = 'unpaid' | 'pending' | 'partially_paid' | 'paid' | 'refunded' | 'partially_refunded' | 'failed';
-export type FulfillmentStatus = 'unfulfilled' | 'picking' | 'packed' | 'shipped' | 'delivered' | 'returned';
+export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'expired';
+export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'partially_refunded';
+export type FulfillmentStatus = 'unfulfilled' | 'preparing' | 'shipped' | 'delivered' | 'returned';
 
 export interface OrderLineItem {
   id: string;

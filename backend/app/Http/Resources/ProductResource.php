@@ -21,7 +21,7 @@ class ProductResource extends JsonResource
             'series' => $this->series?->only(['name', 'slug']),
             'manufacturer' => $this->manufacturer?->only(['name', 'slug']),
             'image' => $primary?->url(),
-            'availability' => $this->availability ?? 'in_stock',
+            'availability' => $this->availability(),
         ];
     }
 }

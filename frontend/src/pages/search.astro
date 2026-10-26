@@ -3,11 +3,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Breadcrumb from '../components/ui/Breadcrumb.astro';
 import ProductGrid from '../components/catalog/ProductGrid.astro';
 import StickerBadge from '../components/comic/StickerBadge.astro';
-import { products as staticProducts } from '../data/products';
-import { getCatalogProducts } from '../lib/catalog';
+import { getAllCatalogProducts } from '../lib/catalog';
 
-const q = Astro.url.searchParams.get('q')?.trim() ?? '';
-const { products } = await getCatalogProducts(q ? { q } : {});
+// Trang này prerender tĩnh nên Astro.url lúc build không có ?q=.
+// Render TOÀN BỘ catalogue, client script sẽ gọi API search live (OR từng từ
+// + alias tên Nhật) rồi lọc theo slug trả về. Không slice 24 như
+// getCatalogProducts để kết quả nào cũng có thẻ tương ứng mà hiện.
+const { products } = await getAllCatalogProducts();
 ---
 
 <BaseLayout
@@ -69,6 +71,8 @@ const { products } = await getCatalogProducts(q ? { q } : {});
 </BaseLayout>
 
 <script>
+  import { API_URL } from '../lib/api';
+
   function initSearchPage() {
     const input = document.getElementById('search-page-input') as HTMLInputElement;
     const countEl = document.getElementById('search-count');
@@ -88,26 +92,45 @@ const { products } = await getCatalogProducts(q ? { q } : {});
         : 'Tất cả mô hình có sẵn:';
     }
 
-    let matchCount = 0;
-    const lowerQuery = query.toLowerCase();
-
-    cards.forEach((card) => {
-      if (!lowerQuery) {
-        card.classList.remove('hidden');
-        matchCount++;
-        return;
+    // Lọc theo slug mà API search live trả về (đã xử lý OR + alias).
+    // Rớt mạng mới dùng lọc chữ trong thẻ (fallback, kém chính xác hơn).
+    async function applyLiveFilter() {
+      try {
+        const res = await fetch(
+          `${API_URL}/api/v1/products?q=${encodeURIComponent(query)}&per_page=48`,
+          { headers: { Accept: 'application/json' } },
+        );
+        if (!res.ok) throw new Error(String(res.status));
+        const json = await res.json();
+        const slugs = new Set(((json?.data ?? []) as { slug: string }[]).map((p) => p.slug));
+        let n = 0;
+        cards.forEach((card) => {
+          const href = card.querySelector('a[href^="/products/"]')?.getAttribute('href') || '';
+          const slug = href.replace('/products/', '').split(/[?#]/)[0];
+          const show = slugs.has(slug);
+          card.classList.toggle('hidden', !show);
+          if (show) n++;
+        });
+        if (countEl) countEl.textContent = String(n);
+      } catch {
+        const words = query.toLowerCase().split(/\s+/).filter((w) => w.length >= 2);
+        let n = 0;
+        cards.forEach((card) => {
+          const text = card.textContent?.toLowerCase() || '';
+          const show = words.some((w) => text.includes(w));
+          card.classList.toggle('hidden', !show);
+          if (show) n++;
+        });
+        if (countEl) countEl.textContent = String(n);
       }
+    }
 
-      const text = card.textContent?.toLowerCase() || '';
-      if (text.includes(lowerQuery)) {
-        card.classList.remove('hidden');
-        matchCount++;
-      } else {
-        card.classList.add('hidden');
-      }
-    });
-
-    if (countEl) countEl.textContent = String(matchCount);
+    if (query) {
+      applyLiveFilter();
+    } else {
+      cards.forEach((card) => card.classList.remove('hidden'));
+      if (countEl) countEl.textContent = String(cards.length);
+    }
   }
 
   initSearchPage();

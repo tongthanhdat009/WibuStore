@@ -17,10 +17,10 @@ class PortfolioImageSeeder extends Seeder
 {
     /** subdir => [category slug/name, product label, base price] */
     protected array $groups = [
-        'figure' => ['scale-figure-seed', 'Scale Figure', 'Figure', 3900000],
-        'chibi_figure' => ['chibi-seed', 'Chibi Figure', 'Chibi', 990000],
-        'set_figure' => ['set-figure-seed', 'Set Figure', 'Set Figure', 5900000],
-        'cosplay' => ['cosplay-seed', 'Cosplay', 'Cosplay', 1490000],
+        'figure' => ['scale-figures', 'Scale Figures', 'Figure', 3900000],
+        'chibi_figure' => ['nendoroid', 'Nendoroid & Chibi', 'Chibi', 990000],
+        'set_figure' => ['model-kits', 'Model Kits', 'Set Figure', 5900000],
+        'cosplay' => ['cosplay', 'Cosplay & Phụ kiện', 'Cosplay', 1490000],
     ];
 
     public function run(): void

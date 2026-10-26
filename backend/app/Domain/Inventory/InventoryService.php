@@ -10,11 +10,17 @@ class InventoryService
 {
     public function defaultWarehouseId(): int
     {
-        return (int) DB::table('warehouses')->where('code', 'default')->value('id')
-            ?? (int) DB::table('warehouses')->insertGetId([
-                'code' => 'default', 'name' => 'Kho chinh', 'is_active' => true,
-                'created_at' => now(), 'updated_at' => now(),
-            ]);
+        // Do NOT fold this into one expression: the (int) cast binds tighter than ??,
+        // so `(int) null ?? insert` yields 0 instead of creating the warehouse.
+        $id = DB::table('warehouses')->where('code', 'default')->value('id');
+        if ($id !== null) {
+            return (int) $id;
+        }
+
+        return (int) DB::table('warehouses')->insertGetId([
+            'code' => 'default', 'name' => 'Kho chinh', 'is_active' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
     }
 
     /** Reserve stock inside caller's transaction. Rows must already be locked in stable order. */
@@ -63,7 +69,7 @@ class InventoryService
         }
         $level = InventoryLevel::where('warehouse_id', $warehouseId)->where('variant_id', $variantId)->lockForUpdate()->first();
         if (! $level) {
-            abort(409, 'Missing inventory level');
+            abort(response()->json(['error' => ['code' => 'INVALID_STATE', 'message' => 'Chua ton kho cho variant nay']], 409));
         }
         $level->decrement('reserved', min($qty, $level->reserved));
         $level->decrement('on_hand', min($qty, $level->on_hand));

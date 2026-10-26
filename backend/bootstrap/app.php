@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\ForceJson;
 use App\Http\Middleware\RequirePermission;
+use App\Http\Middleware\RequireSourceToken;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -22,9 +23,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->validateCsrfTokens(except: [
             'api/v1/webhooks/*',
+            'api/v1/internal/*',
+            'api/v1/ai/*',
         ]);
         $middleware->append(HandleCors::class);
-        $middleware->alias(['perm' => RequirePermission::class]);
+        $middleware->alias([
+            'perm' => RequirePermission::class,
+            'source' => RequireSourceToken::class,
+        ]);
         $middleware->appendToGroup('api', ForceJson::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

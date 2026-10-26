@@ -7,11 +7,14 @@ use App\Domain\Orders\OrderService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCheckoutRequest;
 use App\Http\Resources\OrderResource;
+use App\Jobs\PushOrderToOdoo;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class CartController extends Controller
 {
@@ -90,6 +93,13 @@ class CartController extends Controller
     {
         $order = $checkout->checkout($request->validated(), $request->user()?->id, $request->header('Idempotency-Key', Hash::make(uniqid())));
 
+        // Fail-open: queue sync (test) hay worker down đều không được phá checkout.
+        try {
+            PushOrderToOdoo::dispatch($order->id);
+        } catch (\Throwable $e) {
+            Log::warning('OdooPush dispatch failed: '.$e->getMessage(), ['order' => $order->id ?? null]);
+        }
+
         return (new OrderResource($order->load(['items', 'payments', 'addresses'])))->response()->setStatusCode(201);
     }
 
@@ -128,7 +138,7 @@ class CartController extends Controller
         $addr = $order->addresses->firstWhere('type', 'shipping');
         $address = $addr ? trim("{$addr->line1}, {$addr->district}, {$addr->province}", ', ') : '—';
 
-        return \Barryvdh\DomPDF\Facade\Pdf::setOption(['defaultFont' => 'DejaVu Sans'])
+        return Pdf::setOption(['defaultFont' => 'DejaVu Sans'])
             ->loadView('pdf.invoice', ['order' => $order, 'address' => $address])
             ->download("hoa-don-{$order->order_number}.pdf");
     }

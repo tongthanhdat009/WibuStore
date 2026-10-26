@@ -4,6 +4,8 @@ import AnnouncementBar from '../components/layout/AnnouncementBar.astro';
 import SiteHeader from '../components/layout/SiteHeader.astro';
 import Footer from '../components/layout/Footer.astro';
 import CartDrawer from '../components/cart/CartDrawer.astro';
+import ChatWidget from '../components/ai/ChatWidget.astro';
+import SearchOverlay from '../components/layout/SearchOverlay.astro';
 
 interface Props {
   title?: string;
@@ -57,8 +59,14 @@ const fullTitle = title.includes('Wibu Store') ? title : `${title} | Wibu Store`
       <slot />
     </main>
 
+    <!-- Global Search Overlay (fixed toàn viewport, ngoài header sticky) -->
+    <SearchOverlay />
+
     <!-- Global Cart Drawer (Slide-over) -->
     <CartDrawer />
+
+    <!-- Global AI Chat Widget -->
+    <ChatWidget />
 
     <!-- Global Footer -->
     <Footer />

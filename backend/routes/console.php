@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Odoo\OdooStockPull;
 use App\Domain\Orders\OrderService;
 use App\Models\Cart;
 use App\Models\IdempotencyKey;
@@ -13,5 +14,6 @@ Artisan::command('inspire', function () {
 
 // Idempotent scheduled tasks (spec 11.3)
 Schedule::call(fn (OrderService $orders) => $orders->expireUnpaid())->name('expire-unpaid')->everyFiveMinutes();
+Schedule::call(fn (OdooStockPull $pull) => $pull->pull())->name('odoo-stock-pull')->everyFiveMinutes();
 Schedule::call(fn () => Cart::where('expires_at', '<', now())->delete())->name('purge-carts')->daily();
 Schedule::call(fn () => IdempotencyKey::where('expires_at', '<', now())->delete())->name('purge-idempotency')->daily();

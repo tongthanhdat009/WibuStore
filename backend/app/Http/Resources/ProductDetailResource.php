@@ -28,6 +28,7 @@ class ProductDetailResource extends JsonResource
             'gallery' => $this->media->map(fn ($m) => [
                 'url' => $m->asset?->url(), 'alt' => $m->asset?->alt_text, 'is_primary' => $m->is_primary,
             ]),
+            'availability' => $this->availability(),
         ];
     }
 }

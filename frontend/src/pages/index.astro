@@ -105,18 +105,7 @@ const tryOnDemo =
     </div>
   </section>
 
-  <!-- 3. Video Story (Scrollytelling) -->
-  <VideoStory />
-
-  <!-- 4. Featured Manga Collection (Asymmetric Comic Collage) -->
-  <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
-    <FeaturedCollectionBanner
-      collection={featuredCollection}
-      featuredProducts={featuredCollectionProducts}
-    />
-  </section>
-
-  <!-- 5. Pre-order Spotlight (CMS preorder_spotlight toggle) -->
+  <!-- 3. Pre-order Spotlight (CMS preorder_spotlight toggle) -->
   {preorderOn && (
   <section class="bg-[#FFF4DC] border-y-2 border-[#17141F] py-12 lg:py-18 relative overflow-hidden">
     <!-- Subtle comic halftone pattern -->
@@ -197,7 +186,15 @@ const tryOnDemo =
   </section>
   )}
 
-  <!-- 6. Shop by Anime (Franchises) -->
+  <!-- 4. Featured Manga Collection (Asymmetric Comic Collage) -->
+  <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+    <FeaturedCollectionBanner
+      collection={featuredCollection}
+      featuredProducts={featuredCollectionProducts}
+    />
+  </section>
+
+  <!-- 5. Shop by Anime (Franchises) -->
   <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-18">
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
       <div>
@@ -234,7 +231,7 @@ const tryOnDemo =
     </div>
   </section>
 
-  <!-- 7. New Arrivals (CMS new_arrivals toggle) -->
+  <!-- 6. New Arrivals (CMS new_arrivals toggle) -->
   {newArrivalsOn && (
   <section class="bg-[#F7F5F0] border-t-2 border-[#17141F] pb-12 lg:pb-18">
     <div class="max-w-[1440px] mx-auto px-8 py-4">
@@ -268,55 +265,41 @@ const tryOnDemo =
   </section>
   )}
 
-  <!-- 8. AI Image Recognition — giới thiệu Nhận Diện AI -->
+  <!-- 7. AI Studio — Nhận diện AI + Thử đồ AI (gộp 2 tính năng) -->
   <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-    <div class="p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-white relative overflow-hidden">
-      <div class="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-[#FFE6ED] border-2 border-[#17141F]/10 pointer-events-none"></div>
-      <div class="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-[#FFF4DC] border-2 border-[#17141F]/10 pointer-events-none"></div>
-
-      <div class="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
-        <div>
-          <div class="flex items-center gap-2 mb-2">
-            <StickerBadge text="AI VISION" variant="pink" angle="left" size="sm" />
-            <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
-              CHỤP LÀ BIẾT TÊN FIGURE
-            </span>
-          </div>
-          <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
-            NHẬN DIỆN AI
-          </h2>
-          <p class="text-xs sm:text-sm text-[#534F5C] mt-2 leading-relaxed">
-            Có ảnh figure mà không biết tên? Tải ảnh lên — AI đọc tên, danh mục và đặc điểm nổi bật, rồi gợi ý ngay món tương tự đang bán trong kho.
-          </p>
-
-          <ol class="mt-5 space-y-2.5">
-            <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
-              <span class="font-display text-xs bg-[#D6284F] text-white w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">01</span>
-              <p class="text-xs text-[#17141F]"><strong>Tải ảnh lên</strong> <span class="text-[#534F5C]">— kéo thả JPG/PNG/WEBP, tối đa 5MB.</span></p>
-            </li>
-            <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
-              <span class="font-display text-xs bg-[#FFD44A] text-[#17141F] w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">02</span>
-              <p class="text-xs text-[#17141F]"><strong>AI phân tích</strong> <span class="text-[#534F5C]">— tên, danh mục, đặc điểm sau 10–30 giây.</span></p>
-            </li>
-            <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-[#FFFDF7] shadow-[3px_3px_0px_#17141F]">
-              <span class="font-display text-xs bg-white text-[#17141F] w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">03</span>
-              <p class="text-xs text-[#17141F]"><strong>Gợi ý + hỏi thêm</strong> <span class="text-[#534F5C]">— 3 món tương tự trong kho, chat hỏi tiếp.</span></p>
-            </li>
-          </ol>
-
-          <div class="flex flex-wrap gap-3 mt-5">
-            <Button href="/recognition" variant="primary" size="md">
-              <span>Thử nhận diện ngay ✦</span>
-            </Button>
-            <Button href="/recognition" variant="outline" size="md">
-              <span>Xem cách dùng</span>
-            </Button>
-          </div>
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <div>
+        <div class="flex items-center gap-2 mb-1.5">
+          <StickerBadge text="AI STUDIO" variant="brand" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            CHỤP LÀ BIẾT • MẶC LÀ HỢP
+          </span>
         </div>
+        <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
+          AI STUDIO
+        </h2>
+        <p class="text-xs sm:text-sm text-[#534F5C] mt-1">
+          Hai trợ lý AI của Wibu Store: nhận diện figure từ ảnh, và mặc thử đồ cosplay online.
+        </p>
+      </div>
+    </div>
 
-        <!-- Visual: art AI + thẻ sản phẩm thật -->
-        <div class="relative mx-auto w-full max-w-md lg:max-w-none">
-          <div class="rounded-3xl overflow-hidden border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] -rotate-1 hover:rotate-0 transition-transform duration-300 bg-[#FFF4DC]">
+    <div class="grid lg:grid-cols-2 gap-6">
+      <!-- Panel: Nhận diện AI -->
+      <div class="p-6 rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-white relative overflow-hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <StickerBadge text="AI VISION" variant="pink" angle="left" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            CHỤP LÀ BIẾT TÊN FIGURE
+          </span>
+        </div>
+        <h3 class="font-display text-2xl text-[#17141F] uppercase tracking-tight">NHẬN DIỆN AI</h3>
+        <p class="text-xs text-[#534F5C] mt-1.5 leading-relaxed">
+          Có ảnh figure mà không biết tên? Tải ảnh lên — AI đọc tên, danh mục và đặc điểm nổi bật, rồi gợi ý ngay món tương tự đang bán trong kho.
+        </p>
+
+        <div class="relative mt-5 mb-8 max-w-[440px] mx-auto w-full">
+          <div class="rounded-2xl overflow-hidden border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] -rotate-1 hover:rotate-0 transition-transform duration-300 bg-[#FFF4DC]">
             <img
               src="/images/ai/ai-recognition.jpg"
               alt="Minh họa AI nhận diện mô hình figure"
@@ -324,13 +307,13 @@ const tryOnDemo =
               loading="lazy"
             />
           </div>
-          <span class="absolute -top-3 right-6 rotate-3 font-display text-[11px] bg-[#16A34A] text-white px-3 py-1 rounded-lg border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
+          <span class="absolute -top-3 right-4 rotate-3 font-display text-[11px] bg-[#16A34A] text-white px-3 py-1 rounded-lg border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
             ✓ SCAN CHUẨN 99%
           </span>
           {recognitionDemo && (
             <a
               href={`/products/${recognitionDemo.slug}`}
-              class="absolute -bottom-5 left-2 sm:left-4 flex items-center gap-3 p-2.5 pr-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[4px_4px_0px_#17141F] hover:-translate-y-1 transition-transform max-w-[calc(100%-1rem)]"
+              class="absolute -bottom-5 left-2 flex items-center gap-3 p-2.5 pr-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[4px_4px_0px_#17141F] hover:-translate-y-1 transition-transform max-w-[calc(100%-1rem)]"
             >
               <img
                 src={recognitionDemo.images[0]}
@@ -346,93 +329,108 @@ const tryOnDemo =
             </a>
           )}
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- 9. AI Virtual Try-On — giới thiệu Thử Đồ AI -->
-  <section class="bg-[#17141F] border-y-2 border-[#17141F] py-12 lg:py-16 relative overflow-hidden">
-    <div class="absolute inset-0 pattern-halftone opacity-10 pointer-events-none"></div>
-    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <div class="p-6 md:p-10 rounded-3xl border-3 border-[#FFD44A] shadow-[6px_6px_0px_#FFD44A] bg-[#FFFDF7] relative overflow-hidden">
-        <div class="grid lg:grid-cols-2 gap-8 items-center">
-          <!-- Visual: art AI + thẻ đồ cosplay thật -->
-          <div class="relative order-2 lg:order-1 mx-auto w-full max-w-md lg:max-w-none">
-            <div class="rounded-3xl overflow-hidden border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] rotate-1 hover:rotate-0 transition-transform duration-300 bg-[#17141F]">
+        <ol class="mt-5 space-y-2">
+          <li class="flex items-center gap-2.5 text-xs text-[#17141F]">
+            <span class="font-display text-[10px] bg-[#D6284F] text-white w-7 h-7 rounded-lg border-2 border-[#17141F] flex items-center justify-center shrink-0">01</span>
+            <p><strong>Tải ảnh lên</strong> <span class="text-[#534F5C]">— JPG/PNG/WEBP, tối đa 5MB.</span></p>
+          </li>
+          <li class="flex items-center gap-2.5 text-xs text-[#17141F]">
+            <span class="font-display text-[10px] bg-[#FFD44A] text-[#17141F] w-7 h-7 rounded-lg border-2 border-[#17141F] flex items-center justify-center shrink-0">02</span>
+            <p><strong>AI phân tích</strong> <span class="text-[#534F5C]">— tên, danh mục, đặc điểm sau 10–30 giây.</span></p>
+          </li>
+          <li class="flex items-center gap-2.5 text-xs text-[#17141F]">
+            <span class="font-display text-[10px] bg-white text-[#17141F] w-7 h-7 rounded-lg border-2 border-[#17141F] flex items-center justify-center shrink-0">03</span>
+            <p><strong>Gợi ý + hỏi thêm</strong> <span class="text-[#534F5C]">— 3 món tương tự trong kho, chat hỏi tiếp.</span></p>
+          </li>
+        </ol>
+
+        <div class="flex flex-wrap gap-3 mt-5">
+          <Button href="/recognition" variant="primary" size="sm">
+            <span>Thử nhận diện ngay ✦</span>
+          </Button>
+          <Button href="/recognition" variant="outline" size="sm">
+            <span>Xem cách dùng</span>
+          </Button>
+        </div>
+      </div>
+
+      <!-- Panel: Thử đồ AI -->
+      <div class="p-6 rounded-3xl border-3 border-[#FFD44A] shadow-[6px_6px_0px_#FFD44A] bg-[#FFFDF7] relative overflow-hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <StickerBadge text="AI STUDIO" variant="yellow" angle="right" size="sm" />
+          <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
+            MẶC THỬ COSPLAY ONLINE
+          </span>
+        </div>
+        <h3 class="font-display text-2xl text-[#17141F] uppercase tracking-tight">THỬ ĐỒ AI</h3>
+        <p class="text-xs text-[#534F5C] mt-1.5 leading-relaxed">
+          Phân vân bộ cosplay có hợp mình không? Upload ảnh bạn + ảnh trang phục — AI ghép thử trong 1–2 phút, ưng thì chốt đơn luôn.
+        </p>
+
+        <div class="relative mt-5 mb-8 max-w-[440px] mx-auto w-full">
+          <div class="rounded-2xl overflow-hidden border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] rotate-1 hover:rotate-0 transition-transform duration-300 bg-[#17141F]">
+            <img
+              src="/images/ai/ai-tryon.jpg"
+              alt="Minh họa tủ đồ cosplay thử đồ AI"
+              class="w-full aspect-square object-cover"
+              loading="lazy"
+            />
+          </div>
+          <span class="absolute -top-3 left-4 -rotate-3 font-display text-[11px] bg-[#FFD44A] text-[#17141F] px-3 py-1 rounded-lg border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
+            ✦ WARDROBE AI
+          </span>
+          {tryOnDemo && (
+            <a
+              href={`/products/${tryOnDemo.slug}`}
+              class="absolute -bottom-5 right-2 flex items-center gap-3 p-2.5 pr-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[4px_4px_0px_#17141F] hover:-translate-y-1 transition-transform max-w-[calc(100%-1rem)]"
+            >
               <img
-                src="/images/ai/ai-tryon.jpg"
-                alt="Minh họa tủ đồ cosplay thử đồ AI"
-                class="w-full aspect-square object-cover"
+                src={tryOnDemo.images[0]}
+                alt={tryOnDemo.name}
+                class="w-14 h-14 rounded-xl object-cover border-2 border-[#17141F] shrink-0"
                 loading="lazy"
               />
-            </div>
-            <span class="absolute -top-3 left-6 -rotate-3 font-display text-[11px] bg-[#FFD44A] text-[#17141F] px-3 py-1 rounded-lg border-2 border-[#17141F] shadow-[2px_2px_0px_#17141F]">
-              ✦ WARDROBE AI
-            </span>
-            {tryOnDemo && (
-              <a
-                href={`/products/${tryOnDemo.slug}`}
-                class="absolute -bottom-5 right-2 sm:right-4 flex items-center gap-3 p-2.5 pr-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[4px_4px_0px_#17141F] hover:-translate-y-1 transition-transform max-w-[calc(100%-1rem)]"
-              >
-                <img
-                  src={tryOnDemo.images[0]}
-                  alt={tryOnDemo.name}
-                  class="w-14 h-14 rounded-xl object-cover border-2 border-[#17141F] shrink-0"
-                  loading="lazy"
-                />
-                <span class="min-w-0">
-                  <span class="block font-display text-[10px] text-[#9A5A00]">ĐỒ COSPLAY TRONG KHO</span>
-                  <span class="block text-xs font-bold text-[#17141F] truncate">{tryOnDemo.name}</span>
-                  <span class="block text-xs font-black text-[#D6284F]">{formatVND(tryOnDemo.price)}</span>
-                </span>
-              </a>
-            )}
-          </div>
-
-          <div class="order-1 lg:order-2">
-            <div class="flex items-center gap-2 mb-2">
-              <StickerBadge text="AI STUDIO" variant="yellow" angle="right" size="sm" />
-              <span class="font-display text-xs tracking-wider text-[#534F5C] uppercase">
-                MẶC THỬ COSPLAY ONLINE
+              <span class="min-w-0">
+                <span class="block font-display text-[10px] text-[#9A5A00]">ĐỒ COSPLAY TRONG KHO</span>
+                <span class="block text-xs font-bold text-[#17141F] truncate">{tryOnDemo.name}</span>
+                <span class="block text-xs font-black text-[#D6284F]">{formatVND(tryOnDemo.price)}</span>
               </span>
-            </div>
-            <h2 class="font-display text-3xl sm:text-4xl text-[#17141F] uppercase tracking-tight">
-              THỬ ĐỒ AI
-            </h2>
-            <p class="text-xs sm:text-sm text-[#534F5C] mt-2 leading-relaxed">
-              Phân vân bộ cosplay có hợp mình không? Upload ảnh bạn + ảnh trang phục — AI ghép thử trong 1–2 phút, ưng thì chốt đơn luôn.
-            </p>
+            </a>
+          )}
+        </div>
 
-            <ol class="mt-5 space-y-2.5">
-              <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
-                <span class="font-display text-xs bg-[#17141F] text-white w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">01</span>
-                <p class="text-xs text-[#17141F]"><strong>Ảnh của bạn</strong> <span class="text-[#534F5C]">— 1 ảnh chân dung rõ mặt, đủ sáng.</span></p>
-              </li>
-              <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
-                <span class="font-display text-xs bg-[#FFD44A] text-[#17141F] w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">02</span>
-                <p class="text-xs text-[#17141F]"><strong>Chọn trang phục</strong> <span class="text-[#534F5C]">— tải 1–3 ảnh đồ cosplay muốn thử.</span></p>
-              </li>
-              <li class="flex items-center gap-3 p-2.5 rounded-2xl border-2 border-[#17141F] bg-white shadow-[3px_3px_0px_#17141F]">
-                <span class="font-display text-xs bg-[#D6284F] text-white w-8 h-8 rounded-xl border-2 border-[#17141F] flex items-center justify-center shrink-0">03</span>
-                <p class="text-xs text-[#17141F]"><strong>Generate & tải về</strong> <span class="text-[#534F5C]">— so sánh Trước/Sau, tải ảnh về máy.</span></p>
-              </li>
-            </ol>
+        <ol class="mt-5 space-y-2">
+          <li class="flex items-center gap-2.5 text-xs text-[#17141F]">
+            <span class="font-display text-[10px] bg-[#17141F] text-white w-7 h-7 rounded-lg border-2 border-[#17141F] flex items-center justify-center shrink-0">01</span>
+            <p><strong>Ảnh của bạn</strong> <span class="text-[#534F5C]">— 1 ảnh chân dung rõ mặt, đủ sáng.</span></p>
+          </li>
+          <li class="flex items-center gap-2.5 text-xs text-[#17141F]">
+            <span class="font-display text-[10px] bg-[#FFD44A] text-[#17141F] w-7 h-7 rounded-lg border-2 border-[#17141F] flex items-center justify-center shrink-0">02</span>
+            <p><strong>Chọn trang phục</strong> <span class="text-[#534F5C]">— tải 1–3 ảnh đồ cosplay muốn thử.</span></p>
+          </li>
+          <li class="flex items-center gap-2.5 text-xs text-[#17141F]">
+            <span class="font-display text-[10px] bg-[#D6284F] text-white w-7 h-7 rounded-lg border-2 border-[#17141F] flex items-center justify-center shrink-0">03</span>
+            <p><strong>Generate & tải về</strong> <span class="text-[#534F5C]">— so sánh Trước/Sau, tải ảnh về máy.</span></p>
+          </li>
+        </ol>
 
-            <div class="flex flex-wrap gap-3 mt-5">
-              <Button href="/virtual-try-on" variant="secondary" size="md">
-                <span>Thử đồ ngay ✦</span>
-              </Button>
-              <Button href="/virtual-try-on" variant="outline" size="md">
-                <span>Xem cách dùng</span>
-              </Button>
-            </div>
-          </div>
+        <div class="flex flex-wrap gap-3 mt-5">
+          <Button href="/virtual-try-on" variant="secondary" size="sm">
+            <span>Thử đồ ngay ✦</span>
+          </Button>
+          <Button href="/virtual-try-on" variant="outline" size="sm">
+            <span>Xem cách dùng</span>
+          </Button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 10. Collector's Corner / Editorial Guide (P2) -->
+  <!-- 8. Video Story (Scrollytelling) -->
+  <VideoStory />
+
+  <!-- 9. Collector's Corner / Editorial Guide (P2) -->
   <section class="max-w-[1440px] mx-auto p-5">
     <div class="p-6 md:p-10 rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-[#FFF4DC] relative overflow-hidden">
       <!-- Halftone pattern -->

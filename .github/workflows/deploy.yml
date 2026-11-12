@@ -29,7 +29,6 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: FRONTEND_PUBLIC_API_URL,ADMIN_PUBLIC_API_URL
-          script_stop: true
           script: |
             set -e
             cd /opt/wibu-store

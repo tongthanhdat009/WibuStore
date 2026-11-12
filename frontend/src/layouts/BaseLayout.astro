@@ -31,12 +31,24 @@ const fullTitle = title.includes('Wibu Store') ? title : `${title} | Wibu Store`
     <meta name="generator" content={Astro.generator} />
 
     <!-- Google Fonts: Anton (Display English) & Be Vietnam Pro (UI, Vietnamese, Body) -->
+    <!-- media=print + onload: khong chan render (display=swap giu FOUT on dinh) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+
+    <!-- S3 bucket chua anh product (lazy, below-fold): rut ngan DNS/TLS handshake -->
+    <link rel="preconnect" href="https://s3-nexpress-us1.vyta.io.vn" />
 
     <!-- SEO Meta Tags -->
     <title>{fullTitle}</title>

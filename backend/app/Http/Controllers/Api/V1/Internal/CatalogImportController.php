@@ -20,9 +20,7 @@ use Illuminate\Http\Request;
  */
 class CatalogImportController extends Controller
 {
-    public function __construct(private InventoryService $inventory)
-    {
-    }
+    public function __construct(private InventoryService $inventory) {}
 
     public function catalog(Request $request): JsonResponse
     {
@@ -95,8 +93,8 @@ class CatalogImportController extends Controller
                 $variant->id,
                 $delta,
                 'odoo sync',
-                'odoo:' . $variant->sku,
-                'odoo-stock:' . $batch . ':' . $variant->sku,
+                'odoo:'.$variant->sku,
+                'odoo-stock:'.$batch.':'.$variant->sku,
                 null
             );
         }

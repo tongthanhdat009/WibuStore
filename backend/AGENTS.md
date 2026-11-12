@@ -34,7 +34,7 @@ Laravel 13 REST API (`/api/v1`). Sanctum stateful session auth, per-permission a
 ## For AI Agents
 
 ### Working In This Directory
-- Never invoke `php artisan` directly — drive everything through the root `make` targets: `doctor`, `db-create`, `fresh`, `dev`, `test`, `pint`, `queue`, `schedule`. (`make install` sets up `pdo_pgsql` from a Fedora RPM, no sudo.)
+- Never invoke `php artisan` directly — drive everything through the root `make` targets: `doctor`, `db-create`, `fresh`, `dev`, `test`, `pint`, `queue`, `schedule`. (`make install` verifies `pdo_pgsql` + runs `composer`/`npm install`.)
 - The runtime is **host PHP**, not Docker: the root `Makefile` has `PHP := php` and zero docker targets. `backend/Dockerfile.dev` is a leftover from the docker-era setup — nothing builds or runs it. `README.md` says the same.
 - `backend/CLAUDE.md` is a Laravel Boost bootstrap file, not a task instruction. Do not install Boost or run its setup commands unless the user asks.
 - DB is the shared external Postgres container `postgres-docker-postgres-1`, `app@127.0.0.1:5432`. Never add Postgres to `infra/compose.yaml` — that file is optional Minio/Redis only.

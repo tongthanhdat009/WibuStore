@@ -27,6 +27,12 @@
 ### Working In This Directory
 - `services.php` `odoo` block is load-bearing: `connector_url` (env `ODOO_CONNECTOR_URL`, default `http://localhost:8090`) and `webhook_secret` (env `ODOO_WEBHOOK_SECRET`, default `change-me`) are consumed by `app/Domain/Odoo/OdooHookService.php` (`config('services.odoo.*')`). Renaming either key or its env var breaks the Odoo order push — update the service in the same change.
 - `ODOO_CONNECTOR_URL` / `ODOO_WEBHOOK_SECRET` are **not** present in `backend/.env` or `.env.example`, so the config defaults apply locally.
+- 2 duong Odoo rieng biet, dung lan:
+
+| Huong | Config | Default | Dung boi |
+|---|---|---|---|
+| Day order ra | `services.odoo.connector_url` (`ODOO_CONNECTOR_URL`) | `http://localhost:8090` | `OdooHookService` → `POST /ingest/wibu` (HMAC `X-Signature`, fire-and-forget) |
+| Keo stock / day truc tiep master | `config/odoo.php` (`ODOO_URL`, `ODOO_CHANNEL_KEY`, `ODOO_CHANNEL_CODE`) | `http://localhost:8069` | `OdooStockPull` → `GET /api/channel/stock/{sku}`; `PushOrderToOdoo` job → `POST /api/channel/order_push` (`X-Channel-Key`) |
 - Postgres is the only supported DB. Never point `DB_CONNECTION` at sqlite for real data — `database/database.sqlite` is an unused leftover.
 - Redis/Minio changes must stay in sync with `infra/compose.yaml` (optional services only; Postgres stays external).
 - Env-driven: never hardcode URLs, keys or credentials in a config file — use `env()`.

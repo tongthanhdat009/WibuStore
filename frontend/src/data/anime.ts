@@ -1,16 +1,18 @@
 import type { AnimeSeries } from '../types';
 
-// Ảnh bìa series = logo anime chính thức (Wikimedia Commons, raster 960px,
-// verify 200) thay cho ảnh Unsplash chung chung trước đây.
-// logoOnDark = true: logo sáng màu (trắng/xám) → component tự đặt lên nền tối.
-// NOTE: Chainsaw Man và Evangelion đã bỏ khỏi danh sách vì DB chưa có
-// sản phẩm nào thuộc 2 series này (trang /anime/... trống trơn).
-// Khi nào có hàng thì thêm entry + logo vào đây và LOGO là xong.
+// Anh bia series = logo anime chinh thuc, tu host tren chinh domain
+// (/images/series/...) thay cho hotlink Wikimedia (tranh third-party cookie
+// WMF-Uniq/NetworkProbeLimit lam rot diem Best Practices + them latency).
+// SVG goc tu Wikimedia Commons (CC); ban PNG da resize ve 360px.
+// logoOnDark = true: logo sang mau (trang/xam) → component tu dat len nen toi.
+// NOTE: Chainsaw Man va Evangelion da bo khoi danh sach vi DB chua co
+// san pham nao thuoc 2 series nay (trang /anime/... trong tron).
+// Khi nao co hang thi them entry + logo vao day va LOGO la xong.
 const LOGO = {
-  jjk: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Jujutsu_Kaisen_logo.svg/960px-Jujutsu_Kaisen_logo.svg.png',
-  onePiece: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/One_piece_logo.svg/960px-One_piece_logo.svg.png',
-  demonSlayer: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Demon_Slayer_logo.svg/960px-Demon_Slayer_logo.svg.png',
-  spyFamily: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Spy_%C3%97_Family_logo.png',
+  jjk: '/images/series/jjk.svg',
+  onePiece: '/images/series/one-piece-360.png',
+  demonSlayer: '/images/series/demon-slayer-360.png',
+  spyFamily: '/images/series/spy-family.png',
 };
 
 export const animeSeriesList: AnimeSeries[] = [

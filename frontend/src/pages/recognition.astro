@@ -207,9 +207,15 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
       setState('error');
       return;
     }
-    descEl.textContent = r.data.description;
+    const desc = r.data.description || '';
+    if (desc.startsWith('KHONG_PHAI_FIGURE:')) {
+      errorMsg.textContent = desc.replace(/^KHONG_PHAI_FIGURE:\s*/, '') || 'Ảnh này không phải mô hình figure. Hãy tải lên ảnh figure rõ nét nhé!';
+      setState('error');
+      return;
+    }
+    descEl.textContent = desc;
     setState('success');
-    loadSimilar(r.data.description);
+    loadSimilar(desc);
   }
 
   document.getElementById('rec-submit')?.addEventListener('click', recognize);

@@ -141,12 +141,8 @@ class LlmService
     }
 
     /**
-     * Tao anh: 1 model duy nhat LLM_IMAGE_MODEL lam ca 2 viec.
-     * - Text-to-image qua /v1/images/generations (prompt chu).
-     * - Try-on (tryOn) qua /v1/chat/completions (anh nguoi + anh do).
-     * Model phai tra duoc anh (VD ag/gemini-3.1-flash-image). SDXL cua
-     * Cloudflare chi ve tu chu, khong doc anh input nen khong lam try-on.
-     * Gemini chi song o VN, staging HK geo-block ca 2 chuc nang.
+     * Tao anh text-to-image qua /v1/images/generations (prompt chu).
+     * Model phai tra duoc anh (VD ag/gemini-3.1-flash-image).
      *
      * @return array{bytes: string, mime: string, model: string}
      */
@@ -220,102 +216,6 @@ class LlmService
         throw new \RuntimeException($lastError);
     }
 
-    /**
-     * Ghep trang phuc: anh nguoi + 1..3 anh trang phuc/phu kien qua chat
-     * (9router khong co /images/edits; model image gen tra anh dang
-     * markdown `![image](data:...;base64,...)` trong message content).
-     * Dung chung LLM_IMAGE_MODEL voi generateImage.
-     *
-     * @param  array<int, array{bytes: string, mime: string}>  $outfits
-     * @return array{bytes: string, mime: string, model: string}
-     */
-    public static function tryOn(string $personBytes, string $personMime, array $outfits, ?string $prompt = null): array
-    {
-        $base = rtrim(config('services.llm.base_url'), '/');
-        $key = config('services.llm.api_key');
-        $models = self::imageModels();
-        $timeout = max(60, (int) config('services.llm.timeout', 60) * 4);
-
-        if (! $key) {
-            throw new \RuntimeException('LLM chua cau hinh (thieu LLM_API_KEY).');
-        }
-
-        $valid = ['image/jpeg', 'image/png', 'image/webp'];
-        if (! in_array($personMime, $valid, true)) {
-            throw new \RuntimeException('Anh nguoi phai la JPEG, PNG hoac WebP.');
-        }
-        $outfits = array_values(array_filter(
-            $outfits,
-            fn ($o) => is_array($o) && in_array($o['mime'] ?? null, $valid, true) && ! empty($o['bytes'])
-        ));
-        if (count($outfits) < 1 || count($outfits) > 3) {
-            throw new \RuntimeException('Can 1-3 anh trang phuc/phu kien.');
-        }
-
-        $extra = $prompt !== null && trim($prompt) !== ''
-            ? ' Yeu cau them: '.mb_substr(trim($prompt), 0, 300)
-            : '';
-        $content = [[
-            'type' => 'text',
-            'text' => 'First image is a person, the rest '.(count($outfits) > 1 ? 'are outfit/accessory references' : 'is an outfit/accessory reference').'. '
-                .'Generate a photorealistic image of that exact person wearing that outfit, keep the face, pose and background style natural.'.$extra.' '
-                .'Return only the image.',
-        ]];
-        $content[] = ['type' => 'image_url', 'image_url' => [
-            'url' => 'data:'.$personMime.';base64,'.base64_encode($personBytes),
-        ]];
-        foreach ($outfits as $o) {
-            $content[] = ['type' => 'image_url', 'image_url' => [
-                'url' => 'data:'.$o['mime'].';base64,'.base64_encode($o['bytes']),
-            ]];
-        }
-
-        $lastError = 'LLM khong tra ve anh (model co the bi chan region).';
-        foreach ($models as $model) {
-            try {
-                $res = Http::timeout($timeout)
-                    ->withToken($key)
-                    ->post($base.'/chat/completions', [
-                        'model' => $model,
-                        'messages' => [['role' => 'user', 'content' => $content]],
-                    ]);
-            } catch (\Throwable $e) {
-                Log::warning('LlmService tryon exception: '.$e->getMessage(), ['model' => $model]);
-                $lastError = 'LLM tam thoi khong dung duoc.';
-
-                continue;
-            }
-
-            $body = (string) $res->body();
-            if (! $res->successful()) {
-                $lastError = self::extractError($body) ?? 'LLM loi HTTP '.$res->status();
-                Log::warning('LlmService tryon failed: HTTP '.$res->status(), ['model' => $model]);
-
-                continue;
-            }
-
-            $parsed = self::extractText($body);
-            $text = $parsed['text'] ?? '';
-            if ($text === '' || ! preg_match('/data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+\/=]+)/', $text, $m)) {
-                $lastError = 'LLM khong tra ve anh (model co the bi chan region).';
-
-                continue;
-            }
-
-            $bytes = base64_decode($m[2], true);
-            $mime = $bytes !== false ? self::sniffImageMime($bytes) : null;
-            if ($bytes === false || $mime === null) {
-                $lastError = 'LLM tra ve anh loi.';
-
-                continue;
-            }
-
-            return ['bytes' => $bytes, 'mime' => $mime, 'model' => $parsed['model'] ?? $model];
-        }
-
-        throw new \RuntimeException($lastError);
-    }
-
     private static function sniffImageMime(string $bytes): ?string
     {
         if (str_starts_with($bytes, "\xFF\xD8\xFF")) {
@@ -356,7 +256,7 @@ class LlmService
 
         $question = $prompt !== null && trim($prompt) !== ''
             ? mb_substr(trim($prompt), 0, 500)
-            : 'Mo ta buc anh nay bang tieng Viet, ngan gon 2-3 cau: co gi trong anh, mau sac noi bat.';
+            : 'Ban la AI nhan dien mo hinh figure cua Wibu Store. Tra loi bang tieng Viet, ngan gon 2-3 cau: ten nhan vat/figure (neu biet), danh muc (Scale/Nendoroid/Action/Cosplay...), dac diem noi bat. QUAN TRONG: neu anh KHONG phai mo hinh figure/statue/do choi suu tam anime (vi du: anh nguoi, selfie, do an, phong canh, vat dung doi thuong...) thi chi tra loi dung dinh dang: KHONG_PHAI_FIGURE: kem mot cau than thien giai thich anh khong phai mo hinh va goi y tai len anh figure ro net.';
 
         $lastError = 'LLM tra ve rong.';
         foreach ($models as $model) {

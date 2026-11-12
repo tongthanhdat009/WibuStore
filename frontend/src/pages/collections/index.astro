@@ -150,9 +150,12 @@ const FALLBACK_DESC =
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                       </svg>
                     </Button>
-                    <span class="font-display text-xs text-[#534F5C] uppercase tracking-wider hidden sm:inline">
+                    <a
+                      href={`/collections/${col.slug}`}
+                      class="font-display text-xs text-[#534F5C] hover:text-[#D6284F] uppercase tracking-wider hidden sm:inline underline-offset-4 hover:underline"
+                    >
                       Khám phá toàn bộ →
-                    </span>
+                    </a>
                   </div>
                 </div>
 

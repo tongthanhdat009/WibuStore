@@ -20,6 +20,7 @@ Business-logic layer: fat services, HTTP glue stays in controllers. Money is int
 ## Subdirectories
 | Directory | Purpose |
 |-----------|---------|
+| `Ai/` | Single LLM entrypoint `LlmService` (see `Ai/AGENTS.md`) |
 | `Common/` | Status constants shared by every service (see `Common/AGENTS.md`) |
 | `Inventory/` | Stock levels + movement ledger (see `Inventory/AGENTS.md`) |
 | `Odoo/` | Fire-and-forget paid-order hook (see `Odoo/AGENTS.md`) |

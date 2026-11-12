@@ -7,6 +7,7 @@ import Button from '../ui/Button.astro';
   id="cart-drawer-overlay"
   class="fixed inset-0 bg-[#17141F]/60 backdrop-blur-xs z-50 opacity-0 pointer-events-none transition-opacity duration-300"
   aria-hidden="true"
+  inert
 >
   <!-- Slide-out panel -->
   <aside
@@ -113,6 +114,8 @@ import Button from '../ui/Button.astro';
       if (!overlay || !panel) return;
       overlay.classList.remove('opacity-0', 'pointer-events-none');
       overlay.classList.add('opacity-100', 'pointer-events-auto');
+      overlay.removeAttribute('inert');
+      overlay.setAttribute('aria-hidden', 'false');
       panel.classList.remove('translate-x-full');
       renderDrawerItems();
     }
@@ -122,6 +125,8 @@ import Button from '../ui/Button.astro';
       panel.classList.add('translate-x-full');
       overlay.classList.remove('opacity-100', 'pointer-events-auto');
       overlay.classList.add('opacity-0', 'pointer-events-none');
+      overlay.setAttribute('inert', '');
+      overlay.setAttribute('aria-hidden', 'true');
     }
 
     closeBtn?.addEventListener('click', closeDrawer);

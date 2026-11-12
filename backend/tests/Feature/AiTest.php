@@ -21,7 +21,7 @@ class AiTest extends TestCase
             'services.llm.base_url' => 'http://llm.test/v1',
             'services.llm.api_key' => 'test-key',
             'services.llm.chat_model' => 'cf/@cf/mistralai/mistral-small-3.1-24b-instruct',
-            'services.llm.image_model' => 'cf/@cf/bytedance/stable-diffusion-xl-lightning',
+            'services.llm.image_model' => 'ag/gemini-3.1-flash-image',
         ]);
         $chatSse = "data: {\"model\":\"test-chat\",\"choices\":[{\"delta\":{\"content\":\"Xin chao\"}}]}\n\ndata: [DONE]\n\n";
         $visionSse = "data: {\"model\":\"muse-spark-1.3-contributor\",\"choices\":[{\"delta\":{\"content\":\"Chiec la xanh\"}}]}\n\ndata: [DONE]\n\n";
@@ -51,14 +51,6 @@ class AiTest extends TestCase
                 $imageCount = is_array($content)
                     ? collect($content)->where('type', 'image_url')->count()
                     : 0;
-                if ($imageCount >= 2) {
-                    return Http::response([
-                        'model' => 'gemini-3.1-flash-image',
-                        'choices' => [[
-                            'message' => ['content' => '![image](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRUlErkJggg==)'],
-                        ]],
-                    ], 200);
-                }
                 if ($imageCount === 1) {
                     return Http::response($visionSse, 200);
                 }
@@ -133,32 +125,6 @@ class AiTest extends TestCase
         $file = UploadedFile::fake()->createWithContent('note.txt', 'hello');
 
         $res = $this->post('/api/v1/ai/vision', ['image' => $file]);
-
-        $res->assertStatus(422);
-    }
-
-    public function test_tryon_returns_composited_image(): void
-    {
-        Storage::fake('s3');
-        config(['filesystems.default' => 's3']);
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEhQGAhKmMIQAAAABJRUlErkJggg==');
-        $person = UploadedFile::fake()->createWithContent('me.png', $png);
-        $outfit = UploadedFile::fake()->createWithContent('ao-dai.png', $png);
-
-        $res = $this->post('/api/v1/ai/try-on', ['person' => $person, 'outfits' => [$outfit]]);
-
-        $res->assertCreated()->assertJsonStructure(['data' => ['url', 'mime_type', 'model', 'media_asset_id']]);
-        $asset = MediaAsset::findOrFail($res->json('data.media_asset_id'));
-        $this->assertSame('image/png', $asset->mime_type);
-        Storage::disk('s3')->assertExists($asset->object_key);
-    }
-
-    public function test_tryon_requires_outfit(): void
-    {
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEhQGAhKmMIQAAAABJRUlErkJggg==');
-        $person = UploadedFile::fake()->createWithContent('me.png', $png);
-
-        $res = $this->post('/api/v1/ai/try-on', ['person' => $person]);
 
         $res->assertStatus(422);
     }

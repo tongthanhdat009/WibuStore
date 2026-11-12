@@ -152,6 +152,7 @@ const { campaigns } = Astro.props;
                     alt={campaign.productName}
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading={idx === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={idx === 0 ? 'high' : undefined}
                   />
                   <!-- Speed lines overlay -->
                   <div class="absolute inset-0 speed-lines opacity-20 pointer-events-none"></div>
@@ -183,7 +184,7 @@ const { campaigns } = Astro.props;
                     : 'bg-white shadow-[1px_1px_0px_#17141F] hover:bg-[#FFFDF7]'
                 }`}
                 data-target={idx}
-                aria-label={`Xem chiến dịch ${camp.productName}`}
+                aria-label={`Xem VOL. 0${idx + 1}: ${camp.productName}`}
               >
                 <div class="w-8 h-8 rounded-lg overflow-hidden border border-[#17141F] bg-white shrink-0">
                   <img src={camp.thumbnailImage} alt={camp.productName} class="w-full h-full object-cover" />

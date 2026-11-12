@@ -56,7 +56,6 @@ Route::prefix('v1')->group(function () {
     Route::post('/ai/chat', [AiController::class, 'chat'])->middleware('throttle:10,1');
     Route::post('/ai/image', [AiController::class, 'image'])->middleware('throttle:5,1');
     Route::post('/ai/vision', [AiController::class, 'vision'])->middleware('throttle:5,1');
-    Route::post('/ai/try-on', [AiController::class, 'tryOn'])->middleware('throttle:3,1');
 
     // Webhooks (no CSRF/session; provider signature verified at gateway level in prod)
     Route::post('/webhooks/payments/{provider}', [AdminOperationsController::class, 'webhook']);

@@ -27,7 +27,7 @@ Mono-repo anime figure/collectibles e-commerce: Astro storefront (`frontend/`, :
 
 ### Working In This Directory
 - `make` from root only; never run `php artisan`/`pnpm` directly except inside foreground `make dev-*`.
-- Backend runs on **host PHP** (8.3+; local is 8.5.8) — `make install` fetches `pdo_pgsql`/`pgsql` as a Fedora RPM into `~/.local/lib/php-ext`, no sudo. The Makefile has no Docker targets; `backend/Dockerfile.dev` is a leftover from the docker-era setup. `README.md` says the same.
+- Backend runs on **host PHP** (8.3+) — `make install` verifies `pdo_pgsql` (Windows: enable `extension=pdo_pgsql` in `php.ini`) then `composer` + `npm install`. The Makefile has no Docker targets; `backend/Dockerfile.dev` is a leftover from the docker-era setup. `README.md` says the same.
 - DB is shared external Postgres on `127.0.0.1:5432` (user `app`, db `wibu_store` / `wibu_store_test`). It is NOT in `infra/compose.yaml`.
 - Money = integer VND everywhere; error contract `{error:{code,message}}`.
 - Don't commit secrets; `backend/.env` gitignored.

@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        // Chay sau Cloudflare Tunnel (cloudflared local): tin X-Forwarded-*
+        // de nhan dung scheme https + IP that (rate limit, log).
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
         $middleware->validateCsrfTokens(except: [
             'api/v1/webhooks/*',
             'api/v1/internal/*',

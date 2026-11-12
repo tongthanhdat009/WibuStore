@@ -22,7 +22,7 @@ make install    # (1 lan) tai pdo_pgsql tu RPM + composer install + pnpm install
 make doctor     # kiem tra php + pdo_pgsql / postgres / node
 make db-create  # tao db wibu_store + wibu_store_test (1 lan)
 make fresh      # migrate + seed demo (admin@wibustore.vn / Admin@123)
-make dev        # chay api :8000 + storefront :4321 + admin :4322 (tmux 'wibu')
+make dev        # chay api :8000 + storefront :4321 + admin :4322 (chung 1 terminal, Ctrl+C de dung)
 make status     # kiem tra 3 services
 make stop       # dung tat ca
 ```

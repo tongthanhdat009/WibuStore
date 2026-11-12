@@ -11,7 +11,7 @@ import SearchTrigger from './SearchTrigger.astro';
   <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-4">
     <!-- Left: Brand Logo -->
     <div class="flex items-center gap-6">
-      <a href="/" class="group flex items-center gap-2 select-none" aria-label="Wibu Store Trang chủ">
+      <a href="/" class="group flex items-center gap-2 select-none">
         <div class="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-[#D6284F] border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] group-hover:shadow-[4px_4px_0px_#FFD44A] flex items-center justify-center text-white font-display text-xl tracking-wider transition-all">
           W
         </div>
@@ -79,12 +79,6 @@ import SearchTrigger from './SearchTrigger.astro';
         >
           ✦ Nhận diện AI
         </a>
-        <a
-          href="/virtual-try-on"
-          class="px-3 py-1.5 rounded-lg text-[#17141F] hover:text-[#D6284F] hover:bg-[#F7F5F0] transition-colors whitespace-nowrap shrink-0"
-        >
-          ✦ Thử đồ AI
-        </a>
 
         <a
           href="/pre-orders"
@@ -134,7 +128,7 @@ import SearchTrigger from './SearchTrigger.astro';
         id="header-cart-btn"
         type="button"
         class="relative px-3 sm:px-3.5 h-9 sm:h-10 rounded-xl border-2 border-[#17141F] bg-[#FFD44A] hover:bg-[#FACC15] text-[#17141F] font-bold text-xs flex items-center gap-1.5 shadow-[2px_2px_0px_#17141F] hover:-translate-y-0.5 transition-all cursor-pointer"
-        aria-label="Mở giỏ hàng"
+        aria-label="Giỏ 0 món, xem giỏ hàng"
       >
         <svg class="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
@@ -210,9 +204,6 @@ import SearchTrigger from './SearchTrigger.astro';
           <a href="/recognition" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
             ✦ Nhận diện AI
           </a>
-          <a href="/virtual-try-on" class="block px-3 py-2 rounded-xl text-[#17141F] hover:bg-[#F7F5F0]">
-            ✦ Thử đồ AI
-          </a>
 
           <div class="pt-3 pb-1 border-t border-[#D8D4D0] mt-3">
             <span class="font-display text-[10px] text-[#534F5C] uppercase tracking-wider px-3">
@@ -269,6 +260,7 @@ import SearchTrigger from './SearchTrigger.astro';
       const cart = getStoredCart();
       const totalCartQty = cart.reduce((acc, item) => acc + item.quantity, 0);
       if (cartCountEl) cartCountEl.textContent = String(totalCartQty);
+      if (cartBtn) cartBtn.setAttribute('aria-label', `Giỏ ${totalCartQty} món, xem giỏ hàng`);
 
       const wishlist = getStoredWishlist();
       if (wishlistCountEl) {

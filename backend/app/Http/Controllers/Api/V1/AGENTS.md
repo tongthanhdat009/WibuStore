@@ -17,6 +17,7 @@ Versioned API surface (`/api/v1`): customer auth and account, cart + checkout + 
 |-----------|---------|
 | `Admin/` | Back-office endpoints, every route gated by `perm:*` (see `Admin/AGENTS.md`) |
 | `Public/` | Anonymous catalog reads and reviews (see `Public/AGENTS.md`) |
+| `Internal/` | Server-to-server Odoo sync, `X-Source-Token` (see `Internal/AGENTS.md`) |
 
 ## For AI Agents
 

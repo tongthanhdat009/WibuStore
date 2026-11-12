@@ -13,25 +13,35 @@ class OdooStockPull
     public function __construct(private InventoryService $inventory) {}
 
     /** @return array{checked: int, updated: int} */
-    public function pull(int $limit = 200): array
+    public function pull(int $limit = 200, int $maxBatches = 5): array
     {
         $checked = 0;
         $updated = 0;
-        $variants = ProductVariant::take($limit)->get();
-        foreach ($variants as $variant) {
-            $checked++;
-            try {
-                $qty = $this->fetchQty($variant->sku);
-            } catch (\Throwable $e) {
-                Log::warning('OdooStockPull failed: '.$e->getMessage(), ['sku' => $variant->sku]);
+        $lastId = 0;
+        for ($batch = 0; $batch < $maxBatches; $batch++) {
+            $variants = ProductVariant::where('id', '>', $lastId)->orderBy('id')->take($limit)->get();
+            if ($variants->isEmpty()) {
+                break;
+            }
+            foreach ($variants as $variant) {
+                $lastId = $variant->id;
+                $checked++;
+                try {
+                    $qty = $this->fetchQty($variant->sku);
+                } catch (\Throwable $e) {
+                    Log::warning('OdooStockPull failed: '.$e->getMessage(), ['sku' => $variant->sku]);
 
-                continue;
+                    continue;
+                }
+                if ($qty === null) {
+                    continue;
+                }
+                if ($this->setStock($variant, $qty)) {
+                    $updated++;
+                }
             }
-            if ($qty === null) {
-                continue;
-            }
-            if ($this->setStock($variant, $qty)) {
-                $updated++;
+            if ($variants->count() < $limit) {
+                break;
             }
         }
 

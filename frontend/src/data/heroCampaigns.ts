@@ -16,8 +16,7 @@ export const heroCampaigns: HeroCampaign[] = [
     scale: 'Non-scale',
     price: 4100000,
     status: 'in_stock',
-    figureImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/4%201.jpg',
+    figureImage: '/images/hero/gojo-blindfold.webp',
     panelColor: 'yellow',
     panelBgClass: 'bg-[#FFD44A]',
     productSlug: 'figure-4-seed',
@@ -25,8 +24,7 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/figure-4-seed',
     secondaryCtaText: 'Khám phá',
     secondaryCtaLink: '/anime/jujutsu-kaisen',
-    thumbnailImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/4%201.jpg',
+    thumbnailImage: '/images/hero/gojo-blindfold.webp',
   },
   {
     id: 'campaign-02',
@@ -40,8 +38,7 @@ export const heroCampaigns: HeroCampaign[] = [
     scale: 'Non-scale',
     price: 7900000,
     status: 'in_stock',
-    figureImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/set_figure/40%201.jpg',
+    figureImage: '/images/hero/luffy-gear5-kaido.webp',
     panelColor: 'pink',
     panelBgClass: 'bg-[#FFE6ED]',
     productSlug: 'set-figure-40-seed',
@@ -49,8 +46,7 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/set-figure-40-seed',
     secondaryCtaText: 'Toàn bộ One Piece',
     secondaryCtaLink: '/anime/one-piece',
-    thumbnailImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/set_figure/40%201.jpg',
+    thumbnailImage: '/images/hero/luffy-gear5-kaido.webp',
   },
   {
     id: 'campaign-03',
@@ -64,8 +60,7 @@ export const heroCampaigns: HeroCampaign[] = [
     scale: 'Non-scale',
     price: 8100000,
     status: 'in_stock',
-    figureImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/set_figure/44%201.jpg',
+    figureImage: '/images/hero/rengoku-flame.webp',
     panelColor: 'blue',
     panelBgClass: 'bg-[#DDF9EB]',
     productSlug: 'set-figure-44-seed',
@@ -73,8 +68,7 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/set-figure-44-seed',
     secondaryCtaText: 'Toàn bộ Demon Slayer',
     secondaryCtaLink: '/anime/demon-slayer',
-    thumbnailImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/set_figure/44%201.jpg',
+    thumbnailImage: '/images/hero/rengoku-flame.webp',
   },
   {
     id: 'campaign-04',
@@ -88,8 +82,7 @@ export const heroCampaigns: HeroCampaign[] = [
     scale: 'Non-scale',
     price: 3950000,
     status: 'in_stock',
-    figureImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg',
+    figureImage: '/images/hero/goku-god.webp',
     panelColor: 'mint',
     panelBgClass: 'bg-[#E0F2FE]',
     productSlug: 'figure-1-seed',
@@ -97,7 +90,6 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/figure-1-seed',
     secondaryCtaText: 'Xem chi tiết',
     secondaryCtaLink: '/products/figure-1-seed',
-    thumbnailImage:
-      'https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg',
+    thumbnailImage: '/images/hero/goku-god.webp',
   },
 ];

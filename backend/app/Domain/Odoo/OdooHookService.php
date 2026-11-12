@@ -25,7 +25,10 @@ class OdooHookService
             // Laravel's HTTP client does not throw on 4xx/5xx, so a rejected
             // payload would otherwise vanish without a trace.
             if (! $res->successful()) {
-                Log::warning('OdooHook rejected: HTTP '.$res->status(), ['order' => $order->id ?? null]);
+                Log::warning('OdooHook rejected: HTTP '.$res->status(), [
+                    'order' => $order->id ?? null,
+                    'body' => mb_substr((string) $res->body(), 0, 500),
+                ]);
             }
         } catch (\Throwable $e) {
             Log::warning('OdooHook failed: '.$e->getMessage(), ['order' => $order->id ?? null]);

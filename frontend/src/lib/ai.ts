@@ -24,13 +24,6 @@ export interface AiVisionReply {
   mime_type: string;
 }
 
-export interface AiTryOnReply {
-  url: string;
-  mime_type: string;
-  model: string;
-  media_asset_id: number;
-}
-
 export type AiResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 function friendlyError(status: number, fallback: string): string {
@@ -91,28 +84,6 @@ export async function postAiVision(image: File, prompt?: string): Promise<AiResu
       body: form,
     });
     return parseJson<AiVisionReply>(res);
-  } catch {
-    return { ok: false, error: 'Không kết nối được máy chủ. Kiểm tra backend :8000.' };
-  }
-}
-
-/** Ghép trang phục: ảnh người + 1-3 ảnh trang phục/phụ kiện. */
-export async function postAiTryOn(
-  person: File,
-  outfits: File[],
-  prompt?: string,
-): Promise<AiResult<AiTryOnReply>> {
-  try {
-    const form = new FormData();
-    form.append('person', person);
-    outfits.slice(0, 3).forEach((f) => form.append('outfits[]', f));
-    if (prompt?.trim()) form.append('prompt', prompt.trim().slice(0, 300));
-    const res = await fetch(`${API_URL}/api/v1/ai/try-on`, {
-      method: 'POST',
-      headers: { Accept: 'application/json' },
-      body: form,
-    });
-    return parseJson<AiTryOnReply>(res);
   } catch {
     return { ok: false, error: 'Không kết nối được máy chủ. Kiểm tra backend :8000.' };
   }

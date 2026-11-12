@@ -85,7 +85,7 @@ const chapters: Chapter[] = [
               src={clip.src}
               muted
               playsinline
-              preload="auto"
+              preload="none"
               disablepictureinpicture
               aria-hidden="true"
               tabindex="-1"
@@ -132,8 +132,10 @@ const chapters: Chapter[] = [
               data-story-dot={i}
               aria-label={`Tới ${clip.tag}`}
               title={clip.title}
-              class="story-dot h-2.5 rounded-full border-2 border-[#17141F] transition-all cursor-pointer"
-            />
+              class="story-dot w-6 h-6 flex items-center justify-center rounded-full transition-all cursor-pointer"
+            >
+              <span class="story-dot-visual block h-2.5 rounded-full border-2 border-[#17141F]" aria-hidden="true"></span>
+            </button>
           ))}
         </div>
       </div>
@@ -142,11 +144,12 @@ const chapters: Chapter[] = [
 </div>
 
 <style>
-  .story-dot {
+  .story-dot-visual {
     width: 10px;
     background: transparent;
+    transition: all 0.3s;
   }
-  .story-dot[data-active='true'] {
+  .story-dot[data-active='true'] .story-dot-visual {
     width: 28px;
     background: #d6284f;
   }
@@ -249,6 +252,26 @@ const chapters: Chapter[] = [
     let lastSeekAt = 0;
 
     videos.forEach((v) => v.pause());
+
+    // Tiet kiem ~6MB tai ban dau: chi fetch video khi keo gan toi section.
+    if ('IntersectionObserver' in window) {
+      const preloadIO = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            videos.forEach((v) => {
+              if (v.preload === 'none') v.preload = 'auto';
+            });
+            preloadIO.disconnect();
+          }
+        },
+        { rootMargin: '1200px' }
+      );
+      preloadIO.observe(wrap);
+    } else {
+      videos.forEach((v) => {
+        v.preload = 'auto';
+      });
+    }
 
     function seekSmooth(video: HTMLVideoElement, t: number) {
       const fast = (video as HTMLVideoElement & { fastSeek?: (t: number) => void }).fastSeek;

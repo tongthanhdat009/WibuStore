@@ -1,0 +1,64 @@
+name: Deploy
+
+# CD to the VPS over SSH. Server is prepared manually (see README deploy notes):
+# php8.3-fpm pool wibu (:9000), postgres container, host nginx vhosts,
+# pm2 wibu-admin, wibu-queue.service. This workflow only syncs code,
+# installs deps, migrates, rebuilds frontends and restarts services.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'frontend-admin/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        env:
+          FRONTEND_PUBLIC_API_URL: ${{ secrets.FRONTEND_PUBLIC_API_URL }}
+          ADMIN_PUBLIC_API_URL: ${{ secrets.ADMIN_PUBLIC_API_URL }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: FRONTEND_PUBLIC_API_URL,ADMIN_PUBLIC_API_URL
+          script_stop: true
+          script: |
+            set -e
+            cd /opt/wibu-store
+            git pull origin main
+
+            echo "=== backend ==="
+            cd /opt/wibu-store/backend
+            php8.3 "$(command -v composer)" install --no-interaction --prefer-dist --optimize-autoloader
+            php8.3 artisan migrate --force
+
+            echo "=== storefront ==="
+            cd /opt/wibu-store/frontend
+            pnpm install --frozen-lockfile
+            PUBLIC_API_URL="$FRONTEND_PUBLIC_API_URL" pnpm build
+
+            echo "=== admin ==="
+            cd /opt/wibu-store/frontend-admin
+            pnpm install --frozen-lockfile
+            PUBLIC_API_URL="$ADMIN_PUBLIC_API_URL" pnpm build
+            pm2 restart wibu-admin --update-env || PORT=4322 HOST=0.0.0.0 PUBLIC_API_URL="$ADMIN_PUBLIC_API_URL" pm2 start ./dist/server/entry.mjs --name wibu-admin
+            pm2 save
+
+            echo "=== services ==="
+            systemctl restart wibu-queue
+            nginx -t && systemctl reload nginx
+
+            echo "=== smoke ==="
+            curl -fsS -o /dev/null -H "Host: wibu-store.jadt.io.vn" http://127.0.0.1/
+            curl -fsS -H "Host: wibu-store.jadt.io.vn" http://127.0.0.1/api/v1/health
+            echo
+            code=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: admin-wibu-store.jadt.io.vn" http://127.0.0.1/)
+            test "$code" = "302" && echo "admin OK ($code)"

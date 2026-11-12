@@ -3,3 +3,7 @@
 .omo/
 /.playwright-mcp
 /.freebuff
+node_modules/
+package-lock.json
+frontend/dist/
+frontend-admin/dist/

@@ -73,7 +73,7 @@ jobs:
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
           for M in "ag/gemini-3-flash" "af/gpt-oss-20b" "bzl/gpt-5.4-nano"; do
             time curl -s -o /tmp/probe.json -w "chat [$M]: %{http_code} total=%{time_total}s\n" --max-time 25 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
-            head -c 200 /tmp/probe.json 2>/dev/null; echo
+            head -c 200 /tmp/probe.json 2>/dev/null || true; echo
           done
           time curl -s -o /tmp/imgprobe.json -w "image [gemini-3.1-flash-image]: %{http_code} total=%{time_total}s\n" --max-time 45 -X POST "$BASE/images/generations" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"ag/gemini-3.1-flash-image","prompt":"red apple"}' || true
-          head -c 200 /tmp/imgprobe.json; echo
+          head -c 200 /tmp/imgprobe.json 2>/dev/null || true; echo

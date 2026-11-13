@@ -3,6 +3,7 @@
 namespace App\Domain\Ai;
 
 use App\Models\Product;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -15,6 +16,18 @@ use Illuminate\Support\Facades\Log;
  */
 class LlmService
 {
+    /**
+     * HTTP client cho 9router: connect timeout rieng (~5s) de host chet /
+     * firewall drop fail nhanh voi 502 JSON, thay vi treo het timeout
+     * phan hoi roi nginx tra 504.
+     */
+    private static function llmHttp(int $timeout): PendingRequest
+    {
+        $connectTimeout = max(2, min(10, (int) config('services.llm.connect_timeout', 5)));
+
+        return Http::connectTimeout($connectTimeout)->timeout($timeout);
+    }
+
     /**
      * @param  array<int, array{role: string, text: string}>  $history  Lich su chat (role: user|ai|assistant), cu nhat truoc.
      */
@@ -56,7 +69,9 @@ class LlmService
             if ($maxTokens = config('services.llm.max_tokens')) {
                 $payload['max_tokens'] = (int) $maxTokens;
             }
-            $res = Http::timeout($timeout)
+            // connectTimeout rieng (xem llmHttp()): host chet/blackhole thi
+            // fail nhanh (~5s) thay vi treo het timeout phan hoi roi nginx tra 504.
+            $res = self::llmHttp($timeout)
                 ->withToken($key)
                 ->post($base.'/chat/completions', $payload);
         } catch (\Throwable $e) {
@@ -174,7 +189,7 @@ class LlmService
         $lastError = 'LLM tam thoi khong dung duoc.';
         foreach ($models as $model) {
             try {
-                $res = Http::timeout($timeout)
+                $res = self::llmHttp($timeout)
                     ->withToken($key)
                     ->post($base.'/images/generations', [
                         'model' => $model,
@@ -276,7 +291,7 @@ class LlmService
                 if ($maxTokens = config('services.llm.max_tokens')) {
                     $payload['max_tokens'] = (int) $maxTokens;
                 }
-                $res = Http::timeout($timeout)
+                $res = self::llmHttp($timeout)
                     ->withToken($key)
                     ->post($base.'/chat/completions', $payload);
             } catch (\Throwable $e) {
@@ -519,7 +534,7 @@ class LlmService
         }
 
         try {
-            $res = Http::timeout($timeout)->withToken($key)->post($base.'/chat/completions', $payload);
+            $res = self::llmHttp($timeout)->withToken($key)->post($base.'/chat/completions', $payload);
         } catch (\Throwable $e) {
             Log::warning('LlmService exception: '.$e->getMessage(), ['model' => $model]);
 

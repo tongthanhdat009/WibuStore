@@ -1,0 +1,39 @@
+name: Diag LLM
+
+# Chan doan nhanh duong backend -> 9router tren VPS (khong in secret).
+# Actions > Diag LLM > Run workflow > xem log: DNS/connect, /models status,
+# chat latency + 200 ky tu dau cua reply (de xac nhan model song).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    name: Probe 9router from VPS
+    runs-on: [self-hosted, wibu-vps]
+    steps:
+      - name: Probe
+        run: |
+          set -e
+          ENV=/opt/wibu-store/backend/.env
+          BASE=$(grep -E '^LLM_BASE_URL=' "$ENV" | cut -d= -f2- | tr -d "\"'")
+          HOST=$(echo "$BASE" | sed -E 's#(https?://[^/]+).*#\1#')
+          echo "LLM host: $HOST"
+          echo "has key: $(grep -E '^LLM_API_KEY=.{4,}' "$ENV" >/dev/null && echo yes || echo no)"
+          echo "chat model: $(grep -E '^LLM_CHAT_MODEL=' "$ENV" | cut -d= -f2- | tr -d "\"'")"
+          time curl -s -o /dev/null -w "models (no auth): %{http_code} %{time_total}s\n" --max-time 20 "$BASE/models" || true
+      - name: Auth chat probe (5 tokens)
+        run: |
+          set -e
+          ENV=/opt/wibu-store/backend/.env
+          get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'"; }
+          BASE=$(get LLM_BASE_URL)
+          KEY=$(get LLM_API_KEY)
+          MODEL=$(get LLM_CHAT_MODEL)
+          if [ -z "$KEY" ]; then echo "SKIP: no LLM_API_KEY"; exit 0; fi
+          time curl -s -o /tmp/llmprobe.json -w "chat: %{http_code} %{time_total}s\n" --max-time 60 \
+            -X POST "$BASE/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $KEY" \
+            -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
+          head -c 300 /tmp/llmprobe.json; echo

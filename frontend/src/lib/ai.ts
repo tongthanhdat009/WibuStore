@@ -29,6 +29,7 @@ export type AiResult<T> = { ok: true; data: T } | { ok: false; error: string };
 function friendlyError(status: number, fallback: string): string {
   if (status === 429) return 'Bạn thao tác quá nhanh. Đợi khoảng 1 phút rồi thử lại nhé.';
   if (status === 502) return 'AI đang bận hoặc chưa khả dụng. Thử lại sau ít phút.';
+  if (status === 504) return 'AI phản hồi quá lâu (quá tải). Thử lại với câu ngắn hơn sau ít phút.';
   if (status === 422) return 'Ảnh chưa hợp lệ (chỉ nhận JPG/PNG/WEBP dưới 5MB).';
   return fallback;
 }
@@ -68,7 +69,7 @@ export async function postAiChat(message: string, history: AiHistoryItem[] = [])
     });
     return parseJson<AiChatReply>(res);
   } catch {
-    return { ok: false, error: 'Không kết nối được máy chủ. Kiểm tra backend :8000.' };
+    return { ok: false, error: 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.' };
   }
 }
 
@@ -85,7 +86,7 @@ export async function postAiVision(image: File, prompt?: string): Promise<AiResu
     });
     return parseJson<AiVisionReply>(res);
   } catch {
-    return { ok: false, error: 'Không kết nối được máy chủ. Kiểm tra backend :8000.' };
+    return { ok: false, error: 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.' };
   }
 }
 

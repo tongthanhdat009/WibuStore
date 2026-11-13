@@ -47,9 +47,10 @@ return [
         'api_key' => env('LLM_API_KEY'),
         'chat_model' => env('LLM_CHAT_MODEL', 'ag/gemini-3.8-flash-low'),
         'image_model' => env('LLM_IMAGE_MODEL', 'ag/gemini-3.1-flash-image,cf/@cf/bytedance/stable-diffusion-xl-lightning'),
-        'vision_model' => env('LLM_VISION_MODEL', 'ag/gemini-3.1-flash-image'),
+        'vision_model' => env('LLM_VISION_MODEL', 'ag/gemini-3.8-flash-low,ocg/muse-spark-1.3-contributor'),
         'max_tokens' => (int) env('LLM_MAX_TOKENS', 0) ?: null,
         'timeout' => (int) env('LLM_TIMEOUT_SECONDS', 60),
+        'connect_timeout' => (int) env('LLM_CONNECT_TIMEOUT', 5),
     ],
 
 ];

@@ -71,7 +71,7 @@ jobs:
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY); MODEL=$(get LLM_CHAT_MODEL)
           echo "--- /v1/models body (names only):"
           curl -s --max-time 15 "$BASE/models" -o /tmp/models.json || true
-          python3 -c "import json; d=json.load(open('/tmp/models.json')); print([m.get('id') for m in d.get('data',[])])" 2>/dev/null || head -c 500 /tmp/models.json
+          grep -o '"id":"[^"]*"' /tmp/models.json | sort -u | head -40; echo
           echo
           echo "--- timed auth chat probe:"
           time curl -s -o /tmp/chatprobe.json -w "chat: %{http_code} connect=%{time_connect}s start=%{time_starttransfer}s total=%{time_total}s\n" --max-time 75 \

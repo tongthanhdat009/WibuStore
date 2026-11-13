@@ -21,31 +21,20 @@ jobs:
           echo "has key: $(grep -E '^LLM_API_KEY=.{4,}' "$ENV" >/dev/null && echo yes || echo no)"
           echo "chat model: $(grep -E '^LLM_CHAT_MODEL=' "$ENV" | cut -d= -f2- | tr -d "\"'\r")"
           time curl -s -o /dev/null -w "models (no auth): %{http_code} %{time_total}s\n" --max-time 20 "$BASE/models" || true
-      - name: Probe gemini-3-flash for VPS switch (chat + tools + vision)
+      - name: Probe gemini embedding (text) + vision (real image)
         run: |
           set -e
           ENV=/opt/wibu-store/backend/.env
           get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
-          M="gemini/gemini-3-flash-preview"
-          echo "--- chat:"; time curl -s -o /tmp/gchat.json -w "chat: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
-          head -c 200 /tmp/gchat.json 2>/dev/null; echo; sleep 2
-          echo "--- tools:"; time curl -s -o /tmp/gtools.json -w "tools: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"goi y figure gojo\"}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"search_products\",\"description\":\"x\",\"parameters\":{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}}}}}],\"tool_choice\":\"auto\",\"max_tokens\":60}" || true
-          if grep -q tool_calls /tmp/gtools.json 2>/dev/null; then echo TOOLS_OK; else echo TOOLS_MISSING; fi; head -c 300 /tmp/gtools.json 2>/dev/null; echo; sleep 2
-          echo "--- vision (real seed image):"
-          curl -s --max-time 20 "https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg" -o /tmp/fig.jpg || true
-          IMG=$(base64 -w0 /tmp/fig.jpg 2>/dev/null || base64 /tmp/fig.jpg | tr -d '\n')
-          echo "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"mo ta anh nay ngan gon (tieng Viet)\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,$IMG\"}}]}],\"max_tokens\":60}" > /tmp/gvision.json
-          time curl -s -o /tmp/gvout.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d @/tmp/gvision.json || true
-          head -c 400 /tmp/gvout.json 2>/dev/null; echo
-      - name: Probe gemini-embedding-2-preview (text + image input)
-        run: |
-          set -e
-          ENV=/opt/wibu-store/backend/.env
-          get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
-          BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
-          for M in "orcarouter/google/gemini-embedding-2-preview" "gemini/gemini-embedding-2-preview"; do
+          for M in "gemini/gemini-embedding-2-preview" "orcarouter/google/gemini-embedding-2-preview"; do
             echo "--- text embed [$M]:"
             time curl -s -o /tmp/emb.json -w "embed: %{http_code} total=%{time_total}s " --max-time 30 -X POST "$BASE/embeddings" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"input\":\"Son Goku Super Saiyan God action figure\"}" || true
             python3 -c "import json;d=json.load(open('/tmp/emb.json'));print('dims='+str(len(d['data'][0]['embedding'])))" 2>/dev/null || head -c 300 /tmp/emb.json; echo
           done
+          echo "--- vision via gemini chat (real seed image):"
+          curl -s --max-time 20 "https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg" -o /tmp/fig.jpg || true
+          IMG=$(base64 -w0 /tmp/fig.jpg 2>/dev/null || base64 /tmp/fig.jpg | tr -d '\n')
+          echo "{\"model\":\"gemini/gemini-3-flash-preview\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"mo ta anh nay ngan gon (tieng Viet)\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,$IMG\"}}]}],\"max_tokens\":60}" > /tmp/gvision.json
+          time curl -s -o /tmp/gvout.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d @/tmp/gvision.json || true
+          head -c 400 /tmp/gvout.json 2>/dev/null; echo

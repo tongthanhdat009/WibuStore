@@ -36,7 +36,22 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $KEY" \
             -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
-          head -c 300 /tmp/llmprobe.json; echo || true
+          head -c 300 /tmp/llmprobe.json 2>/dev/null || true; echo
+      - name: PHP-FPM env override (pool conf)
+        run: |
+          set -e
+          grep -rhoE 'env\[LLM_[A-Z_]+\][^;]*' /etc/php/8.3/fpm/pool.d/ 2>/dev/null | sed -E 's/(LLM_API_KEY[^=]*=).*/\1***/' || echo "no LLM_* in php-fpm pool conf"
+      - name: PHP-side timing probe (tinker)
+        run: |
+          set -e
+          cd /opt/wibu-store/backend
+          cat > /tmp/llmprobe.php <<'EOF'
+          $t = microtime(true);
+          try { $r = App\Domain\Ai\LlmService::generate('hi'); echo 'OK model='.$r['model']; }
+          catch (\Throwable $e) { echo get_class($e).': '.substr($e->getMessage(), 0, 120); }
+          echo ' elapsed='.round(microtime(true)-$t, 2).'s'.PHP_EOL;
+          EOF
+          timeout 90 php8.3 artisan tinker < /tmp/llmprobe.php 2>&1 | tail -5 || true
       - name: Listener + DNS + timing split
         run: |
           set -e

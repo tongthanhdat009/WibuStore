@@ -272,7 +272,8 @@ const lcpCampaign = heroCampaignsLive[0];
   </section>
   )}
 
-  <!-- 7. Nhận diện AI -->
+  {/* TAM AN section Nhan dien AI — mo lai khi vision hoat dong (hien tai 9router chua co model vision). */}
+  {false && (
   <section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
     <div class="p-6 md:p-8 rounded-3xl border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-white relative overflow-hidden">
       <div class="grid lg:grid-cols-2 gap-8 items-center">
@@ -337,7 +338,6 @@ const lcpCampaign = heroCampaignsLive[0];
                 alt={recognitionDemo.name}
                 class="w-14 h-14 rounded-xl object-cover border-2 border-[#17141F] shrink-0"
                 loading="lazy"
-                loading="lazy"
               />
               <span class="min-w-0">
                 <span class="block font-display text-[10px] text-[#D6284F]">AI VỪA NHẬN DIỆN ✦</span>
@@ -350,6 +350,7 @@ const lcpCampaign = heroCampaignsLive[0];
       </div>
     </div>
   </section>
+  )}
 
   <!-- 8. Video Story (Scrollytelling) -->
   <VideoStory />

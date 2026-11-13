@@ -1,0 +1,49 @@
+name: Set LLM chat model
+
+# Doi LLM_CHAT_MODEL tren production (VD sang model song duoc).
+# Chay probe truoc: chi apply khi model tra loi 200 nhanh, neu khong job
+# fail va .env giu nguyen.
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Chat model id (9router)'
+        required: true
+        default: 'nvidia/nvidia/nemotron-3-ultra-550b-a55b'
+
+jobs:
+  set-model:
+    name: Probe then switch chat model
+    runs-on: [self-hosted, wibu-vps]
+    steps:
+      - name: Probe candidate model (gate)
+        run: |
+          set -e
+          ENV=/opt/wibu-store/backend/.env
+          get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
+          BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
+          MODEL="${{ inputs.model }}"
+          echo "probing [$MODEL]"
+          CODE=$(curl -s -o /tmp/nemoprobe.json -w "%{http_code}" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}")
+          echo "chat probe: HTTP $CODE"; head -c 300 /tmp/nemoprobe.json 2>/dev/null; echo
+          if [ "$CODE" != "200" ]; then echo "MODEL KHONG SONG (code $CODE) — dung lai, khong doi .env"; exit 1; fi
+          time curl -s -o /tmp/nemotools.json -w "tools: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"gojo\"}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"search_products\",\"description\":\"x\",\"parameters\":{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}}}}}],\"tool_choice\":\"auto\",\"max_tokens\":20}" || true
+          if grep -q 'tool_calls' /tmp/nemotools.json 2>/dev/null; then echo "TOOLS_OK: model ho tro function calling"; else echo "TOOLS_MISSING: chat van dung duoc nhung khong goi tool (mat goi y san pham)"; fi
+      - name: Apply model to backend .env
+        run: |
+          set -e
+          ENV=/opt/wibu-store/backend/.env
+          MODEL="${{ inputs.model }}"
+          grep -E '^LLM_CHAT_MODEL=' "$ENV" || { echo "no LLM_CHAT_MODEL in .env"; exit 1; }
+          sed -i "s#^LLM_CHAT_MODEL=.*#LLM_CHAT_MODEL=$MODEL#" "$ENV"
+          grep -E '^LLM_CHAT_MODEL=' "$ENV"
+          cd /opt/wibu-store/backend
+          php8.3 artisan config:clear || true
+          sudo -n systemctl restart php8.3-fpm
+          sleep 3
+      - name: Smoke test chat
+        run: |
+          set -e
+          time curl -s -o /tmp/nemosmoke.json -w "smoke: %{http_code} total=%{time_total}s\n" --max-time 90 -X POST https://wibu-store.jadt.io.vn/api/v1/ai/chat -H "Content-Type: application/json" -d '{"message":"gojo"}' || true
+          head -c 300 /tmp/nemosmoke.json; echo

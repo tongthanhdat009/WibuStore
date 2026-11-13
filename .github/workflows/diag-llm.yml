@@ -26,38 +26,7 @@ jobs:
           set -e
           ENV=/opt/wibu-store/backend/.env
           echo "LLM_BASE_URL occurrences: $(grep -c -E '^LLM_BASE_URL=' "$ENV")"
-          grep -E '^LLM_(BASE_URL|CHAT_MODEL|TIMEOUT_SECONDS|CONNECT_TIMEOUT)=' "$ENV" | cat -A
-      - name: Auth chat probe (5 tokens)
-        run: |
-          set -e
-          ENV=/opt/wibu-store/backend/.env
-          get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
-          BASE=$(get LLM_BASE_URL)
-          KEY=$(get LLM_API_KEY)
-          MODEL=$(get LLM_CHAT_MODEL)
-          if [ -z "$KEY" ]; then echo "SKIP: no LLM_API_KEY"; exit 0; fi
-          time curl -s -o /tmp/llmprobe.json -w "chat: %{http_code} %{time_total}s\n" --max-time 60 \
-            -X POST "$BASE/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $KEY" \
-            -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
-          head -c 300 /tmp/llmprobe.json 2>/dev/null || true; echo
-      - name: Laravel log (LlmService)
-        run: |
-          LOG=/opt/wibu-store/backend/storage/logs/laravel.log
-          [ -f "$LOG" ] || { echo "no laravel.log"; exit 0; }
-          grep -a 'LlmService' "$LOG" | tail -8 || echo "no LlmService lines"
-      - name: PHP-side timing probe (tinker, one-liner)
-        run: |
-          set -e
-          cd /opt/wibu-store/backend
-          timeout 90 php8.3 artisan tinker --execute='$t=microtime(true); try { $r=App\Domain\Ai\LlmService::generate("hi"); echo "OK model=".$r["model"]; } catch (\Throwable $e) { echo get_class($e).": ".substr($e->getMessage(),0,120); } echo " elapsed=".round(microtime(true)-$t,2)."s";' 2>&1 | tail -4 || true
-      - name: Probe IPv4 loopback explicitly + hosts file
-        run: |
-          set -e
-          echo "--- /etc/hosts:"; cat /etc/hosts
-          echo "--- direct 127.0.0.1:20128:"
-          time curl -s -o /dev/null -w "v4 models: %{http_code} connect=%{time_connect}s total=%{time_total}s\n" --max-time 15 http://127.0.0.1:20128/v1/models || true
+          grep -E '^LLM_(BASE_URL|CHAT_MODEL|IMAGE_MODEL|VISION_MODEL|TIMEOUT_SECONDS|CONNECT_TIMEOUT)=' "$ENV" | cat -A
       - name: Probe candidate models (5 tokens each)
         run: |
           set -e
@@ -71,9 +40,21 @@ jobs:
           ENV=/opt/wibu-store/backend/.env
           get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
-          for M in "ag/gemini-3-flash" "af/gpt-oss-20b" "bzl/gpt-5.4-nano"; do
-            time curl -s -o /tmp/probe.json -w "chat [$M]: %{http_code} total=%{time_total}s\n" --max-time 25 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
-            head -c 200 /tmp/probe.json 2>/dev/null || true; echo
-          done
-          time curl -s -o /tmp/imgprobe.json -w "image [gemini-3.1-flash-image]: %{http_code} total=%{time_total}s\n" --max-time 45 -X POST "$BASE/images/generations" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"ag/gemini-3.1-flash-image","prompt":"red apple"}' || true
-          head -c 200 /tmp/imgprobe.json 2>/dev/null || true; echo
+          probe_chat() {
+            time curl -s -o /tmp/probe.json -w "chat [$1]: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$1\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
+            head -c 200 /tmp/probe.json 2>/dev/null || true; echo; sleep 3
+          }
+          probe_chat "af/gpt-oss-20b"
+          probe_chat "bzl/gemini-3-flash-preview"
+          probe_chat "cf/@cf/mistralai/mistral-small-3.1-24b-instruct"
+          echo "--- vision probe (1px png) on bzl/gemini-3-flash-preview:"
+          time curl -s -o /tmp/vprobe.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"bzl/gemini-3-flash-preview","messages":[{"role":"user","content":[{"type":"text","text":"mo ta anh nay"},{"type":"image_url","image_url":{"url":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="}}]}],,"max_tokens":5}' || true
+          head -c 300 /tmp/vprobe.json 2>/dev/null; echo
+          echo "--- image gen probe (cf SDXL fallback):"
+          time curl -s -o /tmp/imgprobe2.json -w "image [cf sdxl]: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/images/generations" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"cf/@cf/bytedance/stable-diffusion-xl-lightning","prompt":"red apple"}' || true
+          head -c 200 /tmp/imgprobe2.json 2>/dev/null; echo
+      - name: Laravel log (LlmService)
+        run: |
+          LOG=/opt/wibu-store/backend/storage/logs/laravel.log
+          [ -f "$LOG" ] || { echo "no laravel.log"; exit 0; }
+          grep -a 'LlmService' "$LOG" | tail -8 || echo "no LlmService lines"

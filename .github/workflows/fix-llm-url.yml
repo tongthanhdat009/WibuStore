@@ -23,6 +23,8 @@ jobs:
       - name: Restart php-fpm
         run: |
           set -e
+          cd /opt/wibu-store/backend
+          php8.3 artisan config:clear || true
           sudo -n systemctl restart php8.3-fpm
           sleep 3
       - name: Smoke test chat

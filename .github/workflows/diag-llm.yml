@@ -58,10 +58,22 @@ jobs:
           echo "--- /etc/hosts:"; cat /etc/hosts
           echo "--- direct 127.0.0.1:20128:"
           time curl -s -o /dev/null -w "v4 models: %{http_code} connect=%{time_connect}s total=%{time_total}s\n" --max-time 15 http://127.0.0.1:20128/v1/models || true
-      - name: Model list (names only)
+      - name: Probe candidate models (5 tokens each)
         run: |
           set -e
           ENV=/opt/wibu-store/backend/.env
           BASE=$(grep -E '^LLM_BASE_URL=' "$ENV" | cut -d= -f2- | tr -d "\"'\r")
           curl -s --max-time 15 "$BASE/models" -o /tmp/models.json || true
-          grep -o '"id":"[^"]*"' /tmp/models.json | sort -u | head -40; echo
+          grep -o '"id":"[^"]*"' /tmp/models.json | sort -u | head -100; echo
+      - name: Timed probe per candidate model
+        run: |
+          set -e
+          ENV=/opt/wibu-store/backend/.env
+          get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
+          BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
+          for M in "ag/gemini-3-flash" "af/gpt-oss-20b" "bzl/gpt-5.4-nano"; do
+            time curl -s -o /tmp/probe.json -w "chat [$M]: %{http_code} total=%{time_total}s\n" --max-time 25 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
+            head -c 200 /tmp/probe.json 2>/dev/null; echo
+          done
+          time curl -s -o /tmp/imgprobe.json -w "image [gemini-3.1-flash-image]: %{http_code} total=%{time_total}s\n" --max-time 45 -X POST "$BASE/images/generations" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"ag/gemini-3.1-flash-image","prompt":"red apple"}' || true
+          head -c 200 /tmp/imgprobe.json; echo

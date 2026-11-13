@@ -158,8 +158,10 @@ import SearchTrigger from './SearchTrigger.astro';
       </button>
     </div>
   </div>
+</header>
 
-  <!-- Mobile Drawer Menu -->
+<!-- Mobile Drawer Menu: nam NGOAI <header> (global layer). Header co backdrop-blur
+     se bien thanh containing block khien fixed inset-0 ben trong chi phu vung header. -->
   <div
     id="mobile-menu-drawer"
     class="fixed inset-0 bg-[#17141F]/60 backdrop-blur-xs z-50 opacity-0 pointer-events-none transition-opacity duration-300"
@@ -240,7 +242,6 @@ import SearchTrigger from './SearchTrigger.astro';
       </div>
     </div>
   </div>
-</header>
 
 <script>
   import { getStoredCart, addToCartItem } from '../../lib/cart';

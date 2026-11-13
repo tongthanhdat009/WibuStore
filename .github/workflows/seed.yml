@@ -1,0 +1,34 @@
+name: Seed production
+
+# Seed DB production bang tay (Actions > Seed production > Run workflow).
+# Idempotent: cac seeder dung firstOrCreate / syncWithoutDetaching, chay lai an toan.
+# Luu y: CollectionSeeder tao 1 CMS revision moi moi lan chay (by design).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    name: Seed VPS database
+    runs-on: [self-hosted, wibu-vps]
+    steps:
+      - name: Sync code
+        run: |
+          set -e
+          cd /opt/wibu-store
+          git pull origin main
+          git rev-parse --short HEAD
+
+      - name: Guard S3 creds
+        run: |
+          set -e
+          if [ -z "$(grep -E '^AWS_ACCESS_KEY_ID=.+' /opt/wibu-store/backend/.env)" ]; then
+            echo "Thieu AWS creds trong backend/.env — BucketImageSeeder se bo qua anh seed."
+            exit 1
+          fi
+
+      - name: Seed
+        run: |
+          set -e
+          cd /opt/wibu-store/backend
+          php8.3 artisan db:seed --force

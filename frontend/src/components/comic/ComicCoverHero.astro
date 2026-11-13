@@ -183,7 +183,7 @@ const { campaigns } = Astro.props;
                 type="button"
                 class={`hero-thumb-btn group flex items-center gap-2.5 px-3 py-2 min-h-[56px] rounded-xl border-2 border-[#17141F] transition-all cursor-pointer text-left shrink-0 ${
                   idx === 0
-                    ? 'bg-[#FFD44A] shadow-[3px_3px_0px_#17141F] -translate-y-0.5'
+                    ? 'is-active bg-[#FFD44A] shadow-[3px_3px_0px_#17141F] -translate-y-0.5'
                     : 'bg-white shadow-[1px_1px_0px_#17141F] hover:bg-[#FFFDF7]'
                 }`}
                 data-target={idx}
@@ -208,6 +208,18 @@ const { campaigns } = Astro.props;
     </div>
   </div>
 </section>
+
+<!-- Mobile: rail thumb chi hien nut cua slide dang xem, khong scroll ngang -->
+<style>
+  @media (max-width: 767px) {
+    .hero-thumb-btn {
+      display: none;
+    }
+    .hero-thumb-btn.is-active {
+      display: flex;
+    }
+  }
+</style>
 
 <!-- Client Script for Hero Carousel Control -->
 <script>
@@ -246,7 +258,9 @@ const { campaigns } = Astro.props;
       });
 
       thumbBtns.forEach((btn, i) => {
-        if (i === currentIndex) {
+        const isCurrent = i === currentIndex;
+        btn.classList.toggle('is-active', isCurrent);
+        if (isCurrent) {
           btn.classList.add('bg-[#FFD44A]', 'shadow-[3px_3px_0px_#17141F]', '-translate-y-0.5');
           btn.classList.remove('bg-white', 'shadow-[1px_1px_0px_#17141F]');
         } else {

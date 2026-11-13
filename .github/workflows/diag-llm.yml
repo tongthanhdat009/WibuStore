@@ -21,67 +21,23 @@ jobs:
           echo "has key: $(grep -E '^LLM_API_KEY=.{4,}' "$ENV" >/dev/null && echo yes || echo no)"
           echo "chat model: $(grep -E '^LLM_CHAT_MODEL=' "$ENV" | cut -d= -f2- | tr -d "\"'\r")"
           time curl -s -o /dev/null -w "models (no auth): %{http_code} %{time_total}s\n" --max-time 20 "$BASE/models" || true
-      - name: Env bytes inspect (no secrets printed)
-        run: |
-          set -e
-          ENV=/opt/wibu-store/backend/.env
-          echo "LLM_BASE_URL occurrences: $(grep -c -E '^LLM_BASE_URL=' "$ENV")"
-          grep -E '^LLM_(BASE_URL|CHAT_MODEL|IMAGE_MODEL|VISION_MODEL|TIMEOUT_SECONDS|CONNECT_TIMEOUT)=' "$ENV" | cat -A
-      - name: Probe candidate models (5 tokens each)
-        run: |
-          set -e
-          ENV=/opt/wibu-store/backend/.env
-          BASE=$(grep -E '^LLM_BASE_URL=' "$ENV" | cut -d= -f2- | tr -d "\"'\r")
-          curl -s --max-time 15 "$BASE/models" -o /tmp/models.json || true
-          grep -o '"id":"[^"]*"' /tmp/models.json | sort -u | head -100; echo
-      - name: Timed probe per candidate model
+      - name: Probe gemini-3-flash for VPS switch (chat + tools + vision)
         run: |
           set -e
           ENV=/opt/wibu-store/backend/.env
           get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
-          probe_chat() {
-            time curl -s -o /tmp/probe.json -w "chat [$1]: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$1\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
-            head -c 200 /tmp/probe.json 2>/dev/null || true; echo; sleep 3
-          }
-          probe_chat "af/gpt-oss-20b"
-          probe_chat "bzl/gemini-3-flash-preview"
-          probe_chat "cf/@cf/mistralai/mistral-small-3.1-24b-instruct"
-          echo "--- vision probe (1px png) on bzl/gemini-3-flash-preview:"
-          time curl -s -o /tmp/vprobe.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"bzl/gemini-3-flash-preview","messages":[{"role":"user","content":[{"type":"text","text":"mo ta anh nay"},{"type":"image_url","image_url":{"url":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="}}]}],,"max_tokens":5}' || true
-          head -c 300 /tmp/vprobe.json 2>/dev/null; echo
-          echo "--- image gen probe (cf SDXL fallback):"
-          time curl -s -o /tmp/imgprobe2.json -w "image [cf sdxl]: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/images/generations" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"cf/@cf/bytedance/stable-diffusion-xl-lightning","prompt":"red apple"}' || true
-          head -c 200 /tmp/imgprobe2.json 2>/dev/null; echo
-      - name: Laravel log (LlmService)
-        run: |
-          LOG=/opt/wibu-store/backend/storage/logs/laravel.log
-          [ -f "$LOG" ] || { echo "no laravel.log"; exit 0; }
-          grep -a 'LlmService' "$LOG" | tail -8 || echo "no LlmService lines"
-      - name: 9router process inspect (no secrets)
-        run: |
-          (docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | head -20 || echo "no docker or no access") || true
-          (ss -ltnp 2>/dev/null | grep -E ':20128' || echo "no ss match") || true
-      - name: Probe orcarouter qwen-vl (tools + vision)
-        run: |
-          set -e
-          ENV=/opt/wibu-store/backend/.env
-          get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
-          BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
-          M1228="orcarouter/qwen/qwen3-vl-8b-instruct"
-          echo "--- chat text ($M1228):"
-          M="orcarouter/qwen/qwen3-vl-8b-instruct"
-          time curl -s -o /tmp/qchat.json -w "chat: %{http_code} total=%{time_total}s\n" --max-time 45 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":20}" || true
-          head -c 300 /tmp/qchat.json 2>/dev/null; echo
-          echo "--- tools probe ($M):"
-          time curl -s -o /tmp/qtools.json -w "tools: %{http_code} total=%{time_total}s\n" --max-time 45 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"gojo\"}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"search_products\",\"description\":\"x\",\"parameters\":{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}}}}}}],\"tool_choice\":\"auto\",\"max_tokens\":20}" || true
-          if grep -q tool_calls /tmp/qtools.json 2>/dev/null; then echo TOOLS_OK; else echo TOOLS_MISSING; fi; head -c 300 /tmp/qtools.json 2>/dev/null; echo
-          echo "--- vision probe (real seed image):"
+          M="gemini/gemini-3-flash-preview"
+          echo "--- chat:"; time curl -s -o /tmp/gchat.json -w "chat: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
+          head -c 200 /tmp/gchat.json 2>/dev/null; echo; sleep 2
+          echo "--- tools:"; time curl -s -o /tmp/gtools.json -w "tools: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"goi y figure gojo\"}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"search_products\",\"description\":\"x\",\"parameters\":{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}}}}}],\"tool_choice\":\"auto\",\"max_tokens\":60}" || true
+          if grep -q tool_calls /tmp/gtools.json 2>/dev/null; then echo TOOLS_OK; else echo TOOLS_MISSING; fi; head -c 300 /tmp/gtools.json 2>/dev/null; echo; sleep 2
+          echo "--- vision (real seed image):"
           curl -s --max-time 20 "https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg" -o /tmp/fig.jpg || true
           IMG=$(base64 -w0 /tmp/fig.jpg 2>/dev/null || base64 /tmp/fig.jpg | tr -d '\n')
-          echo "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"mo ta anh nay ngan gon\"}, {\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,$IMG\"}}]}],,\"max_tokens\":60}" > /tmp/qvision.json
-          time curl -s -o /tmp/qvout.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d @/tmp/qvision.json || true
-          head -c 500 /tmp/qvout.json 2>/dev/null; echo
+          echo "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"mo ta anh nay ngan gon (tieng Viet)\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,$IMG\"}}]}],\"max_tokens\":60}" > /tmp/gvision.json
+          time curl -s -o /tmp/gvout.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d @/tmp/gvision.json || true
+          head -c 400 /tmp/gvout.json 2>/dev/null; echo
       - name: Probe gemini-embedding-2-preview (text + image input)
         run: |
           set -e
@@ -90,12 +46,6 @@ jobs:
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
           for M in "orcarouter/google/gemini-embedding-2-preview" "gemini/gemini-embedding-2-preview"; do
             echo "--- text embed [$M]:"
-            time curl -s -o /tmp/embq.json -w "embed: %{http_code} total=%{time_total}s dimensions=" --max-time 30 -X POST "$BASE/embeddings" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"input\":\"Son Goku Super Saiyan God action figure\"}" || true
-            python3 -c "import json;d=json.load(open('/tmp/embq.json'));print(len(d['data'][0]['embedding']))" 2>/dev/null || head -c 300 /tmp/embq.json; echo
+            time curl -s -o /tmp/emb.json -w "embed: %{http_code} total=%{time_total}s " --max-time 30 -X POST "$BASE/embeddings" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"input\":\"Son Goku Super Saiyan God action figure\"}" || true
+            python3 -c "import json;d=json.load(open('/tmp/emb.json'));print('dims='+str(len(d['data'][0]['embedding'])))" 2>/dev/null || head -c 300 /tmp/emb.json; echo
           done
-          echo "--- image embed (data URL) on orcarouter gemini-embedding:"
-          curl -s --max-time 20 "https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg" -o /tmp/fig.jpg || true
-          IMG=$(base64 -w0 /tmp/fig.jpg 2>/dev/null || base64 /tmp/fig.jpg | tr -d '\n')
-          echo "{\"model\":\"orcarouter/google/gemini-embedding-2-preview\",\"input\":\"data:image/jpeg;base64,$IMG\"}" > /tmp/embimg.json
-          time curl -s -o /tmp/embimg_out.json -w "img-embed: %{http_code} total=%{time_total}s dimensions=" --max-time 30 -X POST "$BASE/embeddings" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d @/tmp/embimg.json || true
-          python3 -c "import json;d=json.load(open('/tmp/embimg_out.json'));print(len(d['data'][0]['embedding']))" 2>/dev/null || head -c 300 /tmp/embimg_out.json; echo

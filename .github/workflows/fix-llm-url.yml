@@ -1,0 +1,38 @@
+name: Fix LLM base URL
+
+# Mot lan: backend dung LLM_BASE_URL=http://localhost:20128 nhung tren VPS
+# `localhost` chi resolve ra ::1 (thieu dong 127.0.0.1 trong /etc/hosts),
+# trong khi 9router chi nghe 127.0.0.1:20128 -> request treo het timeout.
+# Workflow nay doi sang 127.0.0.1 ro rang, restart php-fpm va smoke test.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    name: Point LLM at 127.0.0.1 and verify
+    runs-on: [self-hosted, wibu-vps]
+    steps:
+      - name: Patch backend .env
+        run: |
+          set -e
+          ENV=/opt/wibu-store/backend/.env
+          grep -E '^LLM_BASE_URL=' "$ENV" || { echo "no LLM_BASE_URL in .env"; exit 1; }
+          sed -i 's#^LLM_BASE_URL=http://localhost:20128#LLM_BASE_URL=http://127.0.0.1:20128#' "$ENV"
+          grep -E '^LLM_BASE_URL=' "$ENV" | sed -E 's#(LLM_BASE_URL=).*#\1http://127.0.0.1:20128/v1#'
+      - name: Restart php-fpm
+        run: |
+          set -e
+          sudo -n systemctl restart php8.3-fpm
+          sleep 3
+      - name: Smoke test chat
+        run: |
+          set -e
+          time curl -s -o /tmp/ai-smoke.json -w "chat: %{http_code} %{time_total}s\n" --max-time 90 \
+            -X POST https://wibu-store.jadt.io.vn/api/v1/ai/chat \
+            -H "Content-Type: application/json" \
+            -d '{"message":"xin chao","history":[]}'
+          head -c 300 /tmp/ai-smoke.json; echo
+      - name: Check other local endpoints
+        run: |
+          (ss -ltn 2>/dev/null | grep -E ':(8090|8069|20128|5432|6379|3308) ' || echo "no match") || true

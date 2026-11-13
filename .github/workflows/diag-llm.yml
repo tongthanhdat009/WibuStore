@@ -58,6 +58,10 @@ jobs:
           LOG=/opt/wibu-store/backend/storage/logs/laravel.log
           [ -f "$LOG" ] || { echo "no laravel.log"; exit 0; }
           grep -a 'LlmService' "$LOG" | tail -8 || echo "no LlmService lines"
+      - name: 9router process inspect (no secrets)
+        run: |
+          (docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | head -20 || echo "no docker or no access") || true
+          (ss -ltnp 2>/dev/null | grep -E ':20128' || echo "no ss match") || true
       - name: Probe mistral tools + vision (real figure image)
         run: |
           set -e

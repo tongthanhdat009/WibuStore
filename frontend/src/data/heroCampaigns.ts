@@ -25,7 +25,7 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/figure-4-seed',
     secondaryCtaText: 'Khám phá',
     secondaryCtaLink: '/anime/jujutsu-kaisen',
-    thumbnailImage: '/images/hero/gojo-blindfold-480.webp',
+    thumbnailImage: '/images/hero/gojo-blindfold-128.webp',
   },
   {
     id: 'campaign-02',
@@ -48,7 +48,7 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/set-figure-40-seed',
     secondaryCtaText: 'Toàn bộ One Piece',
     secondaryCtaLink: '/anime/one-piece',
-    thumbnailImage: '/images/hero/luffy-gear5-kaido-480.webp',
+    thumbnailImage: '/images/hero/luffy-gear5-kaido-128.webp',
   },
   {
     id: 'campaign-03',
@@ -63,7 +63,7 @@ export const heroCampaigns: HeroCampaign[] = [
     price: 8100000,
     status: 'in_stock',
     figureImage: '/images/hero/rengoku-flame.webp',
-    figureImageWidths: [480, 880, 1151],
+    figureImageWidths: [480, 640, 880, 1151],
     panelColor: 'blue',
     panelBgClass: 'bg-[#DDF9EB]',
     productSlug: 'set-figure-44-seed',
@@ -71,7 +71,7 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/set-figure-44-seed',
     secondaryCtaText: 'Toàn bộ Demon Slayer',
     secondaryCtaLink: '/anime/demon-slayer',
-    thumbnailImage: '/images/hero/rengoku-flame-480.webp',
+    thumbnailImage: '/images/hero/rengoku-flame-128.webp',
   },
   {
     id: 'campaign-04',
@@ -94,6 +94,6 @@ export const heroCampaigns: HeroCampaign[] = [
     primaryCtaLink: '/products/figure-1-seed',
     secondaryCtaText: 'Xem chi tiết',
     secondaryCtaLink: '/products/figure-1-seed',
-    thumbnailImage: '/images/hero/goku-god-480.webp',
+    thumbnailImage: '/images/hero/goku-god-128.webp',
   },
 ];

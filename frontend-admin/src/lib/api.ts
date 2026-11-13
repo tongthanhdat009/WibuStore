@@ -26,6 +26,7 @@ export async function apiGet<T>(path: string, astro?: AstroGlobal): Promise<{ da
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
     const cookie = astro?.request.headers.get('cookie');
+    console.error(`[apiGet] ${path} hasAstro=${!!astro} hasCookie=${!!cookie} cookieLen=${cookie?.length ?? 0}`);
     if (cookie) {
       headers.Cookie = cookie;
       // SSR: khai bao origin first-party de Sanctum khoi dong session

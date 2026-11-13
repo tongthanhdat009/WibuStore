@@ -14,7 +14,7 @@ import { categories } from '../data/categories';
 import { products as staticProducts } from '../data/products';
 import { animeSeriesList } from '../data/anime';
 import { collections } from '../data/collections';
-import { formatVND } from '../lib/utils';
+import { formatVND, heroImageSrcset, HERO_IMAGE_SIZES } from '../lib/utils';
 import { getCatalogProducts, getProductBySlug } from '../lib/catalog';
 import { getHomeContent, findSection, isSectionEnabled } from '../lib/cms';
 
@@ -55,12 +55,23 @@ const featuredCollectionProducts = products.filter((p) =>
 const recognitionDemo = await getProductBySlug('figure-4-seed')
   .then((r) => r.product)
   .catch(() => products.find((p) => /gojo/i.test(p.name)) ?? products[0]);
+const lcpCampaign = heroCampaignsLive[0];
 ---
 
 <BaseLayout
   title="Wibu Store — Anime Pop Comic Figures & Collectibles"
   description="Thế giới mô hình Anime Pop & Comic Editorial: Scale figure 1/7, Nendoroid, Action Figure, Gunpla chính hãng 100%."
 >
+  {heroOn && lcpCampaign && (
+    <link
+      slot="head"
+      rel="preload"
+      as="image"
+      imagesrcset={heroImageSrcset(lcpCampaign.figureImage, lcpCampaign.figureImageWidths)}
+      imagesizes={HERO_IMAGE_SIZES}
+      fetchpriority="high"
+    />
+  )}
   <!-- 1. Comic Cover Hero (CMS hero_comic override slide 0) -->
   {heroOn && <ComicCoverHero campaigns={heroCampaignsLive} />}
 
@@ -141,7 +152,7 @@ const recognitionDemo = await getProductBySlug('figure-4-seed')
           <div class="bg-white rounded-2xl border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] p-4 flex flex-col justify-between">
             <div>
               <div class="aspect-square rounded-xl overflow-hidden bg-[#F7F5F0] border border-[#17141F]/15 mb-3 relative group">
-                <img
+                <img decoding="async"
                   src={p.images[0]}
                   alt={p.name}
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform"
@@ -306,8 +317,8 @@ const recognitionDemo = await getProductBySlug('figure-4-seed')
         <!-- Phải: ảnh minh họa -->
         <div class="relative max-w-[440px] w-full mx-auto lg:justify-self-end pb-6">
           <div class="rounded-2xl overflow-hidden border-2 border-[#17141F] shadow-[4px_4px_0px_#17141F] rotate-1 hover:rotate-0 transition-transform duration-300 bg-[#FFF4DC]">
-            <img
-              src="/images/ai/ai-recognition.jpg"
+            <img decoding="async"
+              src="/images/ai/ai-recognition.webp"
               alt="Minh họa AI nhận diện mô hình figure"
               class="w-full aspect-square object-cover"
               loading="lazy"
@@ -321,7 +332,7 @@ const recognitionDemo = await getProductBySlug('figure-4-seed')
               href={`/products/${recognitionDemo.slug}`}
               class="absolute -bottom-1 left-2 flex items-center gap-3 p-2.5 pr-4 rounded-2xl border-2 border-[#17141F] bg-white shadow-[4px_4px_0px_#17141F] hover:-translate-y-1 transition-transform max-w-[calc(100%-1rem)]"
             >
-              <img
+              <img decoding="async"
                 src={recognitionDemo.images[0]}
                 alt={recognitionDemo.name}
                 class="w-14 h-14 rounded-xl object-cover border-2 border-[#17141F] shrink-0"

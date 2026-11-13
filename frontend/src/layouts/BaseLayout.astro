@@ -58,6 +58,7 @@ const fullTitle = title.includes('Wibu Store') ? title : `${title} | Wibu Store`
     <meta property="og:image" content={image} />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <slot name="head" />
   </head>
   <body class="bg-[#FFFDF7] text-[#17141F] min-h-screen flex flex-col font-sans selection:bg-[#FFD44A] selection:text-[#17141F]">
     <!-- Top Announcement Bar -->

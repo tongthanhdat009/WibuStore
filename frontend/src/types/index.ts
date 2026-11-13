@@ -60,6 +60,7 @@ export interface HeroCampaign {
   depositPrice?: number;
   status: StockStatusType;
   figureImage: string; // transparent cutout
+  figureImageWidths: number[]; // intrinsic widths of pregenerated variants (max = figureImage itself)
   panelColor: 'yellow' | 'blue' | 'pink' | 'mint';
   panelBgClass: string;
   productSlug: string;

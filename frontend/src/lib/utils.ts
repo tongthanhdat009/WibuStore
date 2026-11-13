@@ -15,6 +15,19 @@ export function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength) + '...';
 }
 
+/**
+ * Dung srcset cho anh hero: "name-480.webp 480w, name-880.webp 880w, name.webp 1151w".
+ * Quy uoc file: variant `-{w}.webp`, anh goc chinh la ban co chieu rong lon nhat.
+ */
+export function heroImageSrcset(image: string, widths: number[]): string {
+  const max = Math.max(...widths);
+  return widths
+    .map((w) => `${w === max ? image : image.replace(/\.webp$/, `-${w}.webp`)} ${w}w`)
+    .join(', ');
+}
+
+export const HERO_IMAGE_SIZES = '(max-width: 1024px) 70vw, 440px';
+
 export function getStatusBadgeInfo(status: string) {
   switch (status) {
     case 'in_stock':

@@ -61,7 +61,7 @@ import { products } from '../data/products';
       <div class="product-card group relative bg-white rounded-2xl border border-[#D8D4D0] hover:border-[#17141F] shadow-[1px_1px_3px_rgba(0,0,0,0.05)] hover:shadow-[4px_4px_0px_#17141F] transition-all duration-200 flex flex-col justify-between overflow-hidden">
         <div class="relative w-full aspect-square bg-[#F7F5F0] overflow-hidden p-3 flex items-center justify-center">
           <a href="/products/${item.slug}" class="block w-full h-full relative">
-            ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover rounded-xl" loading="lazy" />` : '<span class="text-xs text-[#6A6572]">Chưa có ảnh</span>'}
+            ${item.image ? `<img decoding="async" src="${item.image}" alt="${item.name}" class="w-full h-full object-cover rounded-xl" loading="lazy" />` : '<span class="text-xs text-[#6A6572]">Chưa có ảnh</span>'}
           </a>
           <button type="button" data-wish-remove="${item.id}" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 border border-[#D6284F] text-[#D6284F] flex items-center justify-center cursor-pointer" aria-label="Bỏ yêu thích">✕</button>
         </div>

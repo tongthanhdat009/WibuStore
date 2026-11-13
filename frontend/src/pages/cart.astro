@@ -175,7 +175,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
         <div class="p-4 bg-[#F7F5F0] rounded-2xl border border-[#D8D4D0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div class="flex items-center gap-4 min-w-0">
             <a href="/products/${item.slug}" class="w-20 h-20 rounded-xl overflow-hidden bg-white border border-[#17141F]/20 shrink-0">
-              <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
+              <img decoding="async" src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
             </a>
             <div class="min-w-0">
               <span class="text-[11px] font-bold text-[#3258D7]">${item.series}</span>

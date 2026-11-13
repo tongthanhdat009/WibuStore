@@ -35,7 +35,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
           aria-label="Chọn ảnh để nhận diện"
           class="rounded-2xl border-[3px] border-dashed border-[#17141F] bg-[#F7F5F0] hover:bg-[#FFF4DC] transition-colors cursor-pointer min-h-[280px] flex flex-col items-center justify-center gap-3 p-6 text-center"
         >
-          <img id="rec-preview" alt="Ảnh xem trước" class="hidden max-h-64 rounded-xl border-2 border-[#17141F] object-contain" />
+          <img decoding="async" id="rec-preview" alt="Ảnh xem trước" class="hidden max-h-64 rounded-xl border-2 border-[#17141F] object-contain" />
           <div id="rec-placeholder">
             <div class="text-5xl mb-2">🖼️</div>
             <p class="font-bold text-sm text-[#17141F]">Kéo thả ảnh vào đây<br />hoặc nhấn để chọn</p>
@@ -187,7 +187,7 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
         a.className = 'rounded-xl border-2 border-[#17141F] bg-[#FFFDF7] overflow-hidden hover:shadow-[3px_3px_0px_#17141F] hover:-translate-y-0.5 transition-all';
         const price = typeof p.price_amount === 'number' ? formatVND(p.price_amount) : 'Liên hệ';
         a.innerHTML = `<div class="aspect-square bg-[#F7F5F0] overflow-hidden">${
-          p.image ? `<img src="${p.image}" alt="" loading="lazy" class="w-full h-full object-cover" />` : '<div class="w-full h-full flex items-center justify-center text-3xl">📦</div>'
+          p.image ? `<img decoding="async" src="${p.image}" alt="" loading="lazy" class="w-full h-full object-cover" />` : '<div class="w-full h-full flex items-center justify-center text-3xl">📦</div>'
         }</div><div class="p-2"><p class="text-[11px] font-bold text-[#17141F] leading-tight line-clamp-2">${p.name.replace(/</g, '&lt;')}</p><p class="text-[11px] font-display text-[#D6284F] mt-1">${price}</p></div>`;
         similarGrid.appendChild(a);
       });

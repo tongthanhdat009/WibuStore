@@ -10,9 +10,9 @@ import type { AnimeSeries } from '../types';
 // Khi nao co hang thi them entry + logo vao day va LOGO la xong.
 const LOGO = {
   jjk: '/images/series/jjk.svg',
-  onePiece: '/images/series/one-piece-360.png',
-  demonSlayer: '/images/series/demon-slayer-360.png',
-  spyFamily: '/images/series/spy-family.png',
+  onePiece: '/images/series/one-piece-360.webp',
+  demonSlayer: '/images/series/demon-slayer-360.webp',
+  spyFamily: '/images/series/spy-family.webp',
 };
 
 export const animeSeriesList: AnimeSeries[] = [

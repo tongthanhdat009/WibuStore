@@ -50,7 +50,7 @@ const { products: animeProducts } = await getCatalogProducts({ anime_series: slu
           <div
             class={`rounded-2xl border-2 p-4 sm:p-5 shrink-0 shadow-[3px_3px_0px_rgba(0,0,0,0.4)] ${anime.logoOnDark ? 'bg-black border-white/25' : 'bg-white border-[#17141F]'}`}
           >
-            <img
+            <img decoding="async"
               src={anime.bannerImage}
               alt={`Logo ${anime.title}`}
               class="h-20 sm:h-24 md:h-28 w-auto max-w-[220px] sm:max-w-[300px] object-contain"

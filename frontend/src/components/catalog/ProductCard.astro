@@ -28,7 +28,7 @@ const discountPercent =
   <div class="relative w-full aspect-square bg-[#F7F5F0] overflow-hidden p-3 flex items-center justify-center">
     <!-- Main product image -->
     <a href={`/products/${product.slug}`} class="block w-full h-full relative" aria-label={product.name}>
-      <img
+      <img decoding="async"
         src={product.images[0] ?? '/images/product-placeholder.svg'}
         alt={product.name}
         class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300"

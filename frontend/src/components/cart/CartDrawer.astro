@@ -174,7 +174,7 @@ import Button from '../ui/Button.astro';
           (item) => `
         <div class="p-3 bg-[#F7F5F0] rounded-xl border border-[#D8D4D0] flex gap-3 relative group">
           <div class="w-16 h-16 rounded-lg overflow-hidden bg-white border border-[#17141F]/20 shrink-0">
-            <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
+            <img decoding="async" src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between gap-1">

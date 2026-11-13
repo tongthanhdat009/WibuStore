@@ -43,7 +43,7 @@
 
   <!-- Attach preview -->
   <div id="ai-chat-attach" class="hidden px-3.5 pb-2 shrink-0 items-center gap-2">
-    <img id="ai-chat-attach-img" alt="Ảnh đính kèm" class="w-12 h-12 rounded-lg border-2 border-[#17141F] object-cover" />
+    <img decoding="async" id="ai-chat-attach-img" alt="Ảnh đính kèm" class="w-12 h-12 rounded-lg border-2 border-[#17141F] object-cover" />
     <span class="text-[11px] font-bold text-[#534F5C] flex-1 truncate">Đã đính kèm ảnh — sẽ dùng AI đọc ảnh</span>
     <button id="ai-chat-attach-remove" type="button" class="text-xs font-bold text-[#D6284F] hover:underline cursor-pointer">Gỡ</button>
   </div>
@@ -130,7 +130,7 @@
     });
     text = text
       .replace(/`([^`\n]+)`/g, '<code class="ai-code">$1</code>')
-      .replace(/!\[([^\]\n]*)\]\((https?:[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy" class="ai-img" />')
+      .replace(/!\[([^\]\n]*)\]\((https?:[^)\s]+)\)/g, '<img decoding="async" src="$2" alt="$1" loading="lazy" class="ai-img" />')
       .replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>')
       .replace(/(^|[\s(])\*([^\*\n]+)\*/g, '$1<em>$2</em>')
       .replace(/\[([^\]\n]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener" class="ai-link">$1</a>');

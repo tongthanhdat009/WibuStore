@@ -61,7 +61,7 @@ const { collection, featuredProducts } = Astro.props;
             class="group block bg-white rounded-2xl border-2 border-[#17141F] shadow-[3px_3px_0px_#17141F] hover:shadow-[5px_5px_0px_#17141F] hover:-translate-y-1 transition-all p-3 text-center"
           >
             <div class="aspect-square rounded-xl overflow-hidden bg-[#F7F5F0] border border-[#17141F]/15 mb-2.5 relative">
-              <img
+              <img decoding="async"
                 src={item.images[0]}
                 alt={item.name}
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

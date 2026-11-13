@@ -14,7 +14,7 @@ const { anime } = Astro.props;
 >
   <!-- Anime logo plaque: logo chính thức, contain nguyên vẹn, nền theo màu logo -->
   <div class={`aspect-[4/3] w-full overflow-hidden relative ${anime.logoOnDark ? 'bg-[#17141F]' : 'bg-white'}`}>
-    <img
+    <img decoding="async"
       src={anime.coverImage}
       alt={`Logo ${anime.title}`}
       class="w-full h-full object-contain p-6 pb-20 group-hover:scale-105 transition-transform duration-300"

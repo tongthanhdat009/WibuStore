@@ -121,7 +121,7 @@ const ssrReviewsJson = JSON.stringify(ssrReviews);
           aria-label="Nhấn để phóng to ảnh chi tiết"
           tabindex="0"
         >
-          <img
+          <img decoding="async"
             id="pdp-main-image"
             src={product.images[0]}
             alt={product.name}
@@ -170,7 +170,7 @@ const ssrReviewsJson = JSON.stringify(ssrReviews);
                   data-src={img}
                   aria-label={`Xem ảnh góc ${idx + 1}`}
                 >
-                  <img src={img} alt={`${product.name} góc ${idx + 1}`} class="w-full h-full object-cover" />
+                  <img decoding="async" src={img} alt={`${product.name} góc ${idx + 1}`} class="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -501,7 +501,7 @@ const ssrReviewsJson = JSON.stringify(ssrReviews);
       >
         ✕
       </button>
-      <img
+      <img decoding="async"
         id="pdp-zoom-img"
         src={product.images[0]}
         alt={product.name}

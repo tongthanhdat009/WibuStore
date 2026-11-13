@@ -1,6 +1,6 @@
 ---
 import type { HeroCampaign } from '../../types';
-import { formatVND } from '../../lib/utils';
+import { formatVND, heroImageSrcset, HERO_IMAGE_SIZES } from '../../lib/utils';
 import Button from '../ui/Button.astro';
 import StickerBadge from './StickerBadge.astro';
 
@@ -149,10 +149,13 @@ const { campaigns } = Astro.props;
                 <div class="relative w-full max-w-[320px] sm:max-w-[380px] lg:max-w-[440px] aspect-[4/5] rounded-2xl overflow-hidden border-3 border-[#17141F] shadow-[6px_6px_0px_#17141F] bg-white group -translate-y-2 lg:-translate-y-4">
                   <img
                     src={campaign.figureImage}
+                    srcset={heroImageSrcset(campaign.figureImage, campaign.figureImageWidths)}
+                    sizes={HERO_IMAGE_SIZES}
                     alt={campaign.productName}
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading={idx === 0 ? 'eager' : 'lazy'}
                     fetchpriority={idx === 0 ? 'high' : undefined}
+                    decoding="async"
                   />
                   <!-- Speed lines overlay -->
                   <div class="absolute inset-0 speed-lines opacity-20 pointer-events-none"></div>
@@ -187,7 +190,7 @@ const { campaigns } = Astro.props;
                 aria-label={`Xem VOL. 0${idx + 1}: ${camp.productName}`}
               >
                 <div class="w-8 h-8 rounded-lg overflow-hidden border border-[#17141F] bg-white shrink-0">
-                  <img src={camp.thumbnailImage} alt={camp.productName} class="w-full h-full object-cover" />
+                  <img src={camp.thumbnailImage} alt={camp.productName} class="w-full h-full object-cover" loading="lazy" decoding="async" />
                 </div>
                 <div>
                   <span class="block font-display text-[11px] uppercase tracking-wider text-[#17141F] leading-tight">

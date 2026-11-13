@@ -98,7 +98,7 @@ for (const c of campaigns.slice(0, 12)) {
               <div>
                 <div class="aspect-square rounded-xl overflow-hidden bg-[#F7F5F0] border border-[#17141F]/15 mb-3 relative group">
                   {item.image ? (
-                    <img src={item.image} alt={item.productName} class="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                    <img decoding="async" src={item.image} alt={item.productName} class="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
                   ) : (
                     <div class="w-full h-full flex items-center justify-center text-xs text-[#6A6572]">Chưa có ảnh</div>
                   )}

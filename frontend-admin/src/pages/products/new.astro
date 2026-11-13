@@ -5,12 +5,18 @@ import Button from '../../components/ui/Button.astro';
 import Badge from '../../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
-const { data: seriesData } = await apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro);
-const { data: makerData } = await apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro);
-const { data: catData } = await apiGet<{ id: number; name: string }[]>('/admin/categories', Astro);
+const [staffRes, seriesRes, makerRes, catRes] = await Promise.all([
+  staffPromise,
+  apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro),
+  apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro),
+  apiGet<{ id: number; name: string }[]>('/admin/categories', Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: seriesData } = seriesRes;
+const { data: makerData } = makerRes;
+const { data: catData } = catRes;
 const seriesList = seriesData ?? [];
 const makerList = makerData ?? [];
 const catList = catData ?? [];

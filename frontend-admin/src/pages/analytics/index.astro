@@ -5,12 +5,13 @@ import Button from '../../components/ui/Button.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface SaleRow { day: string; orders: number; gmv: number; collected: number }
 
-const { data: sales } = await apiGet<SaleRow[]>('/admin/reports/sales', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<SaleRow[]>('/admin/reports/sales', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: sales } = res0;
 const rows = sales ?? [];
 const gmv = rows.reduce((a, b) => a + Number(b.gmv), 0);
 const collected = rows.reduce((a, b) => a + Number(b.collected), 0);

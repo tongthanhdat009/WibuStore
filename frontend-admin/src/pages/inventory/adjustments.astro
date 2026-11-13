@@ -6,13 +6,14 @@ import { apiGet, currentPage, requireStaff } from '../../lib/api';
 import Pagination from '../../components/ui/Pagination.astro';
 import { formatDateTime } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 const page = currentPage(Astro);
 
 interface Movement { id: number; type: string; reason?: string | null; delta_on_hand: number; delta_reserved: number; reference_type?: string | null; reference_id?: string | null; sku?: string; product_name?: string; created_at: string }
 
-const { data: moveData, meta: moveMeta } = await apiGet<Movement[]>(`/admin/inventory/movements?per_page=20&page=${page}`, Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<Movement[]>(`/admin/inventory/movements?per_page=20&page=${page}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: moveData, meta: moveMeta } = res0;
 const adjustments = moveData ?? [];
 ---
 

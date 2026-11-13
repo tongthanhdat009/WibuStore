@@ -3,8 +3,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import Badge from '../../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface Perm {
   id: number;
@@ -20,8 +19,14 @@ interface RoleRow {
   permissions: Perm[];
 }
 
-const { data: roleData } = await apiGet<RoleRow[]>('/admin/rbac/roles', Astro);
-const { data: permData } = await apiGet<Perm[]>('/admin/permissions', Astro);
+const [staffRes, roleRes, permRes] = await Promise.all([
+  staffPromise,
+  apiGet<RoleRow[]>('/admin/rbac/roles', Astro),
+  apiGet<Perm[]>('/admin/permissions', Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: roleData } = roleRes;
+const { data: permData } = permRes;
 const roles = roleData ?? [];
 const perms = permData ?? [];
 

@@ -8,8 +8,7 @@ import { formatCurrency } from '../../../lib/formatters';
 
 export const prerender = false;
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 const { id } = Astro.params;
 
@@ -29,11 +28,17 @@ interface EditProduct {
   media: { id: number; url?: string | null; is_primary: boolean }[];
 }
 
-const { data: product } = await apiGet<EditProduct>(`/admin/products/${id}`, Astro);
+const [staffRes, prodRes] = await Promise.all([staffPromise, apiGet<EditProduct>(`/admin/products/${id}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: product } = prodRes;
 if (!product) return Astro.redirect('/products');
 
-const { data: seriesData } = await apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro);
-const { data: makerData } = await apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro);
+const [seriesRes, makerRes] = await Promise.all([
+  apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro),
+  apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro),
+]);
+const { data: seriesData } = seriesRes;
+const { data: makerData } = makerRes;
 const firstVariant = product.variants[0];
 ---
 

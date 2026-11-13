@@ -4,12 +4,13 @@ import Button from '../components/ui/Button.astro';
 import Badge from '../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface Row { id: number; name: string; slug: string; products_count: number }
 
-const { data: rowData } = await apiGet<Row[]>('/admin/anime-series', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<Row[]>('/admin/anime-series', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: rowData } = res0;
 const mockSeries = rowData ?? [];
 ---
 

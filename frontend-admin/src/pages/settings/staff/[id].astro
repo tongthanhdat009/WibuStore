@@ -6,8 +6,7 @@ import { apiGet, requireStaff } from '../../../lib/api';
 
 export const prerender = false;
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 const { id } = Astro.params;
 
@@ -25,11 +24,17 @@ interface RoleRow {
   slug: string;
 }
 
-const { data: staffData } = await apiGet<StaffRow[]>('/admin/staff?per_page=100', Astro);
+const [staffRes, staffListRes, roleRes] = await Promise.all([
+  staffPromise,
+  apiGet<StaffRow[]>('/admin/staff?per_page=100', Astro),
+  apiGet<RoleRow[]>('/admin/rbac/roles', Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: staffData } = staffListRes;
 const staff = staffData?.find((u) => String(u.id) === String(id));
 if (!staff) return Astro.redirect('/settings/staff');
 
-const { data: roleData } = await apiGet<RoleRow[]>('/admin/rbac/roles', Astro);
+const { data: roleData } = roleRes;
 const allRoles = (roleData ?? []).filter((r) => r.slug !== 'customer');
 ---
 

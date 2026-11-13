@@ -4,12 +4,13 @@ import Button from '../../components/ui/Button.astro';
 import Badge from '../../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface CmsPageRow { id: number; slug: string; title: string; published_revision?: { version_number: number; status: string } | null }
 
-const { data: pageData } = await apiGet<CmsPageRow[]>('/admin/pages', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<CmsPageRow[]>('/admin/pages', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: pageData } = res0;
 const collections = (pageData ?? []).filter((p) => p.slug !== 'home');
 ---
 

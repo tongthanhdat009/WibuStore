@@ -6,8 +6,7 @@ import { apiGet, currentPage, requireStaff } from '../../lib/api';
 import Pagination from '../../components/ui/Pagination.astro';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 const page = currentPage(Astro);
 
 interface AdminProduct {
@@ -32,10 +31,17 @@ if (q) listParams.q = q;
 if (seriesFilter) listParams.anime_series_id = seriesFilter;
 if (makerFilter) listParams.manufacturer_id = makerFilter;
 const qs = new URLSearchParams(listParams).toString();
-const { data: productData, meta: productMeta } = await apiGet<AdminProduct[]>(`/admin/products?${qs}`, Astro);
+const [staffRes, prodRes, seriesRes, makerRes] = await Promise.all([
+  staffPromise,
+  apiGet<AdminProduct[]>(`/admin/products?${qs}`, Astro),
+  apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro),
+  apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: productData, meta: productMeta } = prodRes;
 const products = productData ?? [];
-const { data: seriesOpts } = await apiGet<{ id: number; name: string }[]>('/admin/anime-series', Astro);
-const { data: makerOpts } = await apiGet<{ id: number; name: string }[]>('/admin/manufacturers', Astro);
+const { data: seriesOpts } = seriesRes;
+const { data: makerOpts } = makerRes;
 const filterParams: Record<string, string> = {
   ...(statusFilter ? { status: statusFilter } : {}),
   ...(q ? { q } : {}),

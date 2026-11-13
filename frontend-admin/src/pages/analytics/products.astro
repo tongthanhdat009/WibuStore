@@ -4,12 +4,13 @@ import Button from '../../components/ui/Button.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface ProdRow { id: number; name: string; series?: string | null; manufacturer?: string | null; min_price?: number | null; image_url?: string | null; stock: { on_hand: number; reserved: number; available: number } }
 
-const { data: prodData } = await apiGet<ProdRow[]>('/admin/products?per_page=50', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<ProdRow[]>('/admin/products?per_page=50', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: prodData } = res0;
 const products = prodData ?? [];
 ---
 

@@ -6,15 +6,26 @@ import { apiGet, currentPage, requireStaff } from '../../lib/api';
 import Pagination from '../../components/ui/Pagination.astro';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
 const page = currentPage(Astro);
 
 interface Customer { id: number; public_id: string; name: string; email: string; phone?: string | null; status: string }
 
 const q = Astro.url.searchParams.get('q') ?? '';
-const { data: custData, meta: custMeta } = await apiGet<Customer[]>(`/admin/customers?per_page=20&page=${page}${q ? `&q=${encodeURIComponent(q)}` : ''}`, Astro);
+const statusFilter = Astro.url.searchParams.get('status') ?? '';
+const listParams: Record<string, string> = { per_page: '20', page: String(page) };
+if (q) listParams.q = q;
+if (statusFilter) listParams.status = statusFilter;
+const [staffRes, custRes] = await Promise.all([
+  requireStaff(Astro),
+  apiGet<Customer[]>(`/admin/customers?${new URLSearchParams(listParams).toString()}`, Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: custData, meta: custMeta } = custRes;
 const customers = custData ?? [];
+const pageParams: Record<string, string> = {
+  ...(q ? { q } : {}),
+  ...(statusFilter ? { status: statusFilter } : {}),
+};
 ---
 
 <AdminLayout
@@ -29,8 +40,9 @@ const customers = custData ?? [];
   </div>
 
   <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
-    <div class="p-4 border-b border-[#D8D4D0] bg-[#FAF8F5] flex flex-wrap items-center justify-between gap-3">
+    <div class="p-4 border-b border-[#D8D4D0] bg-[#FAF8F5] flex flex-wrap items-center gap-3">
       <form action="/customers" method="GET" class="relative w-full sm:w-64">
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
         <input
           type="text"
           name="q"
@@ -42,11 +54,15 @@ const customers = custData ?? [];
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
       </form>
-      </div>
 
-      <div class="text-[12px] text-[#6A6572]">
-        Tổng số: <strong>{customers.length}</strong> khách hàng đã đăng ký
-      </div>
+      <form action="/customers" method="GET" class="contents">
+        {q && <input type="hidden" name="q" value={q} />}
+        <select name="status" onchange="this.form.submit()" class="h-9 px-3 text-[13px] font-medium bg-white border border-[#D8D4D0] rounded-[6px] text-[#17141F] cursor-pointer">
+          <option value="">Tất cả trạng thái</option>
+          <option value="active" selected={statusFilter === 'active'}>Hoạt động</option>
+          <option value="suspended" selected={statusFilter === 'suspended'}>Tạm khóa</option>
+        </select>
+      </form>
     </div>
 
     <div class="overflow-x-auto">
@@ -75,7 +91,7 @@ const customers = custData ?? [];
                 </div>
               </td>
               <td class="py-4 px-4 text-center">
-                <Badge variant={c.status === 'active' ? 'success' : 'neutral'} size="sm">{c.status === 'active' ? 'Hoạt động' : c.status}</Badge>
+                <Badge variant={c.status === 'active' ? 'success' : c.status === 'suspended' ? 'warning' : 'neutral'} size="sm">{c.status === 'active' ? 'Hoạt động' : c.status === 'suspended' ? 'Tạm khóa' : c.status}</Badge>
               </td>
               <td class="py-4 px-4 text-center">
                 <Button variant="secondary" size="sm" href={`/customers/${c.id}`}>
@@ -87,7 +103,7 @@ const customers = custData ?? [];
         </tbody>
       </table>
     </div>
-    <Pagination meta={custMeta} pathname="/customers" params={q ? { q } : {}} />
+    <Pagination meta={custMeta} pathname="/customers" params={pageParams} />
   </div>
 
   <script>

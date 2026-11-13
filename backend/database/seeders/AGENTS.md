@@ -10,6 +10,7 @@ Demo and platform seed data. `DatabaseSeeder` is the entry point; `RolePermissio
 | File | Description |
 |------|-------------|
 | `DatabaseSeeder.php` | Entry point: calls `RolePermissionSeeder`, then returns early in the `testing` environment, then calls the four demo seeders |
+| `BucketImageSeeder.php` | Bucket-driven image seed: reads `public/products/seed/*` keys off the `s3` disk (no local dir needed) and rebuilds the 51 `-seed` products/variants/inventory plus every `media_assets` + `product_media` row with real size/dims/checksum; same business keys as `PortfolioImageSeeder` so the two converge; runs before enrich/naming |
 | `RolePermissionSeeder.php` | 11 permissions + 7 roles (`super_admin`, `store_manager`, `catalog_editor`, `order_staff`, `inventory_staff`, `content_editor`, `customer`) and the admin user `admin@wibustore.vn` / `Admin@123` with `super_admin` |
 | `DemoSeeder.php` | Warehouse `default`, series `jujutsu-kaisen`, maker `good-smile`, category `scale-figures`, 3 products (Gojo 8.9M, Megumi 4.2M, Nobara 4.6M VND) with variants + 20 on-hand, one open pre-order campaign, coupon `WIBU10`, published `home` CMS page with `hero_comic` section |
 | `PortfolioImageSeeder.php` | Reads `SEED_IMAGE_DIR` (default `database/seeders/data/images`), uploads JPEGs to the `s3` disk and creates products/variants/media. Skips with a warning when the directory is missing |

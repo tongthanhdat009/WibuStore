@@ -7,8 +7,7 @@ import { formatCurrency, formatDate } from '../../lib/formatters';
 
 export const prerender = false;
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 const { id } = Astro.params;
 
@@ -18,7 +17,9 @@ interface CustDetail {
   orders: { id: number; order_number: string; order_status: string; total_amount: number }[];
 }
 
-const { data: detail } = await apiGet<CustDetail>(`/admin/customers/${id}`, Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<CustDetail>(`/admin/customers/${id}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: detail } = res0;
 if (!detail) return Astro.redirect('/customers');
 const customer = detail.user;
 const customerOrders = detail.orders;

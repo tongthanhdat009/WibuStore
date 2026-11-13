@@ -6,15 +6,16 @@ import { apiGet, requireStaff } from '../../../lib/api';
 
 export const prerender = false;
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 const { id } = Astro.params;
 
 interface CmsPageRow { id: number; slug: string; title: string }
 interface Revision { id: number; version_number: number; status: string; content: unknown; published_at?: string | null }
 
-const { data: pageData } = await apiGet<CmsPageRow[]>('/admin/pages', Astro);
+const [staffRes, pagesRes] = await Promise.all([staffPromise, apiGet<CmsPageRow[]>('/admin/pages', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: pageData } = pagesRes;
 const page = pageData?.find((p) => String(p.id) === String(id));
 if (!page) return Astro.redirect('/collections');
 

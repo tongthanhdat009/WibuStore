@@ -322,7 +322,10 @@ class AdminOperationsController extends Controller
     {
         $q = User::query()->orderByDesc('created_at');
         if ($s = $request->query('q')) {
-            $q->where(fn ($w) => $w->where('name', 'ilike', "%{$s}%")->orWhere('email', 'ilike', "%{$s}%"));
+            $q->where(fn ($w) => $w->where('name', 'ilike', "%{$s}%")->orWhere('email', 'ilike', "%{$s}%")->orWhere('phone', 'ilike', "%{$s}%"));
+        }
+        if ($st = $request->query('status')) {
+            $q->where('status', $st);
         }
 
         return response()->json($q->paginate(min(100, max(1, (int) request()->query('per_page', 20))))->through(fn ($u) => $u->only(['id', 'public_id', 'name', 'email', 'phone', 'status'])));

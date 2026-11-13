@@ -8,8 +8,7 @@ import { apiGet, currentPage, requireStaff } from '../../lib/api';
 import Pagination from '../../components/ui/Pagination.astro';
 import { formatCurrency, formatDateTime } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 const page = currentPage(Astro);
 
 interface AdminOrder {
@@ -37,7 +36,9 @@ if (q) listParams.q = q;
 if (payFilter) listParams.payment_status = payFilter;
 if (shipFilter) listParams.fulfillment_status = shipFilter;
 if (typeFilter) listParams.checkout_type = typeFilter;
-const { data: orderData, meta: orderMeta } = await apiGet<AdminOrder[]>(`/admin/orders?${new URLSearchParams(listParams).toString()}`, Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<AdminOrder[]>(`/admin/orders?${new URLSearchParams(listParams).toString()}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: orderData, meta: orderMeta } = res0;
 const orders = orderData ?? [];
 const pageParams: Record<string, string> = {
   ...(statusFilter ? { status: statusFilter } : {}),

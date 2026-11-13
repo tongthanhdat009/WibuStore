@@ -5,8 +5,7 @@ import Badge from '../../components/ui/Badge.astro';
 import { apiGet, currentPage, requireStaff } from '../../lib/api';
 import Pagination from '../../components/ui/Pagination.astro';
 
-const { redirect, staff: me } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 const page = currentPage(Astro);
 
 interface StaffRow {
@@ -23,8 +22,15 @@ interface RoleRow {
   slug: string;
 }
 
-const { data: staffData, meta: staffMeta } = await apiGet<StaffRow[]>(`/admin/staff?per_page=20&page=${page}`, Astro);
-const { data: roleData } = await apiGet<RoleRow[]>('/admin/rbac/roles', Astro);
+const [staffRes, staffListRes, roleRes] = await Promise.all([
+  staffPromise,
+  apiGet<StaffRow[]>(`/admin/staff?per_page=20&page=${page}`, Astro),
+  apiGet<RoleRow[]>('/admin/rbac/roles', Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { staff: me } = staffRes;
+const { data: staffData, meta: staffMeta } = staffListRes;
+const { data: roleData } = roleRes;
 const members = staffData ?? [];
 const allRoles = roleData ?? [];
 ---

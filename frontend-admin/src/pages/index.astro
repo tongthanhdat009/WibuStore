@@ -8,19 +8,24 @@ import Badge from '../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../lib/api';
 import { formatCurrency, formatDateTime } from '../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
-
 interface Overview { revenue_collected: number; orders_pending: number; orders_processing: number; preorders_open: number; low_stock_skus: number }
 interface OrderRow { id: number; order_number: string; customer_name: string; phone: string; checkout_type: string; items_count: number; order_status: string; payment_status: string; total_amount: number; created_at: string }
 interface SaleRow { day: string; orders: number; gmv: number; collected: number }
 interface ProdRow { id: number; name: string; min_price: number | null; image_url: string | null }
 
 const days = Astro.url.searchParams.get('days') ?? '30';
-const { data: overview } = await apiGet<Overview>('/admin/dashboard/overview', Astro);
-const { data: orderData } = await apiGet<OrderRow[]>('/admin/orders?per_page=5', Astro);
-const { data: sales } = await apiGet<SaleRow[]>(`/admin/reports/sales?days=${encodeURIComponent(days)}`, Astro);
-const { data: prodData } = await apiGet<ProdRow[]>('/admin/products?per_page=5', Astro);
+const [staffRes, overviewRes, orderRes, salesRes, prodRes] = await Promise.all([
+  requireStaff(Astro),
+  apiGet<Overview>('/admin/dashboard/overview', Astro),
+  apiGet<OrderRow[]>('/admin/orders?per_page=5', Astro),
+  apiGet<SaleRow[]>(`/admin/reports/sales?days=${encodeURIComponent(days)}`, Astro),
+  apiGet<ProdRow[]>('/admin/products?per_page=5', Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: overview } = overviewRes;
+const { data: orderData } = orderRes;
+const { data: sales } = salesRes;
+const { data: prodData } = prodRes;
 
 const recentOrders = orderData ?? [];
 const topProducts = prodData ?? [];

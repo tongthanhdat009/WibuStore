@@ -5,8 +5,7 @@ import Badge from '../../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 import { formatCurrency, formatDate } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface Campaign {
   id: number;
@@ -25,10 +24,16 @@ interface Campaign {
   product_name?: string;
 }
 
-const { data: campData } = await apiGet<Campaign[]>('/admin/preorder-campaigns?per_page=20', Astro);
+const [staffRes, campRes, invRes] = await Promise.all([
+  staffPromise,
+  apiGet<Campaign[]>('/admin/preorder-campaigns?per_page=20', Astro),
+  apiGet<{ variant_id: number; sku?: string; product_name?: string }[]>('/admin/inventory?per_page=200', Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: campData } = campRes;
 const preorders = campData ?? [];
 
-const { data: invData } = await apiGet<{ variant_id: number; sku?: string; product_name?: string }[]>('/admin/inventory?per_page=200', Astro);
+const { data: invData } = invRes;
 const skuOptions = invData ?? [];
 
 const statusConfigs: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'danger' | 'neutral' }> = {

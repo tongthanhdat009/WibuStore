@@ -4,10 +4,11 @@ import Input from '../../components/ui/Input.astro';
 import Button from '../../components/ui/Button.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
-const { data: saved } = await apiGet<Record<string, string>>('/admin/settings', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<Record<string, string>>('/admin/settings', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: saved } = res0;
 const v = (k: string, d: string) => (saved && typeof saved[k] === 'string' ? (saved[k] as string) : d);
 ---
 

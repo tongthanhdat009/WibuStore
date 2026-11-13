@@ -1,9 +1,13 @@
 ---
 interface Props {
   currentPath?: string;
+  taskCount?: number;
+  ordersPending?: number;
+  lowStockCount?: number;
+  reviewsPending?: number;
 }
 
-const { currentPath = '/' } = Astro.props;
+const { currentPath = '/', taskCount = 0, ordersPending = 0, lowStockCount = 0, reviewsPending = 0 } = Astro.props;
 
 const ICONS: Record<string, string> = {
   dashboard: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -34,13 +38,13 @@ const navGroups = [
     title: 'TỔNG QUAN',
     items: [
       { name: 'Dashboard', href: '/', icon: 'dashboard', badge: null },
-      { name: 'Việc cần xử lý', href: '/tasks', icon: 'clipboard-check', badge: '4' },
+      { name: 'Việc cần xử lý', href: '/tasks', icon: 'clipboard-check', badge: null },
     ],
   },
   {
     title: 'BÁN HÀNG',
     items: [
-      { name: 'Đơn hàng', href: '/orders', icon: 'shopping-bag', badge: '1 mới' },
+      { name: 'Đơn hàng', href: '/orders', icon: 'shopping-bag', badge: null },
       { name: 'Pre-order', href: '/preorders', icon: 'calendar-clock', badge: null },
       { name: 'Khách hàng', href: '/customers', icon: 'users', badge: null },
     ],
@@ -52,7 +56,7 @@ const navGroups = [
       { name: 'Danh mục figure', href: '/categories', icon: 'tag', badge: null },
       { name: 'Anime Series', href: '/series', icon: 'film', badge: null },
       { name: 'Nhà sản xuất', href: '/brands', icon: 'briefcase', badge: null },
-      { name: 'Tồn kho', href: '/inventory', icon: 'boxes', badge: '2 thấp' },
+      { name: 'Tồn kho', href: '/inventory', icon: 'boxes', badge: null },
     ],
   },
   {
@@ -62,7 +66,7 @@ const navGroups = [
       { name: 'Bộ sưu tập', href: '/collections', icon: 'layers', badge: null },
       { name: 'Media Library', href: '/media', icon: 'image', badge: null },
       { name: 'Khuyến mãi', href: '/promotions', icon: 'percent', badge: null },
-      { name: 'Đánh giá', href: '/reviews', icon: 'star', badge: '1 chờ' },
+      { name: 'Đánh giá', href: '/reviews', icon: 'star', badge: null },
     ],
   },
   {
@@ -162,19 +166,68 @@ function isActive(href: string): boolean {
                     </span>
                   </span>
 
-                  {item.badge && (
+                  {(() => {
+                    const isTasks = item.href === '/tasks';
+                    if (isTasks) {
+                      const badgeText = taskCount > 0 ? String(taskCount) : null;
+                      return (
+                      <span
+                        id="sidebar-tasks-badge"
+                      class={`nav-item-badge text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] leading-none bg-[#EDF3FF] text-[#1D58D8] ${badgeText ? '' : 'hidden'}`}
+                    >
+                      {badgeText ?? ''}
+                    </span>
+                      );
+                    }
+                    if (item.href === '/orders') {
+                      const badgeText = ordersPending > 0 ? ordersPending + ' mới' : null;
+                      return (
+                      <span
+                        id="sidebar-orders-badge"
+                        class={`nav-item-badge text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] leading-none bg-[#FFD44A] text-[#17141F] ${badgeText ? '' : 'hidden'}`}
+                      >
+                        {badgeText ?? ''}
+                      </span>
+                      );
+                    }
+                    if (item.href === '/inventory') {
+                      const badgeText = lowStockCount > 0 ? lowStockCount + ' thấp' : null;
+                      return (
+                      <span
+                        id="sidebar-inventory-badge"
+                        class={`nav-item-badge text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] leading-none bg-[#FDEDEC] text-[#B42318] ${badgeText ? '' : 'hidden'}`}
+                      >
+                        {badgeText ?? ''}
+                      </span>
+                      );
+                    }
+                    if (item.href === '/reviews') {
+                      const badgeText = reviewsPending > 0 ? reviewsPending + ' chờ' : null;
+                      return (
+                      <span
+                        id="sidebar-reviews-badge"
+                        class={`nav-item-badge text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] leading-none bg-[#FFD44A] text-[#17141F] ${badgeText ? '' : 'hidden'}`}
+                      >
+                        {badgeText ?? ''}
+                      </span>
+                      );
+                    }
+                    const badgeText = item.badge;
+                    if (!badgeText) return null;
+                    return (
                     <span
                       class={`nav-item-badge text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] leading-none ${
-                        item.badge.includes('mới') || item.badge.includes('chờ')
+                        badgeText.includes('mới') || badgeText.includes('chờ')
                           ? 'bg-[#FFD44A] text-[#17141F]'
-                          : item.badge.includes('thấp')
+                          : badgeText.includes('thấp')
                           ? 'bg-[#FDEDEC] text-[#B42318]'
                           : 'bg-[#EDF3FF] text-[#1D58D8]'
                       }`}
                     >
-                      {item.badge}
+                      {badgeText}
                     </span>
-                  )}
+                    );
+                  })()}
                 </a>
               </li>
             );
@@ -194,7 +247,7 @@ function isActive(href: string): boolean {
     >
       <span class="sidebar-footer-text flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-[#147A4B] animate-pulse"></span>
-        Xem Storefront (:4321)
+        Xem Storefront
       </span>
       <span class="sidebar-footer-text text-[#6A6572] group-hover:text-[#D6284F] group-hover:translate-x-0.5 transition-all">↗</span>
     </a>
@@ -264,3 +317,4 @@ function isActive(href: string): boolean {
   });
   })();
 </script>
+

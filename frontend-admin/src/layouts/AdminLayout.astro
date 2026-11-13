@@ -17,6 +17,13 @@ const {
 
 const currentPath = Astro.url.pathname;
 const pageTitle = `${title} — Wibu Store Studio Admin`;
+
+// Badge sidebar + cham do topbar do client tu nap sau khi paint (xem <script> ben duoi)
+// de TTFB khong bi chan boi 3 API dashboard. SSR mac dinh 0 => an badge khi chua co so lieu.
+const taskCount = 0;
+const ordersPending = 0;
+const lowStockCount = 0;
+const reviewsPending = 0;
 ---
 
 <!doctype html>
@@ -39,12 +46,12 @@ const pageTitle = `${title} — Wibu Store Studio Admin`;
   </head>
   <body class="h-full flex overflow-hidden font-['Be_Vietnam_Pro'] text-[#17141F]">
     <!-- Left Navigation Sidebar -->
-    <Sidebar currentPath={currentPath} />
+    <Sidebar currentPath={currentPath} taskCount={taskCount} ordersPending={ordersPending} lowStockCount={lowStockCount} reviewsPending={reviewsPending} />
 
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
       <!-- Topbar Header -->
-      <Topbar breadcrumbs={breadcrumbs} />
+      <Topbar breadcrumbs={breadcrumbs} taskCount={taskCount} />
 
       <!-- Scrollable Main Viewport -->
       <main class="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -71,8 +78,68 @@ const pageTitle = `${title} — Wibu Store Studio Admin`;
       </main>
     </div>
     <script>
-      import { guardClient } from '../lib/api';
+      import { guardClient, API_URL } from '../lib/api';
       guardClient();
+
+      const DISMISS_KEY = 'wibu_admin_dismissed_tasks_v1';
+
+      function readDismissed(): string[] {
+        try {
+          return JSON.parse(localStorage.getItem(DISMISS_KEY) || '[]') as string[];
+        } catch {
+          return [];
+        }
+      }
+
+      function setBadge(id: string, text: string | null) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (text) {
+          el.textContent = text;
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      }
+
+      // Đồng bộ badge sidebar + chấm đỏ topbar theo số việc thực tế (trừ việc đã ẩn tay).
+      // tasks.astro gọi window.__syncTaskBadges(shown) sau khi tick checkbox để shell cập nhật ngay.
+      function syncShellBadges(visible: number) {
+        setBadge('sidebar-tasks-badge', visible > 0 ? String(visible) : null);
+        const dot = document.getElementById('topbar-tasks-dot');
+        if (dot) dot.classList.toggle('hidden', visible <= 0);
+      }
+      (window as unknown as { __syncTaskBadges?: (n: number) => void }).__syncTaskBadges = syncShellBadges;
+
+      // Làm tươi tất cả badge sau khi render: SSR có thể cũ + trừ việc user đã ẩn local.
+      (async () => {
+        try {
+          const headers = { Accept: 'application/json' };
+          const [tasksRes, overviewRes, reviewsRes] = await Promise.all([
+            fetch(`${API_URL}/api/v1/admin/dashboard/tasks`, { credentials: 'include', headers }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+            fetch(`${API_URL}/api/v1/admin/dashboard/overview`, { credentials: 'include', headers }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+            fetch(`${API_URL}/api/v1/admin/reviews?status=pending&per_page=1`, { credentials: 'include', headers }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+          ]);
+          const tasks = Array.isArray(tasksRes?.data) ? tasksRes.data : [];
+          const dismissed = new Set(readDismissed());
+          const visibleTasks = tasks.filter((t: { key?: string }) => !dismissed.has(t?.key ?? '')).length;
+          syncShellBadges(visibleTasks);
+          const overview = overviewRes?.data ?? {};
+          const orders = Number(overview.orders_pending ?? 0) || 0;
+          const lowStock = Number(overview.low_stock_skus ?? 0) || 0;
+          setBadge('sidebar-orders-badge', orders > 0 ? `${orders} mới` : null);
+          setBadge('sidebar-inventory-badge', lowStock > 0 ? `${lowStock} thấp` : null);
+          // Laravel paginator tra ve total o top-level; apiGet SSR map vao meta.total.
+          // per_page=1 nen data.length khong phai so that - chi dung total, fallback qua tasks.
+          let pendingReviews = 0;
+          if (typeof reviewsRes?.total === 'number') pendingReviews = reviewsRes.total;
+          else if (typeof reviewsRes?.meta?.total === 'number') pendingReviews = reviewsRes.meta.total;
+          else if (Array.isArray(tasks)) pendingReviews = tasks.filter((t: { category?: string }) => t?.category === 'reviews').length;
+          setBadge('sidebar-reviews-badge', pendingReviews > 0 ? `${pendingReviews} chờ` : null);
+        } catch {
+          /* giữ nguyên SSR */
+        }
+      })();
     </script>
   </body>
 </html>

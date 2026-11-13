@@ -4,8 +4,7 @@ import Button from '../../components/ui/Button.astro';
 import Badge from '../../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface Revision {
   id: number;
@@ -17,7 +16,9 @@ interface Revision {
   created_at: string;
 }
 
-const { data: revisions } = await apiGet<Revision[]>('/admin/pages/home/revisions', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<Revision[]>('/admin/pages/home/revisions', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: revisions } = res0;
 const revs = revisions ?? [];
 const published = revs.find((r) => r.status === 'published');
 const publishedJson = published ? JSON.stringify(published.content, null, 2) : '';

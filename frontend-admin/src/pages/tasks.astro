@@ -4,8 +4,7 @@ import Badge from '../components/ui/Badge.astro';
 import Button from '../components/ui/Button.astro';
 import { apiGet, requireStaff } from '../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface WorkTask {
   key: string;
@@ -17,7 +16,9 @@ interface WorkTask {
   created_at?: string | null;
 }
 
-const { data: taskData } = await apiGet<WorkTask[]>('/admin/dashboard/tasks', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<WorkTask[]>('/admin/dashboard/tasks', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: taskData } = res0;
 const tasks = taskData ?? [];
 
 const categoryLabel: Record<WorkTask['category'], string> = {
@@ -154,11 +155,14 @@ const counts = {
     function refresh() {
       const dismissed = readDismissed();
       let shown = 0;
+      let totalUndismissed = 0;
       list?.querySelectorAll<HTMLElement>('li[data-task-key]').forEach((li) => {
+        const isDismissed = dismissed.includes(li.dataset.taskKey || '');
+        if (!isDismissed) totalUndismissed++;
         const show = rowVisible(li, dismissed);
         li.classList.toggle('hidden', !show);
         const box = li.querySelector<HTMLInputElement>('input[data-dismiss-task]');
-        if (box) box.checked = dismissed.includes(li.dataset.taskKey || '');
+        if (box) box.checked = isDismissed;
         if (show) shown++;
       });
       emptyBox?.classList.toggle('hidden', shown > 0);
@@ -167,6 +171,12 @@ const counts = {
         const hasHidden = dismissed.length > 0;
         restoreBtn.classList.toggle('hidden', !hasHidden);
         restoreBtn.classList.toggle('inline-flex', hasHidden);
+      }
+      // Cập nhật badge sidebar + chấm đỏ topbar ngay (không đợi reload)
+      try {
+        (window as unknown as { __syncTaskBadges?: (n: number) => void }).__syncTaskBadges?.(totalUndismissed);
+      } catch {
+        /* ignore */
       }
     }
 

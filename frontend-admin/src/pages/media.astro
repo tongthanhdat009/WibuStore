@@ -6,8 +6,7 @@ import { apiGet, currentPage, requireStaff } from '../lib/api';
 import Pagination from '../components/ui/Pagination.astro';
 import { formatBytes, formatDateTime } from '../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 const page = currentPage(Astro);
 
 interface Asset { id: number; object_key: string; file_name: string; url: string; mime_type: string; file_size_bytes: number; width?: number | null; height?: number | null; status: string; created_at: string }
@@ -15,7 +14,9 @@ interface Asset { id: number; object_key: string; file_name: string; url: string
 const folder = Astro.url.searchParams.get('folder') ?? '';
 const prefixMap: Record<string, string> = { products: 'products', hero: 'hero', branding: 'branding' };
 const prefix = prefixMap[folder] ?? '';
-const { data: assetData, meta: assetMeta } = await apiGet<Asset[]>(`/admin/media?per_page=24&page=${page}${prefix ? `&prefix=${prefix}` : ''}`, Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<Asset[]>(`/admin/media?per_page=24&page=${page}${prefix ? `&prefix=${prefix}` : ''}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: assetData, meta: assetMeta } = res0;
 const assets = assetData ?? [];
 const pageParams: Record<string, string> = prefix ? { folder } : {};
 ---

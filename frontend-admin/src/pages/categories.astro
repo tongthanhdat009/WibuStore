@@ -4,12 +4,13 @@ import Button from '../components/ui/Button.astro';
 import Badge from '../components/ui/Badge.astro';
 import { apiGet, requireStaff } from '../lib/api';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface CatRow { id: number; name: string; slug: string; products_count: number }
 
-const { data: catData } = await apiGet<CatRow[]>('/admin/categories', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<CatRow[]>('/admin/categories', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: catData } = res0;
 const mockCategories = catData ?? [];
 ---
 

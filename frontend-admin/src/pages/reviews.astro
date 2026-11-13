@@ -5,8 +5,7 @@ import { apiGet, currentPage, requireStaff } from '../lib/api';
 import Pagination from '../components/ui/Pagination.astro';
 import { formatDateTime } from '../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 const page = currentPage(Astro);
 
 interface ReviewRow {
@@ -23,7 +22,9 @@ interface ReviewRow {
 const statusFilter = Astro.url.searchParams.get('status') ?? '';
 const listParams: Record<string, string> = { per_page: '20', page: String(page) };
 if (statusFilter) listParams.status = statusFilter;
-const { data: reviewData, meta: reviewMeta } = await apiGet<ReviewRow[]>(`/admin/reviews?${new URLSearchParams(listParams).toString()}`, Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<ReviewRow[]>(`/admin/reviews?${new URLSearchParams(listParams).toString()}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: reviewData, meta: reviewMeta } = res0;
 const reviews = reviewData ?? [];
 const tabParams: Record<string, string> = statusFilter ? { status: statusFilter } : {};
 const tabs = [

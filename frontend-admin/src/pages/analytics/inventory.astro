@@ -4,12 +4,13 @@ import Button from '../../components/ui/Button.astro';
 import { apiGet, requireStaff } from '../../lib/api';
 import { formatCurrency } from '../../lib/formatters';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 interface LevelRow { on_hand: number; reserved: number; available: number }
 
-const { data: invData } = await apiGet<LevelRow[]>('/admin/inventory?per_page=200', Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<LevelRow[]>('/admin/inventory?per_page=200', Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: invData } = res0;
 const levels = invData ?? [];
 const totalOnHand = levels.reduce((a, l) => a + l.on_hand, 0);
 const totalReserved = levels.reduce((a, l) => a + l.reserved, 0);

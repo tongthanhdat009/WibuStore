@@ -5,13 +5,14 @@ import Badge from '../../components/ui/Badge.astro';
 import { apiGet, currentPage, requireStaff } from '../../lib/api';
 import Pagination from '../../components/ui/Pagination.astro';
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 const page = currentPage(Astro);
 
 interface LogRow { id: number; actor_name?: string | null; action: string; subject_type?: string | null; subject_id?: string | null; request_id?: string | null; created_at: string }
 
-const { data: logData, meta: logMeta } = await apiGet<LogRow[]>(`/admin/activity-logs?per_page=20&page=${page}`, Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<LogRow[]>(`/admin/activity-logs?per_page=20&page=${page}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: logData, meta: logMeta } = res0;
 const logs = logData ?? [];
 
 const ACTION_LABELS: Record<string, string> = {

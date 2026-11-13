@@ -10,8 +10,7 @@ import { formatCurrency, formatDateTime } from '../../lib/formatters';
 
 export const prerender = false;
 
-const { redirect } = await requireStaff(Astro);
-if (redirect) return redirect;
+const staffPromise = requireStaff(Astro);
 
 const { id } = Astro.params;
 
@@ -40,7 +39,9 @@ interface OrderDetail {
   history: { from_status?: string | null; to_status: string; reason?: string | null; created_at: string }[];
 }
 
-const { data: order, error } = await apiGet<OrderDetail>(`/admin/orders/${id}`, Astro);
+const [staffRes, res0] = await Promise.all([staffPromise, apiGet<OrderDetail>(`/admin/orders/${id}`, Astro)]);
+if (staffRes.redirect) return staffRes.redirect;
+const { data: order, error } = res0;
 if (!order) return Astro.redirect('/orders');
 ---
 

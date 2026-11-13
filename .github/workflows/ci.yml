@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (pint + phpunit)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: wibu_store_test
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d wibu_store_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 55433
+      DB_DATABASE: wibu_store_test
+      DB_USERNAME: app
+      DB_PASSWORD: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, mbstring, openssl, fileinfo
+      - working-directory: backend
+        run: composer install --no-interaction --prefer-dist
+      - working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php -r '$p = new PDO("pgsql:host=127.0.0.1;port=55433;dbname=wibu_store_test", "app", "app"); $p->exec("CREATE EXTENSION IF NOT EXISTS pg_trgm"); $p->exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\""); echo "extensions ok\n";'
+          php artisan migrate:fresh --seed --force
+      - working-directory: backend
+        run: php ./vendor/bin/pint --test
+      - working-directory: backend
+        run: php artisan test
+
+  frontend:
+    name: Storefront build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - working-directory: frontend
+        run: pnpm build
+        env:
+          PUBLIC_API_URL: https://wibu-store.jadt.io.vn
+
+  frontend-admin:
+    name: Admin build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend-admin/pnpm-lock.yaml
+      - working-directory: frontend-admin
+        run: pnpm install --frozen-lockfile
+      - working-directory: frontend-admin
+        run: pnpm build
+        env:
+          PUBLIC_API_URL: https://admin-wibu-store.jadt.io.vn

@@ -62,19 +62,15 @@ jobs:
         run: |
           (docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | head -20 || echo "no docker or no access") || true
           (ss -ltnp 2>/dev/null | grep -E ':20128' || echo "no ss match") || true
-      - name: Probe mistral tools + vision (real figure image)
+      - name: Probe embedding support (for visual search)
         run: |
           set -e
           ENV=/opt/wibu-store/backend/.env
           get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
-          M="cf/@cf/mistralai/mistral-small-3.1-24b-instruct"
-          echo "--- tools probe:"
-          time curl -s -o /tmp/tprobe.json -w "tools: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"gojo\"}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"search_products\",\"description\":\"x\",\"parameters\":{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}}}}}],\"tool_choice\":\"auto\",\"max_tokens\":20}" || true
-          head -c 400 /tmp/tprobe.json 2>/dev/null; echo; sleep 3
-          echo "--- vision probe (real seed image):"
-          curl -s --max-time 20 "https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg" -o /tmp/fig.jpg || true
-          IMG=$(base64 -w0 /tmp/fig.jpg 2>/dev/null || base64 /tmp/fig.jpg | tr -d '\n')
-          echo "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"mo ta anh nay ngan gon\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,$IMG\"}}]}],,\"max_tokens\":60}" > /tmp/vpayload.json
-          time curl -s -o /tmp/vprobe2.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d @/tmp/vpayload.json || true
-          head -c 500 /tmp/vprobe2.json 2>/dev/null; echo
+          curl -s --max-time 15 "$BASE/models" -o /tmp/allmodels.json || true
+          echo "--- models matching embed/vision/multimodal/clip/jina/cohere:"
+          grep -o '"id":"[^"]*"' /tmp/allmodels.json | sort -u | grep -iE 'embed|vision|multimodal|clip|jina|cohere|vl-|vqa' || echo "(none)"
+          echo "--- text embeddings probe (cf bge):"
+          time curl -s -o /tmp/emb.json -w "embed: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/embeddings" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"cf/@cf/baai/bge-base-en-v1.5","input":"Son Goku action figure"}' || true
+          head -c 300 /tmp/emb.json 2>/dev/null; echo

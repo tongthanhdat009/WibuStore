@@ -39,7 +39,15 @@ class BucketImageSeeder extends Seeder
         $disk = Storage::disk('s3');
         $warehouse = Warehouse::firstOrCreate(['code' => 'default'], ['name' => 'Kho chinh', 'is_active' => true]);
 
-        $files = $disk->files('public/products/seed', true);
+        try {
+            $files = $disk->files('public/products/seed', true);
+        } catch (\Throwable $e) {
+            // CI dung .env.example (khong co AWS creds) hoac S3 khong toi duoc:
+            // bo qua nhu PortfolioImageSeeder khi thieu SEED_IMAGE_DIR.
+            $this->command->warn('khong doc duoc bucket S3 ('.$e->getMessage().') — bo qua');
+
+            return;
+        }
         if ($files === []) {
             $this->command->warn('bucket khong co key public/products/seed/* — bo qua');
 

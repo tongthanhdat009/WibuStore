@@ -57,6 +57,12 @@ jobs:
           echo ' elapsed='.round(microtime(true)-$t, 2).'s'.PHP_EOL;
           EOF
           timeout 90 php8.3 artisan tinker < /tmp/llmprobe.php 2>&1 | tail -5 || true
+      - name: Probe IPv4 loopback explicitly + hosts file
+        run: |
+          set -e
+          echo "--- /etc/hosts:"; cat /etc/hosts
+          echo "--- direct 127.0.0.1:20128:"
+          time curl -s -o /dev/null -w "v4 models: %{http_code} connect=%{time_connect}s total=%{time_total}s\n" --max-time 15 http://127.0.0.1:20128/v1/models || true
       - name: Listener + DNS + timing split
         run: |
           set -e

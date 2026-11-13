@@ -16,7 +16,7 @@ The admin's only data layer: an SSR API client that preserves the Sanctum sessio
 ## For AI Agents
 
 ### Working In This Directory
-- `apiGet` forwards the incoming browser `Cookie` header and sets `Origin` + `Referer` to the SSR page origin. That is what makes Sanctum start/continue a session server-side. Removing those headers turns every page into a 401 — this is the single most important invariant in the admin.
+- `apiGet` forwards the incoming browser `Cookie` header and sets `Origin` + `Referer` to the API's own public origin (`new URL(API_URL).origin`), NOT the SSR page origin — the Host header can be rewritten by the tunnel/ingress (e.g. to `localhost`), which would make Sanctum treat the request as non-stateful and 401. That is what makes staff login stick.
 - `apiGet` never throws. It returns `{data}` on success, or `{error: {status, code, message}}` where `status` is 401 (`UNAUTHENTICATED`), 403 (`FORBIDDEN`), the real HTTP status for other failures, or 0 with code `NETWORK` when the backend is unreachable. Always branch on `error`, not on a thrown exception.
 - The response envelope is `{data, meta}` — `meta` is populated only when the body carries a `current_page` number; it is shaped into `PageMeta` (`current_page`, `last_page`, `per_page`, `total`, `from`, `to`).
 - `requireStaff(astro)` calls `/me` and returns `{redirect, staff}`. `redirect` is a `Response` on 401 (`/login`) or 403 (`/403`); pages must `if (redirect) return redirect;` before rendering. `staff` is the `StaffMe` object with `roles` and `permissions`.

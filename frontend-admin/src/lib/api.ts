@@ -26,23 +26,21 @@ export async function apiGet<T>(path: string, astro?: AstroGlobal): Promise<{ da
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
     const cookie = astro?.request.headers.get('cookie');
-    console.error(`[apiGet] ${path} hasAstro=${!!astro} hasCookie=${!!cookie} cookieLen=${cookie?.length ?? 0}`);
     if (cookie) {
       headers.Cookie = cookie;
-      // SSR: khai bao origin first-party de Sanctum khoi dong session
-      // (browser khong gui Origin/Referer khi tai trang truc tiep).
-      const origin = astro?.url.origin;
-      if (origin) {
-        headers.Origin = origin;
-        headers.Referer = `${origin}/`;
-      }
+      // Origin co dinh = public origin cua chinh API (first-party).
+      // KHONG dung astro.url.origin: sau Cloudflare Tunnel / ingress,
+      // Host header co the bi viet lai (vd thanh localhost) khien
+      // Sanctum danh dau request la non-stateful -> 401 oan.
+      const origin = new URL(API_URL).origin;
+      headers.Origin = origin;
+      headers.Referer = `${origin}/`;
     }
     const res = await fetch(api(path), { headers });
     if (res.status === 401) return { error: { status: 401, code: 'UNAUTHENTICATED' } };
     if (res.status === 403) return { error: { status: 403, code: 'FORBIDDEN' } };
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      console.error(`[apiGet] ${path} -> HTTP ${res.status}`);
       return { error: { status: res.status, code: body?.error?.code, message: body?.error?.message } };
     }
     const body = await res.json();
@@ -58,8 +56,7 @@ export async function apiGet<T>(path: string, astro?: AstroGlobal): Promise<{ da
           }
         : undefined;
     return { data: (body.data ?? body) as T, meta };
-  } catch (e) {
-    console.error(`[apiGet] ${path} NETWORK:`, e instanceof Error ? e.message : e);
+  } catch {
     return { error: { status: 0, code: 'NETWORK', message: 'Khong ket noi duoc API. Kiem tra backend :8000.' } };
   }
 }

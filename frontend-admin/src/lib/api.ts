@@ -41,6 +41,7 @@ export async function apiGet<T>(path: string, astro?: AstroGlobal): Promise<{ da
     if (res.status === 403) return { error: { status: 403, code: 'FORBIDDEN' } };
     if (!res.ok) {
       const body = await res.json().catch(() => null);
+      console.error(`[apiGet] ${path} -> HTTP ${res.status}`);
       return { error: { status: res.status, code: body?.error?.code, message: body?.error?.message } };
     }
     const body = await res.json();
@@ -56,7 +57,8 @@ export async function apiGet<T>(path: string, astro?: AstroGlobal): Promise<{ da
           }
         : undefined;
     return { data: (body.data ?? body) as T, meta };
-  } catch {
+  } catch (e) {
+    console.error(`[apiGet] ${path} NETWORK:`, e instanceof Error ? e.message : e);
     return { error: { status: 0, code: 'NETWORK', message: 'Khong ket noi duoc API. Kiem tra backend :8000.' } };
   }
 }

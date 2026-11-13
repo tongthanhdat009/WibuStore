@@ -62,15 +62,23 @@ jobs:
         run: |
           (docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | head -20 || echo "no docker or no access") || true
           (ss -ltnp 2>/dev/null | grep -E ':20128' || echo "no ss match") || true
-      - name: Probe embedding support (for visual search)
+      - name: Probe orcarouter qwen-vl (tools + vision)
         run: |
           set -e
           ENV=/opt/wibu-store/backend/.env
           get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'\r"; }
           BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY)
-          curl -s --max-time 15 "$BASE/models" -o /tmp/allmodels.json || true
-          echo "--- models matching embed/vision/multimodal/clip/jina/cohere:"
-          grep -o '"id":"[^"]*"' /tmp/allmodels.json | sort -u | grep -iE 'embed|vision|multimodal|clip|jina|cohere|vl-|vqa' || echo "(none)"
-          echo "--- text embeddings probe (cf bge):"
-          time curl -s -o /tmp/emb.json -w "embed: %{http_code} total=%{time_total}s\n" --max-time 30 -X POST "$BASE/embeddings" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d '{"model":"cf/@cf/baai/bge-base-en-v1.5","input":"Son Goku action figure"}' || true
-          head -c 300 /tmp/emb.json 2>/dev/null; echo
+          M1228="orcarouter/qwen/qwen3-vl-8b-instruct"
+          echo "--- chat text ($M1228):"
+          M="orcarouter/qwen/qwen3-vl-8b-instruct"
+          time curl -s -o /tmp/qchat.json -w "chat: %{http_code} total=%{time_total}s\n" --max-time 45 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":20}" || true
+          head -c 300 /tmp/qchat.json 2>/dev/null; echo
+          echo "--- tools probe ($M):"
+          time curl -s -o /tmp/qtools.json -w "tools: %{http_code} total=%{time_total}s\n" --max-time 45 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"gojo\"}],\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"search_products\",\"description\":\"x\",\"parameters\":{\"type\":\"object\",\"properties\":{\"q\":{\"type\":\"string\"}}}}}}],\"tool_choice\":\"auto\",\"max_tokens\":20}" || true
+          if grep -q tool_calls /tmp/qtools.json 2>/dev/null; then echo TOOLS_OK; else echo TOOLS_MISSING; fi; head -c 300 /tmp/qtools.json 2>/dev/null; echo
+          echo "--- vision probe (real seed image):"
+          curl -s --max-time 20 "https://s3-nexpress-us1.vyta.io.vn/shiphard-studio/Dat/wibu-store/public/products/seed/figure/1%201.jpg" -o /tmp/fig.jpg || true
+          IMG=$(base64 -w0 /tmp/fig.jpg 2>/dev/null || base64 /tmp/fig.jpg | tr -d '\n')
+          echo "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"mo ta anh nay ngan gon\"}, {\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,$IMG\"}}]}],,\"max_tokens\":60}" > /tmp/qvision.json
+          time curl -s -o /tmp/qvout.json -w "vision: %{http_code} total=%{time_total}s\n" --max-time 60 -X POST "$BASE/chat/completions" -H "Content-Type: application/json" -H "Authorization: Bearer $KEY" -d @/tmp/qvision.json || true
+          head -c 500 /tmp/qvout.json 2>/dev/null; echo

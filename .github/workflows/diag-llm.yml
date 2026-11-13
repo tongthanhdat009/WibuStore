@@ -41,6 +41,11 @@ jobs:
         run: |
           set -e
           grep -rhoE 'env\[LLM_[A-Z_]+\][^;]*' /etc/php/8.3/fpm/pool.d/ 2>/dev/null | sed -E 's/(LLM_API_KEY[^=]*=).*/\1***/' || echo "no LLM_* in php-fpm pool conf"
+      - name: Laravel log (LlmService)
+        run: |
+          LOG=/opt/wibu-store/backend/storage/logs/laravel.log
+          [ -f "$LOG" ] || { echo "no laravel.log"; exit 0; }
+          grep -a 'LlmService' "$LOG" | tail -15 || echo "no LlmService lines"
       - name: PHP-side timing probe (tinker)
         run: |
           set -e

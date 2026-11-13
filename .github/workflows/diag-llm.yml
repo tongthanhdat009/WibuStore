@@ -36,4 +36,14 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $KEY" \
             -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
-          head -c 300 /tmp/llmprobe.json; echo
+          head -c 300 /tmp/llmprobe.json; echo || true
+      - name: Listener + DNS + timing split
+        run: |
+          set -e
+          ENV=/opt/wibu-store/backend/.env
+          BASE=$(grep -E '^LLM_BASE_URL=' "$ENV" | cut -d= -f2- | tr -d "\"'")
+          (ss -ltn 2>/dev/null | grep -E ':20128' || echo "no listener on 20128") || true
+          getent hosts localhost || true
+          for f in "" "-4" "-6"; do
+            curl -s -o /dev/null -w "models$f: code=%{http_code} connect=%{time_connect}s start=%{time_starttransfer}s total=%{time_total}s\n" --max-time 10 $f "$BASE/models" || true
+          done

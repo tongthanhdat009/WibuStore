@@ -63,13 +63,20 @@ jobs:
           echo "--- /etc/hosts:"; cat /etc/hosts
           echo "--- direct 127.0.0.1:20128:"
           time curl -s -o /dev/null -w "v4 models: %{http_code} connect=%{time_connect}s total=%{time_total}s\n" --max-time 15 http://127.0.0.1:20128/v1/models || true
-      - name: Listener + DNS + timing split
+      - name: Model list + timed auth chat probe
         run: |
           set -e
           ENV=/opt/wibu-store/backend/.env
-          BASE=$(grep -E '^LLM_BASE_URL=' "$ENV" | cut -d= -f2- | tr -d "\"'")
-          (ss -ltn 2>/dev/null | grep -E ':20128' || echo "no listener on 20128") || true
-          getent hosts localhost || true
-          for f in "" "-4" "-6"; do
-            curl -s -o /dev/null -w "models$f: code=%{http_code} connect=%{time_connect}s start=%{time_starttransfer}s total=%{time_total}s\n" --max-time 10 $f "$BASE/models" || true
-          done
+          get() { grep -E "^$1=" "$ENV" | cut -d= -f2- | tr -d "\"'"; }
+          BASE=$(get LLM_BASE_URL); KEY=$(get LLM_API_KEY); MODEL=$(get LLM_CHAT_MODEL)
+          echo "--- /v1/models body (names only):"
+          curl -s --max-time 15 "$BASE/models" -o /tmp/models.json || true
+          python3 -c "import json; d=json.load(open('/tmp/models.json')); print([m.get('id') for m in d.get('data',[])])" 2>/dev/null || head -c 500 /tmp/models.json
+          echo
+          echo "--- timed auth chat probe:"
+          time curl -s -o /tmp/chatprobe.json -w "chat: %{http_code} connect=%{time_connect}s start=%{time_starttransfer}s total=%{time_total}s\n" --max-time 75 \
+            -X POST "$BASE/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $KEY" \
+            -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}" || true
+          head -c 400 /tmp/chatprobe.json 2>/dev/null; echo

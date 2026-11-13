@@ -631,6 +631,15 @@ class LlmService
             $answer = self::postChatMessages($messages);
         }
 
+        // Model khong ho tro / khong chiu goi tool (VD Nemotron qua 9router):
+        // tu tim catalog theo tu khoa de chat van co goi y san pham that.
+        if ($collected === [] && ($keys = self::keywords($message)) !== []) {
+            $found = self::searchProducts(['q' => implode(' ', $keys), 'limit' => 5]);
+            foreach ($found['items'] as $p) {
+                $collected[$p['slug']] = $p;
+            }
+        }
+
         return [
             'text' => $answer['content'] ?? 'Minh tim giup ban ngay nhe, ban mo ta them nhan vat hoac ngan sach giup minh.',
             'model' => $answer['model'],

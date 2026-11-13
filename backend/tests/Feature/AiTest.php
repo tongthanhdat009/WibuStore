@@ -27,6 +27,10 @@ class AiTest extends TestCase
         $visionSse = "data: {\"model\":\"muse-spark-1.3-contributor\",\"choices\":[{\"delta\":{\"content\":\"Chiec la xanh\"}}]}\n\ndata: [DONE]\n\n";
         Http::fake([
             'llm.test/v1/chat/completions*' => function ($request) use ($chatSse, $visionSse) {
+                // Model khong goi tool (VD Nemotron): luon tra text don.
+                if (config('services.llm.chat_model') === 'plain-model') {
+                    return Http::response(['model' => 'plain-model', 'choices' => [['message' => ['content' => 'Xin chao']]]], 200);
+                }
                 $payload = $request->data();
                 $messages = $payload['messages'] ?? [];
                 $hasToolMsg = collect($messages)->contains(fn ($m) => ($m['role'] ?? '') === 'tool');
@@ -90,6 +94,19 @@ class AiTest extends TestCase
         $res = $this->postJson('/api/v1/ai/chat', ['message' => 'chao']);
 
         $res->assertStatus(502)->assertJsonPath('error.code', 'LLM_NOT_CONFIGURED');
+    }
+
+    public function test_chat_without_tool_calls_still_suggests_products(): void
+    {
+        $this->seed(DemoSeeder::class);
+        config(['services.llm.chat_model' => 'plain-model']);
+
+        $res = $this->postJson('/api/v1/ai/chat', ['message' => 'goi y figure gojo']);
+
+        $res->assertOk();
+        $products = $res->json('data.products');
+        $this->assertNotEmpty($products);
+        $this->assertStringContainsStringIgnoringCase('gojo', $products[0]['name']);
     }
 
     public function test_chat_calls_search_products_tool(): void

@@ -1,0 +1,25 @@
+---
+import Badge from '../ui/Badge.astro';
+import type { OdooSyncStatus } from '../../types';
+
+interface Props {
+  status: OdooSyncStatus;
+  size?: 'sm' | 'md';
+}
+
+const { status, size = 'md' } = Astro.props;
+
+const config: Record<string, { label: string; variant: 'info' | 'warning' | 'success' | 'danger' | 'neutral' }> = {
+  pending: { label: 'Chờ', variant: 'info' },
+  success: { label: 'Thành công', variant: 'success' },
+  rejected: { label: 'Bị từ chối', variant: 'warning' },
+  failed: { label: 'Thất bại', variant: 'danger' },
+};
+
+const current = config[status] || { label: status, variant: 'neutral' };
+---
+
+<Badge variant={current.variant} size={size}>
+  <span class="w-1.5 h-1.5 rounded-full bg-current opacity-80 inline-block"></span>
+  {current.label}
+</Badge>

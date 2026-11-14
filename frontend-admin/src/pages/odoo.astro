@@ -1,0 +1,165 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Button from '../components/ui/Button.astro';
+import MetricCard from '../components/domain/MetricCard.astro';
+import OdooStatusBadge from '../components/domain/OdooStatusBadge.astro';
+import Pagination from '../components/ui/Pagination.astro';
+import { apiGet, currentPage, requireStaff } from '../lib/api';
+import { formatDateTime } from '../lib/formatters';
+import type { OdooSyncLogRow } from '../types';
+
+const staffPromise = requireStaff(Astro);
+const page = currentPage(Astro);
+const direction = Astro.url.searchParams.get('direction') ?? '';
+const statusFilter = Astro.url.searchParams.get('status') ?? '';
+
+interface StatusData {
+  configured: { connector_url: string; webhook_secret_set: boolean; direct_url: string; channel_code: string; channel_key_set: boolean };
+  last_24h: { success: number; rejected: number; failed: number };
+  last_push?: { direction: string; event_id?: string | null; status: string; http_status?: number | null; error?: string | null; created_at: string } | null;
+  last_error?: { direction: string; event_id?: string | null; status: string; error?: string | null; created_at: string } | null;
+}
+
+const [staffRes, statusRes, logsRes] = await Promise.all([
+  staffPromise,
+  apiGet<StatusData>('/admin/odoo/status', Astro),
+  apiGet<OdooSyncLogRow[]>(`/admin/odoo/logs?per_page=20&page=${page}${direction ? `&direction=${direction}` : ''}${statusFilter ? `&status=${statusFilter}` : ''}`, Astro),
+]);
+if (staffRes.redirect) return staffRes.redirect;
+const status = statusRes.data;
+const logs = logsRes.data ?? [];
+const { meta: logMeta } = logsRes;
+---
+
+<AdminLayout
+  title="Đồng bộ Odoo"
+  description="Trạng thái kết nối và lịch sử đẩy đơn sang Odoo master (legacy connector + direct sale.channel)"
+  breadcrumbs={[{ label: 'Hệ thống' }, { label: 'Đồng bộ Odoo' }]}
+>
+  <div slot="actions" class="flex gap-2">
+    <Button id="odoo-test-btn" variant="secondary" size="sm">
+      Kiểm tra kết nối
+    </Button>
+  </div>
+
+  <div id="odoo-test-result" class="hidden mb-4 text-[13px] font-bold rounded-[8px] border px-4 py-3"></div>
+
+  {status ? (
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <MetricCard
+        title="Kênh legacy :8090"
+        value={status.configured.webhook_secret_set ? 'Đã cấu hình' : 'Chưa cấu hình'}
+        subtext={status.configured.connector_url}
+      />
+      <MetricCard
+        title="Kênh trực tiếp :8069"
+        value={status.configured.channel_key_set ? 'Đã cấu hình' : 'Chưa cấu hình'}
+        subtext={`${status.configured.direct_url} · ${status.configured.channel_code}`}
+      />
+      <MetricCard
+        title="Thành công 24h"
+        value={String(status.last_24h.success)}
+        subtext={`Từ chối: ${status.last_24h.rejected} · Thất bại: ${status.last_24h.failed}`}
+      />
+      <MetricCard
+        title="Lần đẩy gần nhất"
+        value={status.last_push?.event_id ?? '—'}
+        subtext={status.last_push ? formatDateTime(status.last_push.created_at) : 'Chưa có lần đẩy nào'}
+      />
+    </div>
+  ) : (
+    <div class="bg-[#FDEDEC] border border-[#F5C6C0] text-[#B42318] rounded-[8px] px-4 py-3 mb-6 text-[13px] font-bold">
+      Không tải được trạng thái Odoo. Kiểm tra quyền settings.manage và backend.
+    </div>
+  )}
+
+  <div class="bg-white rounded-[14px] border border-[#D8D4D0] shadow-xs overflow-hidden">
+    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-[#D8D4D0] bg-[#FAF8F5]">
+      <span class="text-[12px] font-bold text-[#534F5C] uppercase tracking-wider">Lịch sử đẩy</span>
+      <a href="/odoo" class={`text-[12px] font-bold px-2 py-1 rounded-full ${!direction && !statusFilter ? 'bg-[#17141F] text-white' : 'text-[#534F5C]'}`}>Tất cả</a>
+      <a href="/odoo?status=failed" class={`text-[12px] font-bold px-2 py-1 rounded-full ${statusFilter === 'failed' ? 'bg-[#17141F] text-white' : 'text-[#534F5C]'}`}>Thất bại</a>
+      <a href="/odoo?status=rejected" class={`text-[12px] font-bold px-2 py-1 rounded-full ${statusFilter === 'rejected' ? 'bg-[#17141F] text-white' : 'text-[#534F5C]'}`}>Bị từ chối</a>
+      <a href="/odoo?direction=retry" class={`text-[12px] font-bold px-2 py-1 rounded-full ${direction === 'retry' ? 'bg-[#17141F] text-white' : 'text-[#534F5C]'}`}>Retry</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-[13px] border-collapse">
+        <thead>
+          <tr class="bg-[#FAF8F5] border-b border-[#D8D4D0] text-[#534F5C] text-[11px] font-bold uppercase tracking-wider">
+            <th class="py-3.5 px-4">Thời gian</th>
+            <th class="py-3.5 px-4">Kênh</th>
+            <th class="py-3.5 px-4">Event</th>
+            <th class="py-3.5 px-4">Trạng thái</th>
+            <th class="py-3.5 px-4">HTTP</th>
+            <th class="py-3.5 px-4">Lỗi</th>
+            <th class="py-3.5 px-4"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#F2EFE9]">
+          {logs.map((l) => (
+            <tr class="hover:bg-[#FDFBF7] transition-colors">
+              <td class="py-3.5 px-4 text-[12px] text-[#6A6572] tabular-nums whitespace-nowrap">
+                {formatDateTime(l.created_at)}
+              </td>
+              <td class="py-3.5 px-4 font-mono text-[12px] text-[#17141F]">{l.direction}</td>
+              <td class="py-3.5 px-4 font-mono text-[12px] text-[#17141F]">{l.event_id ?? l.order_number ?? '—'}</td>
+              <td class="py-3.5 px-4"><OdooStatusBadge status={l.status} size="sm" /></td>
+              <td class="py-3.5 px-4 font-mono text-[12px] text-[#6A6572]">{l.http_status ?? '—'}</td>
+              <td class="py-3.5 px-4 text-[12px] text-[#6A6572] max-w-[280px] truncate" title={l.error ?? ''}>
+                {l.error ?? '—'}
+              </td>
+              <td class="py-3.5 px-4 whitespace-nowrap">
+                {(l.status === 'failed' || l.status === 'rejected') && (
+                  <button
+                    type="button"
+                    class="odoo-retry-btn text-[12px] font-bold text-[#D6284F] hover:underline"
+                    data-log-id={l.id}
+                  >
+                    Đẩy lại
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <Pagination meta={logMeta} pathname="/odoo" params={Object.fromEntries(Astro.url.searchParams.entries())} />
+  </div>
+
+  <script>
+    import { mutate } from '../lib/api';
+
+    const resultBox = document.getElementById('odoo-test-result');
+    function showResult(ok: boolean, text: string) {
+      if (!resultBox) return;
+      resultBox.classList.remove('hidden');
+      resultBox.className = `mb-4 text-[13px] font-bold rounded-[8px] border px-4 py-3 ${ok ? 'bg-[#E7F5ED] border-[#BDE3CE] text-[#147A4B]' : 'bg-[#FDEDEC] border-[#F5C6C0] text-[#B42318]'}`;
+      resultBox.textContent = text;
+    }
+
+    document.getElementById('odoo-test-btn')?.addEventListener('click', async () => {
+      showResult(true, 'Đang kiểm tra kết nối Odoo...');
+      const res = await mutate<{ ok?: boolean; http_status?: number; duration_ms?: number }>('/admin/odoo/test', 'POST', {});
+      if (!res.error && res.data?.ok) {
+        showResult(true, `Kết nối Odoo OK · HTTP ${res.data.http_status ?? '?'} · ${res.data.duration_ms ?? '?'}ms`);
+      } else {
+        showResult(false, `Kết nối Odoo thất bại${res.error?.code ? ` (${res.error.code})` : ''}. Xem lịch sử bên dưới.`);
+      }
+      setTimeout(() => window.location.reload(), 1500);
+    });
+
+    document.querySelectorAll<HTMLButtonElement>('.odoo-retry-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Đẩy lại log này sang Odoo?')) return;
+        btn.disabled = true;
+        const res = await mutate<{ ok?: boolean }>('/admin/odoo/retry', 'POST', { log_id: Number(btn.dataset.logId) });
+        if (!res.error && res.data?.ok) {
+          showResult(true, 'Đẩy lại thành công.');
+        } else {
+          showResult(false, 'Đẩy lại thất bại. Xem chi tiết trong lịch sử.');
+        }
+        setTimeout(() => window.location.reload(), 1500);
+      });
+    });
+  </script>
+</AdminLayout>

@@ -1,6 +1,22 @@
 export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'expired';
 export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'partially_refunded';
 export type FulfillmentStatus = 'unfulfilled' | 'preparing' | 'shipped' | 'delivered' | 'returned';
+export type OdooSyncStatus = 'pending' | 'success' | 'rejected' | 'failed';
+export type OdooSyncDirection = 'push' | 'pull' | 'export' | 'test' | 'retry';
+
+export interface OdooSyncLogRow {
+  id: number;
+  direction: OdooSyncDirection;
+  event_id?: string | null;
+  order_number?: string | null;
+  endpoint: string;
+  status: OdooSyncStatus;
+  http_status?: number | null;
+  error?: string | null;
+  attempts: number;
+  duration_ms?: number | null;
+  created_at: string;
+}
 
 export interface OrderLineItem {
   id: string;

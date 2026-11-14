@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AdminCatalogController;
 use App\Http\Controllers\Api\V1\Admin\AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\AdminOperationsController;
+use App\Http\Controllers\Api\V1\Admin\OdooAdminController;
 use App\Http\Controllers\Api\V1\Admin\RbacController;
 use App\Http\Controllers\Api\V1\AiController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -136,5 +137,10 @@ Route::prefix('v1')->group(function () {
         Route::patch('/staff/{id}', [RbacController::class, 'updateStaff'])->middleware('perm:users.manage');
         Route::delete('/staff/{id}', [RbacController::class, 'destroyStaff'])->middleware('perm:users.manage');
         Route::match(['get', 'patch'], '/settings', [AdminCmsController::class, 'settings'])->middleware('perm:settings.manage');
+
+        Route::get('/odoo/status', [OdooAdminController::class, 'status'])->middleware('perm:settings.manage');
+        Route::get('/odoo/logs', [OdooAdminController::class, 'logs'])->middleware('perm:settings.manage');
+        Route::post('/odoo/test', [OdooAdminController::class, 'test'])->middleware('perm:settings.manage');
+        Route::post('/odoo/retry', [OdooAdminController::class, 'retry'])->middleware('perm:settings.manage');
     });
 });

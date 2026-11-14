@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\OdooSyncLog;
 use App\Models\Order;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -45,9 +46,23 @@ class PushOrderToOdoo implements ShouldQueue
             'payment_method' => $payment?->method ?? 'cod',
         ];
         try {
+            $started = (int) (microtime(true) * 1000);
+            $endpoint = rtrim((string) config('odoo.url'), '/').'/api/channel/order_push';
             $res = Http::withHeaders(['X-Channel-Key' => (string) config('odoo.channel_key')])
                 ->timeout((int) config('odoo.timeout', 10))
-                ->post(rtrim((string) config('odoo.url'), '/').'/api/channel/order_push', $payload);
+                ->post($endpoint, $payload);
+            OdooSyncLog::record([
+                'direction' => 'push',
+                'event_id' => $order->order_number,
+                'order_id' => $order->id,
+                'endpoint' => $endpoint,
+                'status' => $res->successful() ? 'success' : 'rejected',
+                'http_status' => $res->status(),
+                'payload' => $payload,
+                'response_body' => $res->successful() ? null : mb_substr((string) $res->body(), 0, 2000),
+                'error' => $res->successful() ? null : 'Odoo push rejected: '.$res->status(),
+                'duration_ms' => (int) (microtime(true) * 1000) - $started,
+            ]);
         } catch (\Throwable $e) {
             // Loi mang/timeout: log + nem de queue retry (failed() log cuoi).
             Log::warning('OdooPush failed: '.$e->getMessage(), ['order' => $order->id]);
@@ -64,5 +79,19 @@ class PushOrderToOdoo implements ShouldQueue
     public function failed(\Throwable $e): void
     {
         Log::warning('OdooPush failed: '.$e->getMessage(), ['order' => $this->orderId]);
+        try {
+            $order = Order::find($this->orderId);
+            OdooSyncLog::record([
+                'direction' => 'push',
+                'event_id' => $order?->order_number,
+                'order_id' => $this->orderId,
+                'endpoint' => rtrim((string) config('odoo.url'), '/').'/api/channel/order_push',
+                'status' => 'failed',
+                'error' => mb_substr($e->getMessage(), 0, 2000),
+                'attempts' => $this->tries,
+            ]);
+        } catch (\Throwable $ignored) {
+            // Log failure must never raise.
+        }
     }
 }

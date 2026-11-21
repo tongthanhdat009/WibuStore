@@ -297,13 +297,13 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
 
     async function refreshTotals() {
       const items = cartPayloadItems();
-      if (items.length === 0) return;
+      if (items.length === 0) return null;
       const calc = await previewTotals({
         items,
         checkout_type: isPreorderCart ? 'preorder' : 'regular',
         ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
       });
-      if (!calc || !subtotalEl || !finalTotalEl) return;
+      if (!calc || !subtotalEl || !finalTotalEl) return null;
       subtotalEl.textContent = formatVND(calc.subtotal);
       if (isPreorderCart && calc.deposit_due > 0) {
         finalTotalEl.textContent = formatVND(calc.deposit_due);
@@ -327,17 +327,17 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
           discountRow.classList.add('hidden');
         }
       }
+      return calc;
     }
 
     document.getElementById('coupon-apply-btn')?.addEventListener('click', async () => {
+      const prevSub = subtotalEl?.textContent ?? '';
+      const prevTotal = finalTotalEl?.textContent ?? '';
+      const prevDisc = discountEl?.textContent ?? '';
+      const prevDiscHidden = discountRow?.classList.contains('hidden') ?? true;
       appliedCoupon = (couponInput?.value || '').trim().toUpperCase();
       if (!appliedCoupon) return;
-      await refreshTotals();
-      const calc = await previewTotals({
-        items: cartPayloadItems(),
-        checkout_type: isPreorderCart ? 'preorder' : 'regular',
-        coupon_code: appliedCoupon,
-      });
+      const calc = await refreshTotals();
       if (couponMsg) {
         couponMsg.classList.remove('hidden');
         if (calc && calc.discount > 0) {
@@ -345,8 +345,16 @@ import StickerBadge from '../components/comic/StickerBadge.astro';
           couponMsg.className = 'text-[11px] font-bold text-[#147A4B]';
         } else {
           appliedCoupon = '';
+          if (discountRow) discountRow.classList.add('hidden');
           couponMsg.textContent = 'Mã không hợp lệ hoặc không đủ điều kiện.';
           couponMsg.className = 'text-[11px] font-bold text-[#D6284F]';
+          const clean = await refreshTotals();
+          if (!clean) {
+            if (subtotalEl && prevSub) subtotalEl.textContent = prevSub;
+            if (finalTotalEl && prevTotal) finalTotalEl.textContent = prevTotal;
+            if (discountEl && prevDisc) discountEl.textContent = prevDisc;
+            if (discountRow) discountRow.classList.toggle('hidden', prevDiscHidden);
+          }
         }
       }
     });

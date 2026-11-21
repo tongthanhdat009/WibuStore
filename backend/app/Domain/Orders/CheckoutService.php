@@ -21,6 +21,10 @@ use Illuminate\Support\Str;
 
 class CheckoutService
 {
+    public const FLAT_SHIPPING_FEE = 30000;
+
+    public const FREE_SHIPPING_THRESHOLD = 1500000;
+
     public function __construct(
         protected InventoryService $inventory,
         protected PreorderService $preorders,
@@ -194,7 +198,7 @@ class CheckoutService
             }
         }
 
-        $shipping = $subtotal > 0 ? 30000 : 0;
+        $shipping = $subtotal >= self::FREE_SHIPPING_THRESHOLD ? 0 : ($subtotal > 0 ? self::FLAT_SHIPPING_FEE : 0);
         $total = max(0, $subtotal - $discount + $shipping);
         $deposit_due = 0;
         if ($isPreorder && isset($campaign)) {

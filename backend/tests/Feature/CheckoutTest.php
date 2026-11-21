@@ -60,4 +60,48 @@ class CheckoutTest extends TestCase
         $this->postJson("/api/v1/orders/{$order['id']}/cancel")->assertOk();
         $this->assertSame(0, InventoryLevel::where('variant_id', $v->id)->first()->reserved);
     }
+
+    public function test_preview_invalid_coupon_matches_no_coupon_totals(): void
+    {
+        $v = ProductVariant::where('sku', 'GSC-MEGUMI-18-STD')->firstOrFail();
+        $base = ['items' => [['variant_id' => $v->id, 'quantity' => 1]], 'checkout_type' => 'regular'];
+
+        $clean = $this->postJson('/api/v1/checkout/preview', $base)->assertOk()->json('data');
+        $invalid = $this->postJson('/api/v1/checkout/preview', $base + ['coupon_code' => 'SAI123'])
+            ->assertOk()->json('data');
+
+        // An invalid code must be a no-op: same money as no code at all.
+        $this->assertSame(0, $invalid['discount']);
+        $this->assertSame($clean['subtotal'], $invalid['subtotal']);
+        $this->assertSame($clean['shipping'], $invalid['shipping']);
+        $this->assertSame($clean['total'], $invalid['total']);
+    }
+
+    public function test_preview_free_shipping_threshold(): void
+    {
+        $v = ProductVariant::where('sku', 'GSC-MEGUMI-18-STD')->firstOrFail();
+
+        // 4.200.000 >= 1.500.000 -> free shipping, total equals subtotal.
+        $big = $this->postJson('/api/v1/checkout/preview', [
+            'items' => [['variant_id' => $v->id, 'quantity' => 1]], 'checkout_type' => 'regular',
+        ])->assertOk()->json('data');
+        $this->assertSame(4200000, $big['subtotal']);
+        $this->assertSame(0, $big['shipping']);
+        $this->assertSame($big['subtotal'], $big['total']);
+
+        // 100.000 < 1.500.000 -> flat 30.000 fee.
+        $cheap = new ProductVariant;
+        $cheap->product_id = $v->product_id;
+        $cheap->sku = 'TEST-CHEAP-100K';
+        $cheap->label = 'Standard';
+        $cheap->price_amount = 100000;
+        $cheap->status = 'active';
+        $cheap->save();
+
+        $small = $this->postJson('/api/v1/checkout/preview', [
+            'items' => [['variant_id' => $cheap->id, 'quantity' => 1]], 'checkout_type' => 'regular',
+        ])->assertOk()->json('data');
+        $this->assertSame(30000, $small['shipping']);
+        $this->assertSame(130000, $small['total']);
+    }
 }
